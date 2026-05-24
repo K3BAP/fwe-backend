@@ -14,7 +14,7 @@ export default function StartPage() {
     <Centered>
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <img src="/icon.svg" alt="" className="mx-auto h-20 w-20" />
+          <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className="mx-auto h-20 w-20" />
           <h1 className="mt-4 text-2xl font-bold text-slate-900">City-Rallye</h1>
           <p className="mt-1 text-slate-600">FSR Informatik · Universität Trier</p>
         </div>

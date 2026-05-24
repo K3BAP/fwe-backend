@@ -30,7 +30,7 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
     body = JSON.stringify(opts.body)
   }
 
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${import.meta.env.BASE_URL}api${path}`, {
     method: opts.method ?? (body ? 'POST' : 'GET'),
     headers,
     body,

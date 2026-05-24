@@ -12,7 +12,7 @@ export default function ParticipantsPage() {
 
   const makeLink = async (participantId: number) => {
     const res = await reissue.mutateAsync(participantId)
-    const url = `${window.location.origin}/s/${res.token}`
+    const url = `${window.location.origin}${import.meta.env.BASE_URL}s/${res.token}`
     setLinks((prev) => ({ ...prev, [participantId]: url }))
     await navigator.clipboard.writeText(url).catch(() => {})
   }

@@ -21,7 +21,7 @@ export default function AdminLayout() {
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-2">
-            <img src="/icon.svg" alt="" className="h-8 w-8" />
+            <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className="h-8 w-8" />
             <span className="font-bold text-slate-900">City-Rallye Admin</span>
           </div>
           <nav className="flex items-center gap-1 text-sm">

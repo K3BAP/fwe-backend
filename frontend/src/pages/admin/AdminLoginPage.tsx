@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
     <Centered>
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <img src="/icon.svg" alt="" className="mx-auto h-16 w-16" />
+          <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className="mx-auto h-16 w-16" />
           <h1 className="mt-3 text-xl font-bold text-slate-900">Admin-Anmeldung</h1>
         </div>
         <Card>

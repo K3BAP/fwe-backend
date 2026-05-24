@@ -50,7 +50,7 @@ function RallyeCard({ rallye }: { rallye: Rallye }) {
   const [showQr, setShowQr] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const joinUrl = `${window.location.origin}/r/${rallye.join_code}`
+  const joinUrl = `${window.location.origin}${import.meta.env.BASE_URL}r/${rallye.join_code}`
 
   const copy = async () => {
     await navigator.clipboard.writeText(joinUrl)
