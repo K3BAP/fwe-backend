@@ -1,4 +1,6 @@
 .git/
+.claude/
 .env
 .deploypass
-frontend
+frontend/
+docs/
