@@ -1,0 +1,48 @@
+You are a senior full-stack web solution architect and UI/UX expert. Your task is to develop an application for tracking city rallies for the Fachschaftsrat Informatik (Computer Science Student Council) of the Trier University. Here is a brief description of the basic features:
+
+A group of participants takes part in a city rallye. At different locations, there are tasks ("Stationen") for them to fulfill. Every task has an "Answer" which can be found at the respective location, for example on a sign, on a building or by observing the environment.
+
+# Usage Workflow
+The Workflow should be as follows:
+
+An admin can create city rallies and set up the tasks that the participants should fulfill. Then the admin can share a link/QR code to that rallye. Using the link, the participants can sign up for that particular rallye. They are asked for their user name, and then proceed to the next step.
+
+Multiple participants can form teams: The admin can select whether the participants should be able to form teams or not, and if, he can set a maximum team size or preset a number of teams. Teams fulfill all tasks together and act as one player in the leaderboard. Every team member can submit answers. If teams are enabled, the participants should, after they chose their user name, be presented with a screen where they select a team they want to join, or create a team by setting a team name.
+
+When they are all set up and (if the admin set it up) joined a team, they see the rallye tasks and can begin fulfilling them. No teams enabled = every player has its own 1-player team internally, invisible to the players.
+
+There are different types of tasks. Some of them get evaluated automatically (i.e. multiple choice), some get evaluated by the admin afterwards (i.e. free text), and some are set by an on-site admin (i.e. record time in a race, achieved points in a physical game like Flunkyball). Feel free to suggest other cool types of tasks.
+
+Tasks that are evaluated automatically give instant feedback to the participants, after they submitted their answer. They should not be able to change their answer after it is submitted once.
+
+Admin-evaluated tasks do not always give instant feedback, because sometimes the admin decides if the answer was correct or not. When setting up such a task, the admin should be able to provide one or more sample solutions that get evaluated as "correct" automatically, but all answers that do not match one of the sample solutions should be manually evaluated by an admin. In the admin view, there should be a dedicated area where admins can see the "pending for evaluation" answers. As soon as the answer is evaluated, the participants can see their points.
+
+For on-site admin tasks, every participant / team should be able to show a QR code that an admin can scan to set the "record time" or "achieved points" for that task. Workflow here as follows: Admin selects the task he is responsible for and opens a QR code scanner, participants are presented with a QR code when they select such a task in the overview. Admin scans the code, is prompted to enter the record time / achieved points, submits the result. After the admin submitted the result, the participants should be able to see their achieved points immediately. For times, the points should be given as follows: Last place: 0, .... First place: n-1 points where n is the number of teams.
+
+Additionally, there should be a leaderboard where the participants can see how the other teams are doing compared to themselves.
+
+
+# Technical details
+The application will consist of three parts:
+- A Vite / React Web Application, especially optimized for mobile view, but admin view should also work on desktop.
+- A PHP / CodeIgniter based RESTful API.
+- A MySQL database.
+
+Other technical requirements:
+- Use Tailwind css for styling. The app should look like a modern, state of the art web app.
+- Be aware that we have several different use cases for the frontend: the mobile view for the participants that entered a rallye, the mobile view for on-site admins and a desktop view for the admins that set up the rallye in the first place.
+- Use Zustand for global state management.
+- Use a library for managing remote state.
+- All strings should be in German.
+- The App should be a PWA so that the participants can install the app directly. Include a detection mechanism that suggests installing the app when a participant scans a rallye QR code. On supported browsers, show a "install now" button. After the user scans the QR code, immediately persist the loaded rallye id in local storage so that it does not get closed until the participant explicitly decides to leave the rallye.
+- Implement explicit username-password authentication for admins. Admins should be able to create and manage other admin accounts.
+- Participant users should be created on-the-fly, without them having to select a password. The authentication info should be stored in local storage only. In case a participant lost his session, an admin should be able to send him a new login link that brings back the session.
+
+## Frontend
+
+# Architecture
+In the project root you find a freshly initialized codeigniter project you can work with. I only added two deploy scripts to deploy to a local MAMP server and to a remote webspace. The frontend project should be scaffolded inside the ./frontend directory and for production deployment it should be served through the ./public folder of the codeigniter project. I already created the folder and added it to .deployignore.
+
+For the database schema, just create an SQL script which I then run through phpmyadmin. The database name is "db_team15" and it is already set up. Create a new directory for sql files, and also create a script that creates a sample rallye I can work with, without having to add it manually. The example rallye should be themed for the City of Trier.
+
+If you are uncertain at some point of the implementation, ask instead of just assuming. Avoid shortcuts that introduce anti patterns and bad smells. The resulting architecture should be well maintainable. You should also create a brief documentation on the capabilities of the application.
