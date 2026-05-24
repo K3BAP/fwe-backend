@@ -1,0 +1,113 @@
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useSession } from '../../store/session'
+import { useInstallPrompt } from '../../lib/install'
+import { useJoin, useRallyeByCode } from '../../api/participant'
+import { ApiError } from '../../api/client'
+import { Button, Card, Centered, ErrorText, Input, Label, Spinner } from '../../components/ui'
+
+export default function JoinPage() {
+  const { code } = useParams<{ code: string }>()
+  const navigate = useNavigate()
+  const session = useSession()
+  const { canInstall, isStandalone, promptInstall } = useInstallPrompt()
+  const [name, setName] = useState('')
+  const [error, setError] = useState('')
+
+  // Rallye-Code sofort persistieren, damit die Sitzung erhalten bleibt.
+  useEffect(() => {
+    if (code) session.setRallye(code)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code])
+
+  const { data: rallye, isLoading, isError } = useRallyeByCode(code)
+  const join = useJoin()
+
+  // Bereits angemeldet? Direkt in die Rallye.
+  useEffect(() => {
+    if (session.token) navigate('/rallye', { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.token])
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!code || !name.trim()) return
+    setError('')
+    try {
+      const res = await join.mutateAsync({ code, displayName: name.trim() })
+      session.setToken(res.token)
+      session.setRallye(code, res.rallye.id)
+      navigate(res.rallye.teams_enabled ? '/rallye/team' : '/rallye', { replace: true })
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Beitritt fehlgeschlagen.')
+    }
+  }
+
+  if (isLoading)
+    return (
+      <Centered>
+        <Spinner />
+      </Centered>
+    )
+
+  if (isError || !rallye)
+    return (
+      <Centered>
+        <Card className="max-w-md text-center">
+          <h1 className="text-lg font-semibold text-slate-900">Rallye nicht gefunden</h1>
+          <p className="mt-2 text-slate-600">Bitte überprüfe den QR-Code oder Beitritts-Code.</p>
+          <Button className="mt-4 w-full" onClick={() => navigate('/')}>
+            Zurück
+          </Button>
+        </Card>
+      </Centered>
+    )
+
+  return (
+    <Centered>
+      <div className="w-full max-w-md space-y-5">
+        <div className="text-center">
+          {rallye.theme && <p className="text-sm font-medium text-indigo-600">{rallye.theme}</p>}
+          <h1 className="mt-1 text-2xl font-bold text-slate-900">{rallye.title}</h1>
+          {rallye.description && <p className="mt-2 text-slate-600">{rallye.description}</p>}
+        </div>
+
+        {canInstall && !isStandalone && (
+          <Card className="bg-indigo-50 ring-indigo-200">
+            <p className="text-sm text-indigo-900">
+              Installiere die App für das beste Erlebnis und schnellen Zugriff.
+            </p>
+            <Button variant="secondary" className="mt-3 w-full" onClick={promptInstall}>
+              Jetzt installieren
+            </Button>
+          </Card>
+        )}
+
+        {rallye.status !== 'active' ? (
+          <Card className="text-center">
+            <p className="text-slate-700">Diese Rallye ist derzeit nicht aktiv.</p>
+          </Card>
+        ) : (
+          <Card>
+            <form className="space-y-4" onSubmit={submit}>
+              <div>
+                <Label>Dein Name</Label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Wie heißt du?"
+                  maxLength={80}
+                  autoFocus
+                />
+              </div>
+              <ErrorText>{error}</ErrorText>
+              <Button type="submit" className="w-full" disabled={!name.trim() || join.isPending}>
+                {join.isPending ? 'Trete bei…' : 'Mitmachen'}
+              </Button>
+            </form>
+          </Card>
+        )}
+      </div>
+    </Centered>
+  )
+}

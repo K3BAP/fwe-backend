@@ -19,14 +19,39 @@ use CodeIgniter\Config\BaseService;
  */
 class Services extends BaseService
 {
-    /*
-     * public static function example($getShared = true)
-     * {
-     *     if ($getShared) {
-     *         return static::getSharedInstance('example');
-     *     }
-     *
-     *     return new \CodeIgniter\Example();
-     * }
+    /**
+     * Im aktuellen Request authentifizierte Identität (Admin/Teilnehmer).
      */
+    public static function authState($getShared = true): \App\Libraries\AuthState
+    {
+        if ($getShared) {
+            return static::getSharedInstance('authState');
+        }
+
+        return new \App\Libraries\AuthState();
+    }
+
+    /**
+     * Bewertet eine einzelne Abgabe bei der Abgabe (deterministische Typen).
+     */
+    public static function grading($getShared = true): \App\Services\GradingService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('grading');
+        }
+
+        return new \App\Services\GradingService();
+    }
+
+    /**
+     * Berechnet Punkte/Leaderboard beim Lesen (inkl. rangbasierter Typen).
+     */
+    public static function scoring($getShared = true): \App\Services\ScoringService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('scoring');
+        }
+
+        return new \App\Services\ScoringService();
+    }
 }

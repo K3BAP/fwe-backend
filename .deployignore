@@ -1,3 +1,4 @@
 .git/
 .env
 .deploypass
+frontend
