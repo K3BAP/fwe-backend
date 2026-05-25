@@ -3,6 +3,7 @@ import { useMe, useTasks } from '../../api/participant'
 import type { ParticipantTask } from '../../api/types'
 import { TASK_TYPE_LABEL } from '../../lib/taskTypes'
 import { Badge, Card, Spinner } from '../../components/ui'
+import InstallBanner from '../../components/InstallBanner'
 
 function statusBadge(task: ParticipantTask) {
   const sub = task.submission
@@ -30,6 +31,8 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-4">
+      <InstallBanner />
+
       <Card className="flex items-center justify-between bg-gradient-to-br from-indigo-600 to-indigo-500 text-white ring-0">
         <span className="text-sm font-medium text-indigo-100">Deine Punkte</span>
         <span className="text-3xl font-bold">{total}</span>

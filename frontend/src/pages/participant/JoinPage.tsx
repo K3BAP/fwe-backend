@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useSession } from '../../store/session'
-import { useInstallPrompt } from '../../lib/install'
 import { useJoin, useRallyeByCode } from '../../api/participant'
 import { ApiError } from '../../api/client'
 import { Button, Card, Centered, ErrorText, Input, Label, Spinner } from '../../components/ui'
@@ -10,7 +9,6 @@ export default function JoinPage() {
   const { code } = useParams<{ code: string }>()
   const navigate = useNavigate()
   const session = useSession()
-  const { canInstall, isStandalone, promptInstall } = useInstallPrompt()
   const [name, setName] = useState('')
   const [error, setError] = useState('')
 
@@ -71,17 +69,6 @@ export default function JoinPage() {
           <h1 className="mt-1 text-2xl font-bold text-slate-900">{rallye.title}</h1>
           {rallye.description && <p className="mt-2 text-slate-600">{rallye.description}</p>}
         </div>
-
-        {canInstall && !isStandalone && (
-          <Card className="bg-indigo-50 ring-indigo-200">
-            <p className="text-sm text-indigo-900">
-              Installiere die App für das beste Erlebnis und schnellen Zugriff.
-            </p>
-            <Button variant="secondary" className="mt-3 w-full" onClick={promptInstall}>
-              Jetzt installieren
-            </Button>
-          </Card>
-        )}
 
         {rallye.status !== 'active' ? (
           <Card className="text-center">

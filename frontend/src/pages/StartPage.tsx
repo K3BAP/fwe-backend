@@ -1,14 +1,35 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import { Scanner, type IDetectedBarcode } from '@yudiel/react-qr-scanner'
 import { useSession } from '../store/session'
 import { Button, Card, Centered, Input, Label } from '../components/ui'
+
+/** Beitritts-Code aus einem gescannten Link (…/r/<code>) oder Rohwert lösen. */
+function extractJoinCode(raw: string): string | null {
+  const match = raw.match(/\/r\/([^/?#]+)/)
+  if (match) return decodeURIComponent(match[1])
+  // Reiner Code ohne URL (kein Slash/Leerzeichen) ebenfalls akzeptieren.
+  const trimmed = raw.trim()
+  return /^[^\s/]+$/.test(trimmed) ? trimmed : null
+}
 
 export default function StartPage() {
   const token = useSession((s) => s.token)
   const navigate = useNavigate()
   const [code, setCode] = useState('')
+  const [scanning, setScanning] = useState(false)
 
   if (token) return <Navigate to="/rallye" replace />
+
+  const onScan = (codes: IDetectedBarcode[]) => {
+    const raw = codes[0]?.rawValue
+    if (!raw) return
+    const joinCode = extractJoinCode(raw)
+    if (joinCode) {
+      setScanning(false)
+      navigate(`/r/${joinCode}`)
+    }
+  }
 
   return (
     <Centered>
@@ -43,6 +64,23 @@ export default function StartPage() {
               Zur Rallye
             </Button>
           </form>
+
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            {scanning ? (
+              <div className="space-y-3">
+                <div className="overflow-hidden rounded-xl">
+                  <Scanner onScan={onScan} components={{ finder: true }} />
+                </div>
+                <Button variant="secondary" className="w-full" onClick={() => setScanning(false)}>
+                  Abbrechen
+                </Button>
+              </div>
+            ) : (
+              <Button variant="secondary" className="w-full" onClick={() => setScanning(true)}>
+                QR-Code scannen
+              </Button>
+            )}
+          </div>
         </Card>
 
         <div className="text-center">
