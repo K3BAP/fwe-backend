@@ -74,7 +74,11 @@ class AuthController extends ApiController
     {
         $participant = $this->currentParticipant();
         $rallye      = (new RallyeModel())->find($participant['rallye_id']);
-        $team        = $participant['team_id'] ? (new TeamModel())->find($participant['team_id']) : null;
+        $teamModel   = new TeamModel();
+        $team        = $participant['team_id'] ? $teamModel->find($participant['team_id']) : null;
+        if ($team) {
+            $team['member_count'] = $teamModel->memberCount((int) $team['id']);
+        }
 
         return $this->respond([
             'participant' => $participant,

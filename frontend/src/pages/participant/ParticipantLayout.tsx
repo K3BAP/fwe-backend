@@ -50,19 +50,33 @@ export default function ParticipantLayout() {
         initial={{ y: -16, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="safe-top sticky top-0 z-10 flex items-center justify-between gap-3 bg-brand-600 px-4 py-3 text-white shadow-lift"
+        className="safe-top sticky top-0 z-10 border-b border-white/10 bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lift"
       >
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{data.rallye.title}</p>
-          <p className="truncate text-xs text-brand-200">
-            {data.team ? data.team.name : data.participant.display_name}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <ThemeToggle className="text-white" />
-          <button onClick={leave} className="rounded-lg px-2 py-1 text-sm text-brand-100 transition-colors hover:bg-brand-500">
-            Verlassen
-          </button>
+        <div className="flex items-center gap-3 px-4 py-3">
+          <img
+            src={`${import.meta.env.BASE_URL}icon.svg`}
+            alt=""
+            className="h-9 w-9 shrink-0 rounded-xl bg-white/15 p-1.5 shadow-sm ring-1 ring-white/20"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold leading-tight">{data.rallye.title}</p>
+            <span className="mt-0.5 inline-flex max-w-full items-center gap-1.5 rounded-full bg-white/15 px-2 py-0.5 text-xs font-medium ring-1 ring-white/15">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-white/70" />
+              <span className="truncate">{data.team ? data.team.name : data.participant.display_name}</span>
+            </span>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <ThemeToggle className="text-white" />
+            <button
+              onClick={leave}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-white/20"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+              </svg>
+              <span>Verlassen</span>
+            </button>
+          </div>
         </div>
       </motion.header>
 
