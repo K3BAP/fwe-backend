@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { QRCodeSVG } from 'qrcode.react'
 import { useParticipants, useReissue } from '../../api/admin'
 import { Badge, Button, Card, Spinner } from '../../components/ui'
 
@@ -42,9 +43,12 @@ export default function ParticipantsPage() {
               </Button>
             </div>
             {links[p.id] && (
-              <div className="rounded-lg bg-slate-50 p-2">
-                <p className="text-xs text-slate-500">Link kopiert – an den Teilnehmer senden:</p>
-                <code className="break-all text-xs text-indigo-700">{links[p.id]}</code>
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="text-xs text-slate-500">QR-Code scannen lassen oder Link senden:</p>
+                <div className="mt-2 flex justify-center">
+                  <QRCodeSVG value={links[p.id]} size={180} className="rounded bg-white p-2" />
+                </div>
+                <code className="mt-2 block break-all text-xs text-indigo-700">{links[p.id]}</code>
               </div>
             )}
           </Card>
