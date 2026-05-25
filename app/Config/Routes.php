@@ -59,6 +59,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], static function ($
         $routes->post('submissions/(:num)/evaluate', 'Admin\\EvaluationController::evaluate/$1');
         $routes->post('submissions/onsite', 'Admin\\EvaluationController::onsite');
 
+        // Leaderboard / Auswertung
+        $routes->get('rallyes/(:num)/leaderboard', 'Admin\\LeaderboardAdminController::index/$1');
+
         // Teilnehmer- & Admin-Verwaltung
         $routes->get('rallyes/(:num)/participants', 'Admin\\ParticipantAdminController::index/$1');
         $routes->post('participants/(:num)/reissue', 'Admin\\ParticipantAdminController::reissue/$1');

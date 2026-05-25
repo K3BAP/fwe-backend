@@ -112,6 +112,9 @@ function RallyeCard({ rallye }: { rallye: Rallye }) {
         <Link to={`/admin/rallye/${rallye.id}/participants`} className="text-indigo-600 hover:underline">
           Teilnehmer
         </Link>
+        <Link to={`/admin/rallye/${rallye.id}/leaderboard`} className="text-indigo-600 hover:underline">
+          Rangliste
+        </Link>
         <button
           onClick={() => {
             if (confirm(`Rallye „${rallye.title}" wirklich löschen?`)) del.mutate(rallye.id)

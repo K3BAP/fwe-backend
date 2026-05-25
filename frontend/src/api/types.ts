@@ -102,6 +102,24 @@ export interface PendingSubmission {
   submitted_at: string
 }
 
+export interface AdminLeaderboardTask {
+  id: number
+  title: string
+  type: TaskType
+  max_points: number
+}
+
+export interface TaskScore {
+  status: SubmissionStatus
+  points: number | null
+}
+
+export interface AdminLeaderboard {
+  leaderboard: LeaderboardRow[]
+  tasks: AdminLeaderboardTask[]
+  breakdowns: Record<number, Record<number, TaskScore>>
+}
+
 export interface AdminUser {
   id: number
   username: string

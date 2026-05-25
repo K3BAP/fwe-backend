@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import { useAdminAuth } from '../store/adminAuth'
 import type {
+  AdminLeaderboard,
   AdminParticipant,
   AdminTask,
   AdminUser,
@@ -129,6 +130,15 @@ export function useOnsiteSubmit() {
         body: vars,
         token: token(),
       }),
+  })
+}
+
+// --- Leaderboard ---
+export function useAdminLeaderboard(rallyeId: number) {
+  return useQuery({
+    queryKey: ['admin', 'leaderboard', rallyeId],
+    refetchInterval: 8000,
+    queryFn: () => api<AdminLeaderboard>(`/admin/rallyes/${rallyeId}/leaderboard`, { token: token() }),
   })
 }
 

@@ -17,6 +17,7 @@ import RallyeEditorPage from './pages/admin/RallyeEditorPage'
 import EvaluationPage from './pages/admin/EvaluationPage'
 import ScannerPage from './pages/admin/ScannerPage'
 import ParticipantsPage from './pages/admin/ParticipantsPage'
+import AdminLeaderboardPage from './pages/admin/LeaderboardPage'
 import AdminsPage from './pages/admin/AdminsPage'
 
 function RequireParticipant({ children }: { children: ReactNode }) {
@@ -67,6 +68,7 @@ export default function App() {
         <Route path="rallye/:id" element={<RallyeEditorPage />} />
         <Route path="rallye/:id/evaluate" element={<EvaluationPage />} />
         <Route path="rallye/:id/participants" element={<ParticipantsPage />} />
+        <Route path="rallye/:id/leaderboard" element={<AdminLeaderboardPage />} />
         <Route path="scan" element={<ScannerPage />} />
         <Route path="admins" element={<AdminsPage />} />
       </Route>
