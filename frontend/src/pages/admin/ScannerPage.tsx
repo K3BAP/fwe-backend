@@ -45,7 +45,7 @@ export default function ScannerPage() {
     }
   }
 
-  const activeTask = onsiteTasks.find((t) => t.id === taskId)
+  const activeTask = onsiteTasks.find((t) => Number(t.id) === taskId)
 
   return (
     <div className="mx-auto max-w-md space-y-5">
@@ -78,8 +78,8 @@ export default function ScannerPage() {
             <select
               value={taskId ?? ''}
               onChange={(e) => {
-                const t = onsiteTasks.find((x) => x.id === Number(e.target.value))
-                setTaskId(t?.id ?? null)
+                const t = onsiteTasks.find((x) => Number(x.id) === Number(e.target.value))
+                setTaskId(t ? Number(t.id) : null)
                 setTaskType(t?.type ?? null)
               }}
               className="w-full rounded-xl border border-slate-300 px-4 py-3"
