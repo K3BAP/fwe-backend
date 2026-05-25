@@ -4,7 +4,6 @@ import type { ParticipantTask } from '../../api/types'
 import { TASK_TYPE_LABEL } from '../../lib/taskTypes'
 import { Badge, Card, Skeleton } from '../../components/ui'
 import { CountUp, Item, Stagger } from '../../components/motion'
-import InstallBanner from '../../components/InstallBanner'
 
 function statusBadge(task: ParticipantTask) {
   const sub = task.submission
@@ -45,8 +44,6 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-4">
-      <InstallBanner />
-
       <Card className="flex items-center justify-between bg-gradient-to-br from-brand-600 to-brand-500 text-white ring-0">
         <span className="text-sm font-medium text-brand-100">Deine Punkte</span>
         <CountUp value={total} className="text-3xl font-bold" />

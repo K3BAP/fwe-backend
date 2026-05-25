@@ -36,7 +36,7 @@ export default function JoinPage() {
       const res = await join.mutateAsync({ code, displayName: name.trim() })
       session.setToken(res.token)
       session.setRallye(code, res.rallye.id)
-      navigate(res.rallye.teams_enabled ? '/rallye/team' : '/rallye', { replace: true })
+      navigate(res.rallye.teams_enabled ? '/rallye/team' : '/install', { replace: true })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Beitritt fehlgeschlagen.')
     }

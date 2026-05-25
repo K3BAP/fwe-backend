@@ -25,7 +25,7 @@ export default function TeamPage() {
     setError('')
     try {
       await fn()
-      navigate('/rallye', { replace: true })
+      navigate('/install', { replace: true })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Aktion fehlgeschlagen.')
     }

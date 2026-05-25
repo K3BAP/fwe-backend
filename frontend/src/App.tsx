@@ -5,6 +5,7 @@ import { useAdminAuth } from './store/adminAuth'
 import StartPage from './pages/StartPage'
 import JoinPage from './pages/participant/JoinPage'
 import RestorePage from './pages/participant/RestorePage'
+import InstallScreen from './pages/participant/InstallScreen'
 import ParticipantLayout from './pages/participant/ParticipantLayout'
 import TeamPage from './pages/participant/TeamPage'
 import TasksPage from './pages/participant/TasksPage'
@@ -38,6 +39,16 @@ export default function App() {
       <Route path="/" element={<StartPage />} />
       <Route path="/r/:code" element={<JoinPage />} />
       <Route path="/s/:token" element={<RestorePage />} />
+
+      {/* PWA-Installation: Vollbild-Schritt direkt nach dem Beitritt. */}
+      <Route
+        path="/install"
+        element={
+          <RequireParticipant>
+            <InstallScreen />
+          </RequireParticipant>
+        }
+      />
 
       {/* Teilnehmer-Bereich */}
       <Route
