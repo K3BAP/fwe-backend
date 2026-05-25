@@ -4,6 +4,7 @@ import {
   useAdminTasks,
   useDeleteTask,
   useRallye,
+  useReorderTasks,
   useSaveRallye,
   useSaveTask,
   type TaskInput,
@@ -11,9 +12,8 @@ import {
 import type { AdminTask, Rallye, TaskType } from '../../api/types'
 import { TASK_TYPE_LABEL } from '../../lib/taskTypes'
 import { ApiError } from '../../api/client'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, Reorder } from 'motion/react'
 import { Badge, Button, Card, ErrorText, Input, Label, Skeleton, Textarea } from '../../components/ui'
-import { Item, Stagger } from '../../components/motion'
 import { GpsTaskMap } from '../../components/GpsTaskMap'
 import { spring } from '../../lib/motion'
 
@@ -154,7 +154,20 @@ function SettingsForm({ rallye }: { rallye: Rallye }) {
 function TasksSection({ rallyeId }: { rallyeId: number }) {
   const { data: tasks, isLoading } = useAdminTasks(rallyeId)
   const del = useDeleteTask(rallyeId)
+  const reorder = useReorderTasks(rallyeId)
   const [editing, setEditing] = useState<AdminTask | 'new' | null>(null)
+  const [order, setOrder] = useState<AdminTask[]>(tasks ?? [])
+  const [prevTasks, setPrevTasks] = useState(tasks)
+
+  if (tasks !== prevTasks) {
+    setPrevTasks(tasks)
+    setOrder(tasks ?? [])
+  }
+
+  const handleReorder = (next: AdminTask[]) => {
+    setOrder(next)
+    reorder.mutate(next.map((t) => t.id))
+  }
 
   return (
     <Card className="space-y-4">
@@ -164,50 +177,50 @@ function TasksSection({ rallyeId }: { rallyeId: number }) {
       </div>
 
       {isLoading && <Skeleton className="h-16 w-full" />}
-      <Stagger className="space-y-2">
-        <AnimatePresence initial={false}>
-          {tasks?.map((task) => (
-            <Item key={task.id}>
-              <motion.div
-                layout
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={spring}
-                className="flex items-center justify-between rounded-xl border border-line px-4 py-3"
+      <Reorder.Group axis="y" values={order} onReorder={handleReorder} className="space-y-2">
+        {order.map((task) => (
+          <Reorder.Item
+            key={task.id}
+            value={task}
+            className="flex cursor-grab items-center justify-between rounded-xl border border-line bg-surface px-4 py-3 active:cursor-grabbing"
+          >
+            <div className="flex items-center gap-3">
+              <span className="select-none text-muted" aria-hidden>
+                ⠿
+              </span>
+              <div>
+                <p className="font-semibold text-fg">
+                  {task.title}
+                </p>
+                <p className="text-xs text-muted">
+                  <Badge tone="indigo">{TASK_TYPE_LABEL[task.type]}</Badge> · {task.max_points} Pkt.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 text-sm font-medium">
+              <button
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => setEditing(task)}
+                className="text-brand-600 hover:underline dark:text-brand-300"
               >
-                <div>
-                  <p className="font-semibold text-fg">
-                    {task.position}. {task.title}
-                  </p>
-                  <p className="text-xs text-muted">
-                    <Badge tone="indigo">{TASK_TYPE_LABEL[task.type]}</Badge> · {task.max_points} Pkt.
-                  </p>
-                </div>
-                <div className="flex gap-3 text-sm font-medium">
-                  <button onClick={() => setEditing(task)} className="text-brand-600 hover:underline dark:text-brand-300">
-                    Bearbeiten
-                  </button>
-                  <button
-                    onClick={() => confirm('Aufgabe löschen?') && del.mutate(task.id)}
-                    className="text-red-600 hover:underline dark:text-red-400"
-                  >
-                    Löschen
-                  </button>
-                </div>
-              </motion.div>
-            </Item>
-          ))}
-        </AnimatePresence>
-        {tasks?.length === 0 && <p className="text-muted">Noch keine Aufgaben.</p>}
-      </Stagger>
+                Bearbeiten
+              </button>
+              <button
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => confirm('Aufgabe löschen?') && del.mutate(task.id)}
+                className="text-red-600 hover:underline dark:text-red-400"
+              >
+                Löschen
+              </button>
+            </div>
+          </Reorder.Item>
+        ))}
+      </Reorder.Group>
+      {order.length === 0 && !isLoading && <p className="text-muted">Noch keine Aufgaben.</p>}
 
       <AnimatePresence>
         {editing && (
-          <TaskEditor
-            rallyeId={rallyeId}
-            task={editing === 'new' ? null : editing}
-            nextPosition={(tasks?.length ?? 0) + 1}
-            onClose={() => setEditing(null)}
-          />
+          <TaskEditor rallyeId={rallyeId} task={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />
         )}
       </AnimatePresence>
     </Card>
@@ -228,12 +241,10 @@ const ALL_TYPES: TaskType[] = [
 function TaskEditor({
   rallyeId,
   task,
-  nextPosition,
   onClose,
 }: {
   rallyeId: number
   task: AdminTask | null
-  nextPosition: number
   onClose: () => void
 }) {
   const save = useSaveTask(rallyeId)
@@ -242,7 +253,6 @@ function TaskEditor({
   const [title, setTitle] = useState(task?.title ?? '')
   const [prompt, setPrompt] = useState(task?.prompt ?? '')
   const [maxPoints, setMaxPoints] = useState((task?.max_points ?? 10).toString())
-  const [position, setPosition] = useState((task?.position ?? nextPosition).toString())
 
   // config-Felder
   const [choices, setChoices] = useState<string[]>(task?.config.choices ?? ['', ''])
@@ -284,7 +294,6 @@ function TaskEditor({
       type,
       title: title.trim(),
       prompt: prompt.trim(),
-      position: Number(position) || 0,
       max_points: Number(maxPoints) || 0,
       config: buildConfig(),
     }
@@ -337,15 +346,9 @@ function TaskEditor({
           <Label>Aufgabentext</Label>
           <Textarea rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Max. Punkte</Label>
-            <Input type="number" value={maxPoints} onChange={(e) => setMaxPoints(e.target.value)} />
-          </div>
-          <div>
-            <Label>Position</Label>
-            <Input type="number" value={position} onChange={(e) => setPosition(e.target.value)} />
-          </div>
+        <div>
+          <Label>Max. Punkte</Label>
+          <Input type="number" value={maxPoints} onChange={(e) => setMaxPoints(e.target.value)} />
         </div>
 
         {/* Typspezifische Konfiguration */}

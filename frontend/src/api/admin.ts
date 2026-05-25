@@ -78,7 +78,6 @@ export interface TaskInput {
   type: TaskType
   title: string
   prompt: string
-  position: number
   max_points: number
   config: TaskConfig
 }
@@ -99,6 +98,31 @@ export function useDeleteTask(rallyeId: number) {
   return useMutation({
     mutationFn: (id: number) => api(`/admin/tasks/${id}`, { method: 'DELETE', token: token() }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'tasks', rallyeId] }),
+  })
+}
+
+export function useReorderTasks(rallyeId: number) {
+  const qc = useQueryClient()
+  const key = ['admin', 'tasks', rallyeId]
+  return useMutation({
+    mutationFn: (order: number[]) =>
+      api(`/admin/rallyes/${rallyeId}/tasks/reorder`, { method: 'PUT', body: { order }, token: token() }),
+    onMutate: async (order: number[]) => {
+      await qc.cancelQueries({ queryKey: key })
+      const previous = qc.getQueryData<AdminTask[]>(key)
+      if (previous) {
+        const byId = new Map(previous.map((t) => [t.id, t]))
+        qc.setQueryData<AdminTask[]>(
+          key,
+          order.map((id) => byId.get(id)).filter((t): t is AdminTask => t != null),
+        )
+      }
+      return { previous }
+    },
+    onError: (_err, _order, ctx) => {
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
   })
 }
 

@@ -34,7 +34,8 @@ class TaskAdminController extends ApiController
 
         $model = new TaskModel();
         $data  = $this->baseFields($body, $rallyeId, $type);
-        $data['config'] = $config !== null ? json_encode($config) : null;
+        $data['config']   = $config !== null ? json_encode($config) : null;
+        $data['position'] = $model->nextPosition($rallyeId);
 
         $id = $model->insert($data);
         if ($id === false) {
@@ -81,6 +82,39 @@ class TaskAdminController extends ApiController
         return $this->respondDeleted(['id' => $taskId]);
     }
 
+    public function reorder(int $rallyeId)
+    {
+        if ((new RallyeModel())->find($rallyeId) === null) {
+            return $this->failNotFound('Rallye nicht gefunden.');
+        }
+
+        $body  = $this->body();
+        $order = array_map('intval', is_array($body['order'] ?? null) ? $body['order'] : []);
+
+        $model    = new TaskModel();
+        $existing = array_map('intval', array_column($model->forRallye($rallyeId), 'id'));
+
+        sort($existing);
+        $check = $order;
+        sort($check);
+        if ($check !== $existing) {
+            return $this->failValidationErrors('Ungültige Reihenfolge.');
+        }
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+        foreach ($order as $i => $taskId) {
+            $model->update($taskId, ['position' => $i + 1]);
+        }
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->failServerError('Reihenfolge konnte nicht gespeichert werden.');
+        }
+
+        return $this->index($rallyeId);
+    }
+
     /** @param array<string,mixed> $body */
     private function baseFields(array $body, int $rallyeId, string $type): array
     {
@@ -89,7 +123,6 @@ class TaskAdminController extends ApiController
             'type'       => $type,
             'title'      => trim((string) ($body['title'] ?? '')),
             'prompt'     => isset($body['prompt']) ? trim((string) $body['prompt']) : null,
-            'position'   => (int) ($body['position'] ?? 0),
             'max_points' => (int) ($body['max_points'] ?? 10),
         ];
     }

@@ -51,6 +51,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], static function ($
         // Aufgaben
         $routes->get('rallyes/(:num)/tasks', 'Admin\\TaskAdminController::index/$1');
         $routes->post('rallyes/(:num)/tasks', 'Admin\\TaskAdminController::create/$1');
+        $routes->put('rallyes/(:num)/tasks/reorder', 'Admin\\TaskAdminController::reorder/$1');
         $routes->put('tasks/(:num)', 'Admin\\TaskAdminController::update/$1');
         $routes->delete('tasks/(:num)', 'Admin\\TaskAdminController::delete/$1');
 

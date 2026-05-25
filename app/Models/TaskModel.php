@@ -45,6 +45,17 @@ class TaskModel extends Model
             ->findAll();
     }
 
+    /** Nächste freie Position (ans Ende) für eine Rallye. */
+    public function nextPosition(int $rallyeId): int
+    {
+        $max = $this->selectMax('position')
+            ->where('rallye_id', $rallyeId)
+            ->get()
+            ->getRow('position');
+
+        return (int) $max + 1;
+    }
+
     /** Decodiert das config-JSON-Feld einer Aufgabe in ein assoziatives Array. */
     public static function decodeConfig(?array $task): array
     {
