@@ -30,7 +30,7 @@ class RallyeAdminController extends ApiController
         $model = new RallyeModel();
 
         $data = $this->sanitize($body);
-        $data['join_code']  = $data['join_code'] !== '' ? $data['join_code'] : $this->generateCode($data['title']);
+        $data['join_code']  = ($data['join_code'] ?? '') !== '' ? $data['join_code'] : $this->generateCode($data['title'] ?? '');
         $data['created_by'] = service('authState')->adminId();
         $data['status']     = 'draft';
 
