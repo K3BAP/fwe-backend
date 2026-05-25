@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate, useOutlet } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { useMe } from '../../api/participant'
 import { useSession } from '../../store/session'
@@ -11,6 +11,7 @@ export default function ParticipantLayout() {
   const session = useSession()
   const navigate = useNavigate()
   const location = useLocation()
+  const element = useOutlet()
 
   // Ungültige Sitzung -> abmelden.
   useEffect(() => {
@@ -68,7 +69,7 @@ export default function ParticipantLayout() {
       <main className="flex-1 p-4 pb-24">
         <AnimatePresence mode="wait">
           <motion.div key={location.pathname} variants={pageVariants} initial="hidden" animate="show" exit="exit">
-            <Outlet />
+            {element}
           </motion.div>
         </AnimatePresence>
       </main>

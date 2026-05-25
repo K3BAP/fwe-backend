@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate, useOutlet } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { useAdminAuth } from '../../store/adminAuth'
 import { api } from '../../api/client'
@@ -15,6 +15,7 @@ export default function AdminLayout() {
   const auth = useAdminAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const element = useOutlet()
 
   const logout = async () => {
     try {
@@ -57,7 +58,7 @@ export default function AdminLayout() {
       <main className="mx-auto max-w-5xl p-4 pb-24 sm:pb-4">
         <AnimatePresence mode="wait">
           <motion.div key={location.pathname} variants={pageVariants} initial="hidden" animate="show" exit="exit">
-            <Outlet />
+            {element}
           </motion.div>
         </AnimatePresence>
       </main>
