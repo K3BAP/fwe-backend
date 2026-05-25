@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactElement } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { fadeInUp, staggerContainer, staggerItem, spring } from '../../lib/motion'
@@ -24,7 +24,7 @@ function isStandalone(): boolean {
   )
 }
 
-const STEPS: Record<Platform, { icon: () => JSX.Element; text: string }[]> = {
+const STEPS: Record<Platform, { icon: () => ReactElement; text: string }[]> = {
   ios: [
     { icon: ShareIcon, text: 'Tippe auf das Teilen-Symbol in der Safari-Leiste.' },
     { icon: PlusIcon, text: 'Wähle „Zum Home-Bildschirm“.' },

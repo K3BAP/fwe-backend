@@ -12,7 +12,7 @@ import {
 import type { AdminTask, Rallye, TaskType } from '../../api/types'
 import { TASK_TYPE_LABEL } from '../../lib/taskTypes'
 import { ApiError } from '../../api/client'
-import { AnimatePresence, motion, Reorder } from 'motion/react'
+import { AnimatePresence, motion, Reorder, useDragControls } from 'motion/react'
 import { Badge, Button, Card, ErrorText, Input, Label, Skeleton, Textarea } from '../../components/ui'
 import { GpsTaskMap } from '../../components/GpsTaskMap'
 import { spring } from '../../lib/motion'
@@ -179,41 +179,12 @@ function TasksSection({ rallyeId }: { rallyeId: number }) {
       {isLoading && <Skeleton className="h-16 w-full" />}
       <Reorder.Group axis="y" values={order} onReorder={handleReorder} className="space-y-2">
         {order.map((task) => (
-          <Reorder.Item
+          <TaskRow
             key={task.id}
-            value={task}
-            className="flex cursor-grab items-center justify-between rounded-xl border border-line bg-surface px-4 py-3 active:cursor-grabbing"
-          >
-            <div className="flex items-center gap-3">
-              <span className="select-none text-muted" aria-hidden>
-                ⠿
-              </span>
-              <div>
-                <p className="font-semibold text-fg">
-                  {task.title}
-                </p>
-                <p className="text-xs text-muted">
-                  <Badge tone="indigo">{TASK_TYPE_LABEL[task.type]}</Badge> · {task.max_points} Pkt.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3 text-sm font-medium">
-              <button
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => setEditing(task)}
-                className="text-brand-600 hover:underline dark:text-brand-300"
-              >
-                Bearbeiten
-              </button>
-              <button
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => confirm('Aufgabe löschen?') && del.mutate(task.id)}
-                className="text-red-600 hover:underline dark:text-red-400"
-              >
-                Löschen
-              </button>
-            </div>
-          </Reorder.Item>
+            task={task}
+            onEdit={() => setEditing(task)}
+            onDelete={() => confirm('Aufgabe löschen?') && del.mutate(task.id)}
+          />
         ))}
       </Reorder.Group>
       {order.length === 0 && !isLoading && <p className="text-muted">Noch keine Aufgaben.</p>}
@@ -224,6 +195,50 @@ function TasksSection({ rallyeId }: { rallyeId: number }) {
         )}
       </AnimatePresence>
     </Card>
+  )
+}
+
+function TaskRow({
+  task,
+  onEdit,
+  onDelete,
+}: {
+  task: AdminTask
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const dragControls = useDragControls()
+  return (
+    <Reorder.Item
+      value={task}
+      dragListener={false}
+      dragControls={dragControls}
+      className="flex items-center justify-between rounded-xl border border-line bg-surface px-4 py-3"
+    >
+      <div className="flex items-center gap-3">
+        <span
+          onPointerDown={(e) => dragControls.start(e)}
+          className="cursor-grab touch-none select-none px-1 text-muted active:cursor-grabbing"
+          aria-label="Verschieben"
+        >
+          ⠿
+        </span>
+        <div>
+          <p className="font-semibold text-fg">{task.title}</p>
+          <p className="text-xs text-muted">
+            <Badge tone="indigo">{TASK_TYPE_LABEL[task.type]}</Badge> · {task.max_points} Pkt.
+          </p>
+        </div>
+      </div>
+      <div className="flex gap-3 text-sm font-medium">
+        <button onClick={onEdit} className="text-brand-600 hover:underline dark:text-brand-300">
+          Bearbeiten
+        </button>
+        <button onClick={onDelete} className="text-red-600 hover:underline dark:text-red-400">
+          Löschen
+        </button>
+      </div>
+    </Reorder.Item>
   )
 }
 
