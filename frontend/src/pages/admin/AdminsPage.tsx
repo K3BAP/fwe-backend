@@ -1,8 +1,11 @@
 import { useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useAdmins, useCreateAdmin, useDeleteAdmin } from '../../api/admin'
 import { useAdminAuth } from '../../store/adminAuth'
 import { ApiError } from '../../api/client'
-import { Button, Card, ErrorText, Input, Label, Spinner } from '../../components/ui'
+import { Button, Card, ErrorText, Input, Label, Skeleton } from '../../components/ui'
+import { Item, Stagger } from '../../components/motion'
+import { spring } from '../../lib/motion'
 
 export default function AdminsPage() {
   const { data: admins, isLoading } = useAdmins()
@@ -26,10 +29,10 @@ export default function AdminsPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold text-slate-900">Admin-Konten</h1>
+      <h1 className="text-2xl font-bold text-fg">Admin-Konten</h1>
 
       <Card className="space-y-3">
-        <h2 className="font-semibold text-slate-900">Neues Konto</h2>
+        <h2 className="font-semibold text-fg">Neues Konto</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label>Benutzername</Label>
@@ -41,27 +44,33 @@ export default function AdminsPage() {
           </div>
         </div>
         <ErrorText>{error}</ErrorText>
-        <Button onClick={submit} disabled={!username.trim() || password.length < 6 || create.isPending}>
+        <Button onClick={submit} loading={create.isPending} disabled={!username.trim() || password.length < 6}>
           Konto erstellen
         </Button>
       </Card>
 
-      {isLoading && <Spinner />}
-      <div className="space-y-2">
-        {admins?.map((a) => (
-          <Card key={a.id} className="flex items-center justify-between">
-            <span className="font-medium text-slate-900">{a.username}</span>
-            {a.id !== me?.id && (
-              <button
-                onClick={() => confirm(`Admin „${a.username}" löschen?`) && del.mutate(a.id)}
-                className="text-sm font-medium text-red-600 hover:underline"
-              >
-                Löschen
-              </button>
-            )}
-          </Card>
-        ))}
-      </div>
+      {isLoading && <Skeleton className="h-16 w-full" />}
+      <Stagger className="space-y-2">
+        <AnimatePresence initial={false}>
+          {admins?.map((a) => (
+            <Item key={a.id}>
+              <motion.div layout exit={{ opacity: 0, scale: 0.95 }} transition={spring}>
+                <Card className="flex items-center justify-between">
+                  <span className="font-medium text-fg">{a.username}</span>
+                  {a.id !== me?.id && (
+                    <button
+                      onClick={() => confirm(`Admin „${a.username}" löschen?`) && del.mutate(a.id)}
+                      className="text-sm font-medium text-red-600 hover:underline dark:text-red-400"
+                    >
+                      Löschen
+                    </button>
+                  )}
+                </Card>
+              </motion.div>
+            </Item>
+          ))}
+        </AnimatePresence>
+      </Stagger>
     </div>
   )
 }

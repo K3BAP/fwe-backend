@@ -1,7 +1,61 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/inter';
+
+/* Dunkelmodus über .dark-Klasse am <html>-Element. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Designsystem. Semantische Farben sind an CSS-Variablen gebunden, die in
+ * :root (hell) und .dark (dunkel) umgeschaltet werden. So genügt z. B.
+ * `bg-surface text-fg` statt überall `dark:`-Varianten zu pflegen.
+ * Die Marken-Skala (brand) ist in beiden Modi identisch.
+ */
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
+  --color-brand-950: #1e1b4b;
+
+  /* Semantische Tokens (an Laufzeit-Variablen gebunden). */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+
+  --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.08);
+  --shadow-lift: 0 10px 30px -10px rgb(15 23 42 / 0.25);
+}
 
 :root {
   color-scheme: light;
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --fg: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+}
+
+.dark {
+  color-scheme: dark;
+  --bg: #0b1120;
+  --surface: #111a2e;
+  --surface-2: #0f1729;
+  --fg: #e6edf6;
+  --muted: #8ca0b8;
+  --line: #1e2a44;
 }
 
 html,
@@ -13,8 +67,9 @@ body,
 body {
   margin: 0;
   -webkit-tap-highlight-color: transparent;
-  background-color: #f1f5f9;
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
 }
 
 /* Safe-Area-Padding für mobile Geräte (Notch). */
@@ -23,4 +78,23 @@ body {
 }
 .safe-top {
   padding-top: env(safe-area-inset-top);
+}
+
+/* Schimmer-Animation für Skeleton-Ladezustände. */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Barrierefreiheit: Bewegungen reduzieren, wenn vom System gewünscht. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

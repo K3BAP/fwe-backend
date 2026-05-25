@@ -11,18 +11,21 @@ import {
 import type { AdminTask, Rallye, TaskType } from '../../api/types'
 import { TASK_TYPE_LABEL } from '../../lib/taskTypes'
 import { ApiError } from '../../api/client'
-import { Badge, Button, Card, ErrorText, Input, Label, Spinner, Textarea } from '../../components/ui'
+import { AnimatePresence, motion } from 'motion/react'
+import { Badge, Button, Card, ErrorText, Input, Label, Skeleton, Textarea } from '../../components/ui'
+import { Item, Stagger } from '../../components/motion'
+import { spring } from '../../lib/motion'
 
 export default function RallyeEditorPage() {
   const { id } = useParams<{ id: string }>()
   const rallyeId = Number(id)
   const { data: rallye, isLoading } = useRallye(rallyeId)
 
-  if (isLoading || !rallye) return <Spinner />
+  if (isLoading || !rallye) return <Skeleton className="h-64 w-full" />
 
   return (
     <div className="space-y-6">
-      <Link to="/admin" className="text-sm font-medium text-indigo-600">
+      <Link to="/admin" className="text-sm font-medium text-brand-600 dark:text-brand-300">
         ← Alle Rallyes
       </Link>
       <SettingsForm rallye={rallye} />
@@ -69,7 +72,7 @@ function SettingsForm({ rallye }: { rallye: Rallye }) {
 
   return (
     <Card className="space-y-4">
-      <h2 className="text-lg font-bold text-slate-900">Einstellungen</h2>
+      <h2 className="text-lg font-bold text-fg">Einstellungen</h2>
       <div className="grid gap-4 md:grid-cols-2">
         <div>
           <Label>Titel</Label>
@@ -94,9 +97,9 @@ function SettingsForm({ rallye }: { rallye: Rallye }) {
           type="checkbox"
           checked={form.teams_enabled}
           onChange={(e) => setForm({ ...form, teams_enabled: e.target.checked })}
-          className="h-5 w-5"
+          className="h-5 w-5 accent-brand-600"
         />
-        <span className="font-medium text-slate-700">Teams erlauben</span>
+        <span className="font-medium text-fg">Teams erlauben</span>
       </label>
 
       {form.teams_enabled && (
@@ -118,7 +121,7 @@ function SettingsForm({ rallye }: { rallye: Rallye }) {
               value={form.preset_team_count}
               onChange={(e) => setForm({ ...form, preset_team_count: e.target.value })}
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-muted">
               Hinweis: Bei fester Anzahl können Teilnehmer keine eigenen Teams gründen.
             </p>
           </div>
@@ -126,10 +129,21 @@ function SettingsForm({ rallye }: { rallye: Rallye }) {
       )}
 
       <div className="flex items-center gap-3">
-        <Button onClick={submit} disabled={save.isPending}>
+        <Button onClick={submit} loading={save.isPending}>
           Speichern
         </Button>
-        {msg && <span className="text-sm font-medium text-green-600">{msg}</span>}
+        <AnimatePresence>
+          {msg && (
+            <motion.span
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0 }}
+              className="text-sm font-medium text-green-600 dark:text-green-400"
+            >
+              {msg}
+            </motion.span>
+          )}
+        </AnimatePresence>
         <ErrorText>{error}</ErrorText>
       </div>
     </Card>
@@ -144,46 +158,57 @@ function TasksSection({ rallyeId }: { rallyeId: number }) {
   return (
     <Card className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-slate-900">Stationen / Aufgaben</h2>
+        <h2 className="text-lg font-bold text-fg">Stationen / Aufgaben</h2>
         <Button onClick={() => setEditing('new')}>+ Aufgabe</Button>
       </div>
 
-      {isLoading && <Spinner />}
-      <div className="space-y-2">
-        {tasks?.map((task) => (
-          <div key={task.id} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
-            <div>
-              <p className="font-semibold text-slate-900">
-                {task.position}. {task.title}
-              </p>
-              <p className="text-xs text-slate-500">
-                <Badge tone="indigo">{TASK_TYPE_LABEL[task.type]}</Badge> · {task.max_points} Pkt.
-              </p>
-            </div>
-            <div className="flex gap-3 text-sm font-medium">
-              <button onClick={() => setEditing(task)} className="text-indigo-600 hover:underline">
-                Bearbeiten
-              </button>
-              <button
-                onClick={() => confirm('Aufgabe löschen?') && del.mutate(task.id)}
-                className="text-red-600 hover:underline"
+      {isLoading && <Skeleton className="h-16 w-full" />}
+      <Stagger className="space-y-2">
+        <AnimatePresence initial={false}>
+          {tasks?.map((task) => (
+            <Item key={task.id}>
+              <motion.div
+                layout
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={spring}
+                className="flex items-center justify-between rounded-xl border border-line px-4 py-3"
               >
-                Löschen
-              </button>
-            </div>
-          </div>
-        ))}
-        {tasks?.length === 0 && <p className="text-slate-500">Noch keine Aufgaben.</p>}
-      </div>
+                <div>
+                  <p className="font-semibold text-fg">
+                    {task.position}. {task.title}
+                  </p>
+                  <p className="text-xs text-muted">
+                    <Badge tone="indigo">{TASK_TYPE_LABEL[task.type]}</Badge> · {task.max_points} Pkt.
+                  </p>
+                </div>
+                <div className="flex gap-3 text-sm font-medium">
+                  <button onClick={() => setEditing(task)} className="text-brand-600 hover:underline dark:text-brand-300">
+                    Bearbeiten
+                  </button>
+                  <button
+                    onClick={() => confirm('Aufgabe löschen?') && del.mutate(task.id)}
+                    className="text-red-600 hover:underline dark:text-red-400"
+                  >
+                    Löschen
+                  </button>
+                </div>
+              </motion.div>
+            </Item>
+          ))}
+        </AnimatePresence>
+        {tasks?.length === 0 && <p className="text-muted">Noch keine Aufgaben.</p>}
+      </Stagger>
 
-      {editing && (
-        <TaskEditor
-          rallyeId={rallyeId}
-          task={editing === 'new' ? null : editing}
-          nextPosition={(tasks?.length ?? 0) + 1}
-          onClose={() => setEditing(null)}
-        />
-      )}
+      <AnimatePresence>
+        {editing && (
+          <TaskEditor
+            rallyeId={rallyeId}
+            task={editing === 'new' ? null : editing}
+            nextPosition={(tasks?.length ?? 0) + 1}
+            onClose={() => setEditing(null)}
+          />
+        )}
+      </AnimatePresence>
     </Card>
   )
 }
@@ -271,16 +296,29 @@ function TaskEditor({
   }
 
   return (
-    <div className="fixed inset-0 z-20 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
-      <div className="my-8 w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 shadow-xl">
-        <h3 className="text-lg font-bold text-slate-900">{task ? 'Aufgabe bearbeiten' : 'Neue Aufgabe'}</h3>
+    <motion.div
+      className="fixed inset-0 z-20 flex items-start justify-center overflow-y-auto bg-black/50 p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="my-8 w-full max-w-lg space-y-4 rounded-2xl bg-surface p-6 shadow-lift ring-1 ring-line"
+        initial={{ opacity: 0, scale: 0.95, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 12 }}
+        transition={spring}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-bold text-fg">{task ? 'Aufgabe bearbeiten' : 'Neue Aufgabe'}</h3>
 
         <div>
           <Label>Aufgabentyp</Label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value as TaskType)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3"
+            className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-fg outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25"
           >
             {ALL_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -315,10 +353,10 @@ function TaskEditor({
             <Label>Antwortoptionen (richtige markieren)</Label>
             {choices.map((c, i) => (
               <div key={i} className="mb-2 flex items-center gap-2">
-                <input type="radio" checked={correctIndex === i} onChange={() => setCorrectIndex(i)} className="h-5 w-5" />
+                <input type="radio" checked={correctIndex === i} onChange={() => setCorrectIndex(i)} className="h-5 w-5 accent-brand-600" />
                 <Input value={c} onChange={(e) => setChoices(choices.map((x, j) => (j === i ? e.target.value : x)))} />
                 {choices.length > 2 && (
-                  <button onClick={() => setChoices(choices.filter((_, j) => j !== i))} className="text-red-500">
+                  <button onClick={() => setChoices(choices.filter((_, j) => j !== i))} className="text-red-500 dark:text-red-400">
                     ✕
                   </button>
                 )}
@@ -366,12 +404,12 @@ function TaskEditor({
           <Button variant="secondary" onClick={onClose}>
             Abbrechen
           </Button>
-          <Button onClick={submit} disabled={save.isPending}>
+          <Button onClick={submit} loading={save.isPending}>
             Speichern
           </Button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -391,7 +429,7 @@ function StringList({
         <div key={i} className="mb-2 flex items-center gap-2">
           <Input value={v} onChange={(e) => onChange(values.map((x, j) => (j === i ? e.target.value : x)))} />
           {values.length > 1 && (
-            <button onClick={() => onChange(values.filter((_, j) => j !== i))} className="text-red-500">
+            <button onClick={() => onChange(values.filter((_, j) => j !== i))} className="text-red-500 dark:text-red-400">
               ✕
             </button>
           )}

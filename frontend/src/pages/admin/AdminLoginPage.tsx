@@ -4,6 +4,7 @@ import { useAdminLogin } from '../../api/admin'
 import { useAdminAuth } from '../../store/adminAuth'
 import { ApiError } from '../../api/client'
 import { Button, Card, Centered, ErrorText, Input, Label } from '../../components/ui'
+import { PageTransition } from '../../components/motion'
 
 export default function AdminLoginPage() {
   const navigate = useNavigate()
@@ -29,10 +30,10 @@ export default function AdminLoginPage() {
 
   return (
     <Centered>
-      <div className="w-full max-w-sm space-y-6">
+      <PageTransition className="w-full max-w-sm space-y-6">
         <div className="text-center">
           <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className="mx-auto h-16 w-16" />
-          <h1 className="mt-3 text-xl font-bold text-slate-900">Admin-Anmeldung</h1>
+          <h1 className="mt-3 text-xl font-bold text-fg">Admin-Anmeldung</h1>
         </div>
         <Card>
           <form className="space-y-4" onSubmit={submit}>
@@ -45,12 +46,12 @@ export default function AdminLoginPage() {
               <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
             <ErrorText>{error}</ErrorText>
-            <Button type="submit" className="w-full" disabled={login.isPending}>
-              {login.isPending ? 'Anmelden…' : 'Anmelden'}
+            <Button type="submit" className="w-full" loading={login.isPending}>
+              Anmelden
             </Button>
           </form>
         </Card>
-      </div>
+      </PageTransition>
     </Centered>
   )
 }

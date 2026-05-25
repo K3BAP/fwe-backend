@@ -28,8 +28,8 @@ export default function RestorePage() {
     return (
       <Centered>
         <Card className="max-w-md text-center">
-          <h1 className="text-lg font-semibold text-slate-900">Link ungültig</h1>
-          <p className="mt-2 text-slate-600">Dieser Login-Link ist nicht mehr gültig.</p>
+          <h1 className="text-lg font-semibold text-fg">Link ungültig</h1>
+          <p className="mt-2 text-muted">Dieser Login-Link ist nicht mehr gültig.</p>
           <Button className="mt-4 w-full" onClick={() => navigate('/')}>
             Zur Startseite
           </Button>

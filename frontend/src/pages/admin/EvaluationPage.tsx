@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { AnimatePresence, motion } from 'motion/react'
 import { useEvaluate, usePending } from '../../api/admin'
 import type { PendingSubmission } from '../../api/types'
-import { Badge, Button, Card, Input, Spinner } from '../../components/ui'
+import { Badge, Button, Card, Input, Skeleton } from '../../components/ui'
+import { spring } from '../../lib/motion'
 
 export default function EvaluationPage() {
   const { id } = useParams<{ id: string }>()
@@ -11,17 +13,30 @@ export default function EvaluationPage() {
 
   return (
     <div className="space-y-5">
-      <Link to="/admin" className="text-sm font-medium text-indigo-600">
+      <Link to="/admin" className="text-sm font-medium text-brand-600 dark:text-brand-300">
         ← Alle Rallyes
       </Link>
-      <h1 className="text-2xl font-bold text-slate-900">Offene Bewertungen</h1>
+      <h1 className="text-2xl font-bold text-fg">Offene Bewertungen</h1>
 
-      {isLoading && <Spinner />}
+      {isLoading && <Skeleton className="h-32 w-full" />}
       {pending?.length === 0 && (
-        <Card className="text-center text-slate-500">Keine offenen Bewertungen. Alles erledigt! 🎉</Card>
+        <Card className="text-center text-muted">Keine offenen Bewertungen. Alles erledigt! 🎉</Card>
       )}
       <div className="space-y-3">
-        {pending?.map((sub) => <EvalCard key={sub.id} sub={sub} rallyeId={rallyeId} />)}
+        <AnimatePresence initial={false}>
+          {pending?.map((sub) => (
+            <motion.div
+              key={sub.id}
+              layout
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+              transition={spring}
+            >
+              <EvalCard sub={sub} rallyeId={rallyeId} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
     </div>
   )
@@ -35,15 +50,13 @@ function EvalCard({ sub, rallyeId }: { sub: PendingSubmission; rallyeId: number 
     <Card className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="font-semibold text-slate-900">{sub.task_title}</p>
-          <p className="text-sm text-slate-500">Team: {sub.team_name}</p>
+          <p className="font-semibold text-fg">{sub.task_title}</p>
+          <p className="text-sm text-muted">Team: {sub.team_name}</p>
         </div>
         <Badge tone="amber">max. {sub.task_max_points} Pkt.</Badge>
       </div>
 
-      {sub.answer_text && (
-        <p className="rounded-lg bg-slate-50 p-3 text-slate-800">„{sub.answer_text}"</p>
-      )}
+      {sub.answer_text && <p className="rounded-lg bg-surface-2 p-3 text-fg">„{sub.answer_text}"</p>}
       {sub.photo_url && (
         <a href={sub.photo_url} target="_blank" rel="noreferrer">
           <img src={sub.photo_url} alt="Abgabe" className="max-h-72 w-full rounded-lg object-contain" />
@@ -61,17 +74,13 @@ function EvalCard({ sub, rallyeId }: { sub: PendingSubmission; rallyeId: number 
             className="w-24"
           />
           <Button
-            disabled={evaluate.isPending}
+            loading={evaluate.isPending}
             onClick={() => evaluate.mutate({ id: sub.id, correct: true, points: Number(points) })}
           >
             Akzeptieren
           </Button>
         </div>
-        <Button
-          variant="danger"
-          disabled={evaluate.isPending}
-          onClick={() => evaluate.mutate({ id: sub.id, correct: false })}
-        >
+        <Button variant="danger" disabled={evaluate.isPending} onClick={() => evaluate.mutate({ id: sub.id, correct: false })}>
           Ablehnen
         </Button>
       </div>

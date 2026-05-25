@@ -4,6 +4,7 @@ import { useSession } from '../../store/session'
 import { useJoin, useRallyeByCode } from '../../api/participant'
 import { ApiError } from '../../api/client'
 import { Button, Card, Centered, ErrorText, Input, Label, Spinner } from '../../components/ui'
+import { PageTransition } from '../../components/motion'
 
 export default function JoinPage() {
   const { code } = useParams<{ code: string }>()
@@ -51,28 +52,30 @@ export default function JoinPage() {
   if (isError || !rallye)
     return (
       <Centered>
-        <Card className="max-w-md text-center">
-          <h1 className="text-lg font-semibold text-slate-900">Rallye nicht gefunden</h1>
-          <p className="mt-2 text-slate-600">Bitte überprüfe den QR-Code oder Beitritts-Code.</p>
-          <Button className="mt-4 w-full" onClick={() => navigate('/')}>
-            Zurück
-          </Button>
-        </Card>
+        <PageTransition>
+          <Card className="max-w-md text-center">
+            <h1 className="text-lg font-semibold text-fg">Rallye nicht gefunden</h1>
+            <p className="mt-2 text-muted">Bitte überprüfe den QR-Code oder Beitritts-Code.</p>
+            <Button className="mt-4 w-full" onClick={() => navigate('/')}>
+              Zurück
+            </Button>
+          </Card>
+        </PageTransition>
       </Centered>
     )
 
   return (
     <Centered>
-      <div className="w-full max-w-md space-y-5">
+      <PageTransition className="w-full max-w-md space-y-5">
         <div className="text-center">
-          {rallye.theme && <p className="text-sm font-medium text-indigo-600">{rallye.theme}</p>}
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">{rallye.title}</h1>
-          {rallye.description && <p className="mt-2 text-slate-600">{rallye.description}</p>}
+          {rallye.theme && <p className="text-sm font-medium text-brand-600 dark:text-brand-300">{rallye.theme}</p>}
+          <h1 className="mt-1 text-2xl font-bold text-fg">{rallye.title}</h1>
+          {rallye.description && <p className="mt-2 text-muted">{rallye.description}</p>}
         </div>
 
         {rallye.status !== 'active' ? (
           <Card className="text-center">
-            <p className="text-slate-700">Diese Rallye ist derzeit nicht aktiv.</p>
+            <p className="text-fg">Diese Rallye ist derzeit nicht aktiv.</p>
           </Card>
         ) : (
           <Card>
@@ -88,13 +91,13 @@ export default function JoinPage() {
                 />
               </div>
               <ErrorText>{error}</ErrorText>
-              <Button type="submit" className="w-full" disabled={!name.trim() || join.isPending}>
-                {join.isPending ? 'Trete bei…' : 'Mitmachen'}
+              <Button type="submit" className="w-full" loading={join.isPending} disabled={!name.trim()}>
+                Mitmachen
               </Button>
             </form>
           </Card>
         )}
-      </div>
+      </PageTransition>
     </Centered>
   )
 }

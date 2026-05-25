@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useParticipants, useReissue } from '../../api/admin'
-import { Badge, Button, Card, Spinner } from '../../components/ui'
+import { Badge, Button, Card, Skeleton } from '../../components/ui'
+import { Item, Stagger } from '../../components/motion'
 
 export default function ParticipantsPage() {
   const { id } = useParams<{ id: string }>()
@@ -20,41 +22,48 @@ export default function ParticipantsPage() {
 
   return (
     <div className="space-y-5">
-      <Link to="/admin" className="text-sm font-medium text-indigo-600">
+      <Link to="/admin" className="text-sm font-medium text-brand-600 dark:text-brand-300">
         ← Alle Rallyes
       </Link>
-      <h1 className="text-2xl font-bold text-slate-900">Teilnehmer</h1>
+      <h1 className="text-2xl font-bold text-fg">Teilnehmer</h1>
 
-      {isLoading && <Spinner />}
-      <div className="space-y-2">
+      {isLoading && <Skeleton className="h-20 w-full" />}
+      <Stagger className="space-y-2">
         {participants?.map((p) => (
-          <Card key={p.id} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-slate-900">{p.display_name}</p>
-                {p.team_name ? (
-                  <Badge tone="indigo">{p.team_name}</Badge>
-                ) : (
-                  <Badge tone="gray">Kein Team</Badge>
-                )}
-              </div>
-              <Button variant="secondary" disabled={reissue.isPending} onClick={() => makeLink(p.id)}>
-                Login-Link
-              </Button>
-            </div>
-            {links[p.id] && (
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs text-slate-500">QR-Code scannen lassen oder Link senden:</p>
-                <div className="mt-2 flex justify-center">
-                  <QRCodeSVG value={links[p.id]} size={180} className="rounded bg-white p-2" />
+          <Item key={p.id}>
+            <Card className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-fg">{p.display_name}</p>
+                  {p.team_name ? <Badge tone="indigo">{p.team_name}</Badge> : <Badge tone="gray">Kein Team</Badge>}
                 </div>
-                <code className="mt-2 block break-all text-xs text-indigo-700">{links[p.id]}</code>
+                <Button variant="secondary" loading={reissue.isPending} onClick={() => makeLink(p.id)}>
+                  Login-Link
+                </Button>
               </div>
-            )}
-          </Card>
+              <AnimatePresence initial={false}>
+                {links[p.id] && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="rounded-lg bg-surface-2 p-3">
+                      <p className="text-xs text-muted">QR-Code scannen lassen oder Link senden:</p>
+                      <div className="mt-2 flex justify-center">
+                        <QRCodeSVG value={links[p.id]} size={180} className="rounded bg-white p-2" />
+                      </div>
+                      <code className="mt-2 block break-all text-xs text-brand-600 dark:text-brand-300">{links[p.id]}</code>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Card>
+          </Item>
         ))}
-        {participants?.length === 0 && <p className="text-slate-500">Noch keine Teilnehmer.</p>}
-      </div>
+        {participants?.length === 0 && <p className="text-muted">Noch keine Teilnehmer.</p>}
+      </Stagger>
     </div>
   )
 }
