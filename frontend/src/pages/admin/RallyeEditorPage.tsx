@@ -14,6 +14,7 @@ import { ApiError } from '../../api/client'
 import { AnimatePresence, motion } from 'motion/react'
 import { Badge, Button, Card, ErrorText, Input, Label, Skeleton, Textarea } from '../../components/ui'
 import { Item, Stagger } from '../../components/motion'
+import { GpsTaskMap } from '../../components/GpsTaskMap'
 import { spring } from '../../lib/motion'
 
 export default function RallyeEditorPage() {
@@ -383,18 +384,31 @@ function TaskEditor({
         )}
 
         {type === 'gps_checkin' && (
-          <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-3">
+            <Label>Standort</Label>
+            <GpsTaskMap
+              lat={lat === '' ? null : Number(lat)}
+              lng={lng === '' ? null : Number(lng)}
+              radiusM={Number(radius) || 50}
+              onChange={({ lat, lng }) => {
+                setLat(lat.toFixed(6))
+                setLng(lng.toFixed(6))
+              }}
+            />
+            <p className="text-sm text-muted">
+              {lat && lng ? `Gewählt: ${lat}, ${lng}` : 'Tippe auf die Karte, um den Punkt zu setzen.'}
+            </p>
             <div>
-              <Label>Breite (lat)</Label>
-              <Input value={lat} onChange={(e) => setLat(e.target.value)} />
-            </div>
-            <div>
-              <Label>Länge (lng)</Label>
-              <Input value={lng} onChange={(e) => setLng(e.target.value)} />
-            </div>
-            <div>
-              <Label>Radius (m)</Label>
-              <Input type="number" value={radius} onChange={(e) => setRadius(e.target.value)} />
+              <Label>Radius: {radius || 50} m</Label>
+              <input
+                type="range"
+                min={5}
+                max={500}
+                step={5}
+                value={radius || 50}
+                onChange={(e) => setRadius(e.target.value)}
+                className="w-full accent-brand-600"
+              />
             </div>
           </div>
         )}
