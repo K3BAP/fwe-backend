@@ -109,6 +109,7 @@ Detail-Spezifikationen je Domäne und übergreifende Referenzen in eigenen Datei
 - [`SEED_DATA.md`](SEED_DATA.md) – Demo-/Seed-Daten inkl. echter Startplatz-Liste
 - [`DECISIONS.md`](DECISIONS.md) – Architektur-Entscheidungen (ADR-Log)
 - [`OFFENE_FRAGEN.md`](OFFENE_FRAGEN.md) – offene Fragen (lebendes Dokument)
+- [`MILESTONES.md`](MILESTONES.md) – Meilensteinplan (M0–M5)
 
 ### 4.1 Bestätigte Kern-Anforderungen je Seite (aus der Aufgabenstellung)
 
@@ -232,7 +233,16 @@ Last-Budget des geteilten Hosts. → Details in [`spec/OFFENE_FRAGEN.md`](OFFENE
 
 ## 9. Meilensteine
 
-*(Wird nach Abschluss der Spezifikation geplant – schrittweise Implementierung über mehrere Milestones.)*
+Vollständiger Plan in [`MILESTONES.md`](MILESTONES.md). Jede Phase ist eigenständig lauffähig & reviewbar (ADR-013):
+
+| MS | Titel | Ergebnis |
+|---|---|---|
+| **M0** | Fundament & Gerüst | App startet, Landing + Navigation, `/api/v1` antwortet, Build deployt |
+| **M1** | Auth & Profile | Registrieren/Login, Profil + Profilkarte, Dashboard-Gerüst |
+| **M2** | Flugtreffen | Finden (Karte/Tabelle/Cards), erstellen, teilnehmen/absagen |
+| **M3** | Gruppen | Gründen/finden, Rollen, Beitritt, öffentlicher Feed |
+| **M4** | Chat & Benachrichtigungen | Channels-/Treffen-/Direkt-Chat (Polling) + Notification-Center |
+| **M5** | Politur, Seed, Tests, Deploy | Demo-Daten, Transitions, a11y, Tests, Prod-Deploy |
 
 ---
 
@@ -247,3 +257,4 @@ Last-Budget des geteilten Hosts. → Details in [`spec/OFFENE_FRAGEN.md`](OFFENE
 | 2026-06-19 | Spec-Durchgang (Datenmodell & Chat-Engine): **ADR-014** — einfache Replies im Chat-MVP (`reply_to_id`), verwaiste Konversationen via Service+Tests. |
 | 2026-06-19 | Spec-Durchgang (Rest des Datenmodells): **ADR-015** — keine Warteliste (voll ⇒ 409), Organisator zählt mit, `meetup_participants` schlank (kein `role`/`status`), `@handle` bestätigt. Versteckter `❓**OFFEN`-Marker in Kapitel 02 aufgelöst. |
 | 2026-06-19 | Spec-Durchgang (Auth & Profile): Profil-Sichtbarkeit auf ADR-012/B1+C2 ausgerichtet (öffentlich lesbar, reduzierte Projektion für Gäste) in Kap. 01 + API.md; Pfad vereinheitlicht auf `/users/{id}` (statt `/profiles/{userId}`) in API.md + Kap. 06. |
+| 2026-06-19 | Spec committet (`76ed97c`). Meilensteinplan `MILESTONES.md` (M0–M5) erstellt. |
