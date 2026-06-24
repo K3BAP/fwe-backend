@@ -110,6 +110,7 @@ Detail-Spezifikationen je Domäne und übergreifende Referenzen in eigenen Datei
 - [`DECISIONS.md`](DECISIONS.md) – Architektur-Entscheidungen (ADR-Log)
 - [`OFFENE_FRAGEN.md`](OFFENE_FRAGEN.md) – offene Fragen (lebendes Dokument)
 - [`MILESTONES.md`](MILESTONES.md) – Meilensteinplan (M0–M5)
+- [`DESIGN_BRIEF.md`](DESIGN_BRIEF.md) – Design-Brief / Prompt für Claude Design (→ später `DESIGN.md` als Referenz)
 
 ### 4.1 Bestätigte Kern-Anforderungen je Seite (aus der Aufgabenstellung)
 
@@ -258,3 +259,4 @@ Vollständiger Plan in [`MILESTONES.md`](MILESTONES.md). Jede Phase ist eigenst�
 | 2026-06-19 | Spec-Durchgang (Rest des Datenmodells): **ADR-015** — keine Warteliste (voll ⇒ 409), Organisator zählt mit, `meetup_participants` schlank (kein `role`/`status`), `@handle` bestätigt. Versteckter `❓**OFFEN`-Marker in Kapitel 02 aufgelöst. |
 | 2026-06-19 | Spec-Durchgang (Auth & Profile): Profil-Sichtbarkeit auf ADR-012/B1+C2 ausgerichtet (öffentlich lesbar, reduzierte Projektion für Gäste) in Kap. 01 + API.md; Pfad vereinheitlicht auf `/users/{id}` (statt `/profiles/{userId}`) in API.md + Kap. 06. |
 | 2026-06-19 | Spec committet (`76ed97c`). Meilensteinplan `MILESTONES.md` (M0–M5) erstellt. |
+| 2026-06-19 | Design-Richtung festgelegt (abenteuerlich-sportlich · Himmelblau + Sonnenuntergang · großzügig · Komoot/Strava). `DESIGN_BRIEF.md` (Claude-Design-Prompt) erstellt. |
