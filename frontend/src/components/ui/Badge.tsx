@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/cn'
+import type { ExperienceLevel, MeetupStatus } from '@/api/schemas'
+
+export type { ExperienceLevel, MeetupStatus }
 
 /** Generische Tint-Pille mit optionalem Status-Punkt (Design-System §06). */
 export function Pill({
@@ -28,8 +31,7 @@ export function Pill({
 
 type Tone = { label: string; bg: string; fg: string; dot: string }
 
-/** Erfahrungslevel-Enum (DATA_MODEL §3.1.1) → Label + Farben. */
-export type ExperienceLevel = 'beginner' | 'advanced' | 'expert' | 'all'
+/** Erfahrungslevel (DATA_MODEL §3.1.1) → Label + Farben. */
 const EXPERIENCE: Record<ExperienceLevel, Tone> = {
   beginner: { label: 'Anfänger', bg: '#E4F6EC', fg: '#157A43', dot: '#1E9E5A' },
   advanced: { label: 'Fortgeschritten', bg: '#E5F1FD', fg: '#0C5896', dot: '#1E90E6' },
@@ -43,7 +45,6 @@ export function ExperienceBadge({ level }: { level: ExperienceLevel }) {
 }
 
 /** Abgeleiteter Treffen-Status (DATA_MODEL §4.2.1) → Label + Farben. */
-export type MeetupStatus = 'open' | 'full' | 'cancelled' | 'finished'
 const STATUS: Record<MeetupStatus, Tone> = {
   open: { label: 'Offen', bg: '#E4F6EC', fg: '#157A43', dot: '#1E9E5A' },
   full: { label: 'Ausgebucht', bg: '#FBF0D6', fg: '#8A5D00', dot: '#E8A21A' },

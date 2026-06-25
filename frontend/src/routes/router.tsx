@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
+import { Flugtreffen } from './Flugtreffen'
 import { Home } from './Home'
 import { Placeholder } from './Placeholder'
 import { Styleguide } from './Styleguide'
@@ -14,7 +15,7 @@ export const router = createBrowserRouter(
       element: <AppShell />,
       children: [
         { index: true, element: <Home /> },
-        { path: 'flugtreffen', element: <Placeholder title="Flugtreffen" /> },
+        { path: 'flugtreffen', element: <Flugtreffen /> },
         { path: 'gruppen', element: <Placeholder title="Gruppen" /> },
         { path: 'chat', element: <Placeholder title="Chat" /> },
         { path: 'styleguide', element: <Styleguide /> },
