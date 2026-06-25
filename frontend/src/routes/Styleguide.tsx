@@ -1,14 +1,31 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import { Marker, Popup } from 'react-leaflet'
 import {
   Button,
   Card,
+  Drawer,
+  EmptyState,
   ExperienceBadge,
   MessageBubble,
+  Modal,
   Pill,
+  SegmentedControl,
+  SelectField,
+  Skeleton,
+  Spinner,
   StatusBadge,
+  Switch,
+  TextareaField,
   TextField,
+  UserCard,
+  type SegmentOption,
 } from '@/components/ui'
 import type { ExperienceLevel, MeetupStatus } from '@/components/ui'
+import type { PublicUserCard } from '@/api/schemas'
+import { MapShell } from '@/components/map/MapShell'
+import { pinIcon } from '@/components/map/pin'
+import { WingIcon } from '@/components/layout/icons'
+import { toast } from '@/stores/toastStore'
 
 function Section({ n, title, sub, children }: { n: string; title: string; sub?: string; children: ReactNode }) {
   return (
@@ -26,8 +43,25 @@ function Section({ n, title, sub, children }: { n: string; title: string; sub?: 
 const LEVELS: ExperienceLevel[] = ['beginner', 'advanced', 'expert', 'all']
 const STATES: MeetupStatus[] = ['open', 'full', 'cancelled', 'finished']
 
+const VIEW_OPTIONS: SegmentOption<'cards' | 'table' | 'map'>[] = [
+  { value: 'cards', label: 'Cards' },
+  { value: 'table', label: 'Tabelle' },
+  { value: 'map', label: 'Karte' },
+]
+
+const DEMO_USERS: PublicUserCard[] = [
+  { id: 1, display_name: 'Lena Krüger', handle: 'lenak', avatar_path: null },
+  { id: 2, display_name: 'Markus Thaler', handle: 'thaler_fly', avatar_path: null },
+  { id: 3, display_name: 'Sophie Berg', handle: null, avatar_path: null },
+]
+
 /** Lebende Referenz der Design-System-Komponenten (Light & Dark). */
 export function Styleguide() {
+  const [view, setView] = useState<'cards' | 'table' | 'map'>('cards')
+  const [freeOnly, setFreeOnly] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -56,12 +90,21 @@ export function Styleguide() {
         </div>
       </Section>
 
-      <Section n="05b" title="Eingaben">
+      <Section n="05b" title="Eingaben & Form-Controls">
         <div className="grid max-w-xl gap-4 sm:grid-cols-2">
           <TextField label="Spot" defaultValue="Tegelberg" />
-          <TextField label="Region" placeholder="Region wählen…" />
+          <SelectField label="Erfahrungslevel" defaultValue="advanced">
+            <option value="beginner">Anfänger</option>
+            <option value="advanced">Fortgeschritten</option>
+            <option value="expert">Experte</option>
+            <option value="all">Alle Level</option>
+          </SelectField>
+          <TextField label="Mit Fehler" defaultValue="zu kurz" error="Bitte mind. 3 Zeichen." />
+          <div className="flex items-end">
+            <Switch checked={freeOnly} onChange={setFreeOnly} label="Nur freie Plätze" />
+          </div>
           <div className="sm:col-span-2">
-            <TextField label="Suche" placeholder="Spot oder Region suchen…" />
+            <TextareaField label="Beschreibung" placeholder="Worum geht es bei dem Treffen?" />
           </div>
         </div>
       </Section>
@@ -89,6 +132,90 @@ export function Styleguide() {
             </div>
           </div>
         </div>
+      </Section>
+
+      <Section n="08" title="Umschalter & Nutzerzeilen">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div>
+            <div className="mb-3 font-display text-sm font-bold">SegmentedControl</div>
+            <SegmentedControl options={VIEW_OPTIONS} value={view} onChange={setView} aria-label="Ansicht" />
+            <p className="mt-2 text-sm text-base-content/50">Aktiv: {view}</p>
+          </div>
+          <div>
+            <div className="mb-3 font-display text-sm font-bold">UserCard</div>
+            <div className="flex flex-col gap-1">
+              <UserCard user={DEMO_USERS[0]} highlight subtitle="Ersteller · vor 2 Std." />
+              <UserCard user={DEMO_USERS[1]} onClick={() => toast.info('Profil von Markus')} />
+              <UserCard user={DEMO_USERS[2]} trailing={<StatusBadge status="open" />} />
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <Section n="10" title="Feedback" sub="Lade · Leer · Toast">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div>
+            <div className="mb-3 font-display text-sm font-bold">Spinner & Skeleton</div>
+            <div className="flex items-center gap-4">
+              <Spinner size="sm" />
+              <Spinner />
+              <Spinner size="lg" />
+            </div>
+            <div className="mt-4 flex flex-col gap-2">
+              <Skeleton className="h-4 w-3/4 rounded" />
+              <Skeleton className="h-4 w-1/2 rounded" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          </div>
+          <div>
+            <div className="mb-3 font-display text-sm font-bold">EmptyState</div>
+            <EmptyState
+              icon={<WingIcon size={26} />}
+              title="Noch keine Treffen"
+              description="Erstelle das erste Flugtreffen in deiner Region."
+              action={<Button size="sm">Treffen erstellen</Button>}
+            />
+          </div>
+          <div>
+            <div className="mb-3 font-display text-sm font-bold">Toasts</div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => toast.success('Teilnahme bestätigt 🪂')}>Success</Button>
+              <Button size="sm" variant="outline" onClick={() => toast.error('Treffen ist ausgebucht')}>Error</Button>
+              <Button size="sm" variant="outline" onClick={() => toast.info('Filter angewendet')}>Info</Button>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <Section n="11" title="Overlays" sub="Modal · Drawer">
+        <div className="flex flex-wrap gap-3">
+          <Button variant="outline" onClick={() => setModalOpen(true)}>Modal öffnen</Button>
+          <Button variant="outline" onClick={() => setDrawerOpen(true)}>Drawer öffnen</Button>
+        </div>
+        <Modal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title="Treffen absagen?"
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setModalOpen(false)}>Abbrechen</Button>
+              <Button variant="accent" onClick={() => { setModalOpen(false); toast.success('Treffen abgesagt') }}>Absagen</Button>
+            </>
+          }
+        >
+          <p className="text-base-content/70">Alle Teilnehmenden werden benachrichtigt. Das lässt sich nicht rückgängig machen.</p>
+        </Modal>
+        <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Filter">
+          <div className="flex flex-col gap-4">
+            <SelectField label="Region">
+              <option>Alle Regionen</option>
+              <option>Allgäu</option>
+              <option>Rhön</option>
+            </SelectField>
+            <Switch checked={freeOnly} onChange={setFreeOnly} label="Nur freie Plätze" />
+            <Button onClick={() => setDrawerOpen(false)}>Anwenden</Button>
+          </div>
+        </Drawer>
       </Section>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -136,6 +263,17 @@ export function Styleguide() {
           </div>
         </Section>
       </div>
+
+      <Section n="12" title="Karte" sub="Leaflet · OSM">
+        <MapShell className="h-80" zoom={6}>
+          <Marker position={[47.5667, 10.75]} icon={pinIcon('sky')}>
+            <Popup>Tegelberg · Allgäu</Popup>
+          </Marker>
+          <Marker position={[50.4986, 9.9389]} icon={pinIcon('coral')}>
+            <Popup>Wasserkuppe · Rhön</Popup>
+          </Marker>
+        </MapShell>
+      </Section>
     </div>
   )
 }

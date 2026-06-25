@@ -1,12 +1,7 @@
 import { z } from 'zod'
+import { experienceLevelSchema } from './common'
 
-/**
- * Zod-DTO-Schemas = Single Source of Truth für die Typen über die API-Grenze (ADR-003, API.md).
- * `z.infer` liefert die TypeScript-Typen; dieselben Schemas validieren echte Responses (api/http).
- */
-
-export const experienceLevelSchema = z.enum(['beginner', 'advanced', 'expert', 'all'])
-export type ExperienceLevel = z.infer<typeof experienceLevelSchema>
+/** Flugtreffen-DTOs (API.md §5, DATA_MODEL §4). */
 
 /** Abgeleiteter Treffen-Status (im Read berechnet, DATA_MODEL §4.2.1). */
 export const meetupStatusSchema = z.enum(['open', 'full', 'cancelled', 'finished'])
@@ -39,10 +34,3 @@ export const meetupListItemSchema = z.object({
 export type MeetupListItem = z.infer<typeof meetupListItemSchema>
 
 export const meetupListSchema = z.array(meetupListItemSchema)
-
-export const paginationSchema = z.object({
-  page: z.number(),
-  perPage: z.number(),
-  total: z.number(),
-})
-export type Pagination = z.infer<typeof paginationSchema>

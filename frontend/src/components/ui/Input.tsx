@@ -1,5 +1,7 @@
 import { useId, type InputHTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
+import { Field } from './FormField'
+import { fieldControlClass } from './fieldControl'
 
 export type TextFieldProps = InputHTMLAttributes<HTMLInputElement> & {
   label?: string
@@ -11,24 +13,13 @@ export function TextField({ label, error, className, id, ...props }: TextFieldPr
   const autoId = useId()
   const inputId = id ?? autoId
   return (
-    <div className="flex flex-col gap-1.5">
-      {label && (
-        <label htmlFor={inputId} className="text-xs font-semibold text-base-content/70">
-          {label}
-        </label>
-      )}
+    <Field label={label} error={error} htmlFor={inputId}>
       <input
         id={inputId}
-        className={cn(
-          'w-full rounded-[14px] border-[1.5px] bg-base-100 px-3.5 py-3 text-[15px] outline-none transition',
-          'placeholder:text-base-content/40 focus:border-primary focus:ring-4 focus:ring-primary/15',
-          error ? 'border-error' : 'border-base-300',
-          className,
-        )}
+        className={cn(fieldControlClass(error), className)}
         aria-invalid={error ? true : undefined}
         {...props}
       />
-      {error && <span className="text-xs text-error">{error}</span>}
-    </div>
+    </Field>
   )
 }

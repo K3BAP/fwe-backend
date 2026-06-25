@@ -37,3 +37,14 @@ export const SunIcon = (p: IconProps) => (
   <Base {...p}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5" /></Base>
 )
 export const MoonIcon = (p: IconProps) => <Base {...p}><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z" /></Base>
+export const ClockIcon = (p: IconProps) => <Base {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></Base>
+export const CalendarIcon = (p: IconProps) => (
+  <Base {...p}><rect x="3" y="4.5" width="18" height="17" rx="3" /><path d="M3 9h18M8 2.5v4M16 2.5v4" /></Base>
+)
+export const MapPinIcon = (p: IconProps) => (
+  <Base {...p}><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" /><circle cx="12" cy="10" r="2.6" /></Base>
+)
+export const PlusIcon = (p: IconProps) => <Base {...p}><path d="M12 5v14M5 12h14" /></Base>
+export const CheckIcon = (p: IconProps) => <Base {...p}><path d="M20 6 9 17l-5-5" /></Base>
+export const ChevronRightIcon = (p: IconProps) => <Base {...p}><path d="m9 6 6 6-6 6" /></Base>
+export const UsersIcon = GroupIcon

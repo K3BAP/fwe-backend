@@ -1,7 +1,11 @@
 import type { MeetupListItem } from '@/api/schemas'
 
-/** Realistische Demo-Flugtreffen (M1, Mock). Echte Startplätze + plausible Daten. */
-export const MOCK_MEETUPS: MeetupListItem[] = [
+/**
+ * Veränderlicher In-Memory-Datensatz der Flugtreffen (M1-Mock). Mutationen (Teilnahme, Anlegen)
+ * schreiben hierher, damit optimistische Updates über Refetches hinweg bestehen bleiben. Lese-Helfer
+ * geben Kopien zurück, damit Aufrufer den Store nicht versehentlich mutieren.
+ */
+const meetups: MeetupListItem[] = [
   {
     id: 1,
     title: 'Abendthermik am Tegelberg',
@@ -101,3 +105,8 @@ export const MOCK_MEETUPS: MeetupListItem[] = [
     lng: 12.6122,
   },
 ]
+
+/** Lese-/Mutations-Zugriff auf den Mock-Datensatz (in M2+ ersetzt durch echte Endpunkte). */
+export const meetupsTable = {
+  list: (): MeetupListItem[] => meetups.map((m) => ({ ...m })),
+}

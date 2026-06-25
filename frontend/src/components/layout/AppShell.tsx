@@ -1,8 +1,9 @@
 import { Outlet } from 'react-router-dom'
+import { Toaster } from '@/components/ui'
 import { BottomNav } from './BottomNav'
 import { TopBar } from './TopBar'
 
-/** App-Rahmen: Sticky-Top-Bar + Content (Outlet) + mobile Bottom-Nav. */
+/** App-Rahmen: Sticky-Top-Bar + Content (Outlet) + mobile Bottom-Nav + globaler Toast-Host. */
 export function AppShell() {
   return (
     <div className="flex min-h-svh flex-col bg-base-200 text-base-content">
@@ -11,6 +12,7 @@ export function AppShell() {
         <Outlet />
       </main>
       <BottomNav />
+      <Toaster />
     </div>
   )
 }
