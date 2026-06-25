@@ -110,7 +110,8 @@ Detail-Spezifikationen je Domäne und übergreifende Referenzen in eigenen Datei
 - [`DECISIONS.md`](DECISIONS.md) – Architektur-Entscheidungen (ADR-Log)
 - [`OFFENE_FRAGEN.md`](OFFENE_FRAGEN.md) – offene Fragen (lebendes Dokument)
 - [`MILESTONES.md`](MILESTONES.md) – Meilensteinplan (M0–M5)
-- [`DESIGN_BRIEF.md`](DESIGN_BRIEF.md) – Design-Brief / Prompt für Claude Design (→ später `DESIGN.md` als Referenz)
+- [`DESIGN_BRIEF.md`](DESIGN_BRIEF.md) – Design-Brief / Prompt für Claude Design
+- [`DESIGN.md`](DESIGN.md) – **Design-System** (Tokens + Komponenten aus dem Claude-Design-Entwurf, Quelle fürs M0-Theme); Entwurf unter `design/`
 
 ### 4.1 Bestätigte Kern-Anforderungen je Seite (aus der Aufgabenstellung)
 
@@ -234,16 +235,18 @@ Last-Budget des geteilten Hosts. → Details in [`spec/OFFENE_FRAGEN.md`](OFFENE
 
 ## 9. Meilensteine
 
-Vollständiger Plan in [`MILESTONES.md`](MILESTONES.md). Jede Phase ist eigenständig lauffähig & reviewbar (ADR-013):
+Vollständiger Plan in [`MILESTONES.md`](MILESTONES.md). **Prototyp-zuerst** (ADR-016): erst die komplette
+UI mit Mock-Daten, dann domänenweise verkabeln. Jede Phase eigenständig lauffähig & reviewbar (ADR-013):
 
 | MS | Titel | Ergebnis |
 |---|---|---|
-| **M0** | Fundament & Gerüst | App startet, Landing + Navigation, `/api/v1` antwortet, Build deployt |
-| **M1** | Auth & Profile | Registrieren/Login, Profil + Profilkarte, Dashboard-Gerüst |
-| **M2** | Flugtreffen | Finden (Karte/Tabelle/Cards), erstellen, teilnehmen/absagen |
-| **M3** | Gruppen | Gründen/finden, Rollen, Beitritt, öffentlicher Feed |
-| **M4** | Chat & Benachrichtigungen | Channels-/Treffen-/Direkt-Chat (Polling) + Notification-Center |
-| **M5** | Politur, Seed, Tests, Deploy | Demo-Daten, Transitions, a11y, Tests, Prod-Deploy |
+| **M0** | Fundament & **Design-System** | Theme + Fonts + Komponentenbibliothek (aus dem Design-Entwurf), Styleguide |
+| **M1** | **UI-Prototyp (komplett, Mock)** | Alle Screens navigierbar mit Mock-Daten — klickbare Demo |
+| **M2** | Backend-Fundament & **Auth** | CI4/Shield, Migrations, `/api/v1`; Auth/Profile echt |
+| **M3** | **Flugtreffen** verkabeln | spots-Seed, Karte/Liste/Cards, Teilnahme echt |
+| **M4** | **Gruppen** verkabeln | Rollen, Beitritt, Feed echt |
+| **M5** | **Chat & Benachrichtigungen** verkabeln | polymorphe Engine, Polling echt |
+| **M6** | Politur, Seed, Tests, **Deploy** | Demo-Daten, a11y, Tests, Webspace |
 
 ---
 
@@ -260,3 +263,5 @@ Vollständiger Plan in [`MILESTONES.md`](MILESTONES.md). Jede Phase ist eigenst�
 | 2026-06-19 | Spec-Durchgang (Auth & Profile): Profil-Sichtbarkeit auf ADR-012/B1+C2 ausgerichtet (öffentlich lesbar, reduzierte Projektion für Gäste) in Kap. 01 + API.md; Pfad vereinheitlicht auf `/users/{id}` (statt `/profiles/{userId}`) in API.md + Kap. 06. |
 | 2026-06-19 | Spec committet (`76ed97c`). Meilensteinplan `MILESTONES.md` (M0–M5) erstellt. |
 | 2026-06-19 | Design-Richtung festgelegt (abenteuerlich-sportlich · Himmelblau + Sonnenuntergang · großzügig · Komoot/Strava). `DESIGN_BRIEF.md` (Claude-Design-Prompt) erstellt. |
+| 2026-06-19 | **ADR-016**: Umstellung auf **Prototyp-zuerst** (Claude-Design-Entwurf liegt vor). `MILESTONES.md` neu strukturiert (M0 Design-System → M1 UI-Prototyp → M2–M5 verkabeln → M6 Deploy). |
+| 2026-06-25 | Claude-Design-Entwurf importiert (Design System + Prototyp unter `design/`). Tokens als `DESIGN.md` extrahiert (inkl. DaisyUI-Theme-Mapping Light/Dark). |

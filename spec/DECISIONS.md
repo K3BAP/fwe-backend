@@ -286,3 +286,22 @@ Variante verteidigt; der Nutzer prüft den Code **intensiv** und muss ihn nach k
   user_id, joined_at` + `UNIQUE(meetup_id,user_id)`.
 - **@handle bestätigt:** `profiles.handle` (optional, UNIQUE) bleibt für Profil-URLs `/profil/{handle}`
   und spätere @-Mentions.
+
+---
+
+## ADR-016 – Liefermodell: UI-Prototyp zuerst, dann verkabeln ✅
+**Datum:** 2026-06-19 · **Quelle:** Nutzer (nach Vorliegen des Claude-Design-Entwurfs)
+
+**Kontext:** Ein Claude-Design-Entwurf (Design System + Prototyp) liegt vor; **Datenmodell & API-DTOs
+stehen bereits vollständig fest** ([`DATA_MODEL.md`](DATA_MODEL.md), [`API.md`](API.md)).
+
+**Entscheidung:** Statt vertikaler Feature-Slices wird **zuerst die gesamte UI als klickbarer Prototyp**
+mit typisierten Mock-Daten gebaut (**M0** Design-System, **M1** Prototyp), danach **domänenweise** mit
+echtem Backend verkabelt (**M2–M5**), **M6** Politur/Deploy.
+
+**Schlüssel (geringes Rework):** eine **Daten-Zugriffs-Naht** — typisierte Query/Mutation-Hooks geben
+**DTOs** zurück (Zod-`z.infer` exakt nach `API.md`); in M1 aus **Mocks**, ab M2 **pro Domäne** auf echtes
+`fetch` umgestellt. UI-Komponenten bleiben unverändert.
+
+**Konsequenzen:** früh sichtbarer/präsentierbarer Stand (stark für die Abnahme); Risiko „Backend zu spät"
+wird aktiv gemanagt (M2–M5 nicht quetschen). [`MILESTONES.md`](MILESTONES.md) neu strukturiert (M0–M6).

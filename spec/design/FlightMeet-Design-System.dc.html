@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="design_doc_mode" content="canvas">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-family:Inter,system-ui,sans-serif}
+</style>
+</helmet>
+
+<!-- ============ TITLE BAND ============ -->
+<div style="position:absolute;left:80px;top:48px;width:1760px;height:148px">
+  <div style="display:flex;align-items:center;gap:20px">
+    <div style="width:62px;height:62px;border-radius:18px;background:linear-gradient(150deg,#5BB8F5,#1E90E6 55%,#0F6FBE);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(15,111,190,.4)">
+      <svg width="44" height="32" viewBox="0 0 64 44" fill="none"><circle cx="45" cy="15" r="7.5" fill="#FF6B4A"/><path d="M6 25 C 18 9, 46 9, 58 25 C 46 18, 18 18, 6 25 Z" fill="#fff"/><path d="M22 21 L30 33 M42 21 L34 33" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".92"/><circle cx="32" cy="35" r="2.4" fill="#fff"/></svg>
+    </div>
+    <div>
+      <div style="font:600 12px Inter;letter-spacing:.16em;text-transform:uppercase;color:#0F6FBE">Design-System · v1.0 · Deutsch</div>
+      <div style="font:800 42px Outfit;letter-spacing:-.025em;color:#0E1726;margin-top:2px">Flight<span style="color:#1E90E6">Meet</span></div>
+    </div>
+    <div style="margin-left:auto;max-width:520px;text-align:right;font:400 15px/1.5 Inter;color:#5B6B7E">Community-Plattform für Gleitschirmflieger.<br>Komoot-/Strava-Gefühl · Light &amp; Dark · Tailwind&nbsp;+&nbsp;DaisyUI-ready</div>
+  </div>
+  <div style="height:3px;border-radius:3px;margin-top:26px;background:linear-gradient(90deg,#0F6FBE,#1E90E6 22%,#FF6B4A 60%,rgba(255,107,74,0))"></div>
+</div>
+
+<!-- ============ 01 · MARKE ============ -->
+<div style="position:absolute;left:80px;top:232px;width:1760px;height:438px;background:#fff;border:1px solid #E2EAF2;border-radius:28px;box-shadow:0 4px 18px rgba(16,40,70,.06),0 2px 6px rgba(16,40,70,.04);padding:34px 38px">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:24px">
+    <span style="font:600 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:#1E90E6">01 — Marke &amp; Logo</span>
+    <span style="font:400 14px Inter;color:#94A3B5">Wortmarke · Wing-Icon · Claim</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:26px">
+    <!-- light lockup -->
+    <div style="background:#F6F9FC;border:1px solid #E6EDF5;border-radius:20px;padding:28px;display:flex;flex-direction:column">
+      <div style="font:600 11px Inter;letter-spacing:.1em;text-transform:uppercase;color:#94A3B5;margin-bottom:auto">Light</div>
+      <div style="display:flex;align-items:center;gap:14px;margin:22px 0">
+        <div style="width:54px;height:54px;border-radius:16px;background:linear-gradient(150deg,#5BB8F5,#1E90E6 55%,#0F6FBE);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px rgba(15,111,190,.32)">
+          <svg width="38" height="28" viewBox="0 0 64 44" fill="none"><circle cx="45" cy="15" r="7.5" fill="#FF6B4A"/><path d="M6 25 C 18 9, 46 9, 58 25 C 46 18, 18 18, 6 25 Z" fill="#fff"/><path d="M22 21 L30 33 M42 21 L34 33" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".92"/><circle cx="32" cy="35" r="2.4" fill="#fff"/></svg>
+        </div>
+        <span style="font:800 30px Outfit;letter-spacing:-.02em;color:#0E1726">Flight<span style="color:#1E90E6">Meet</span></span>
+      </div>
+      <div style="font:400 13px Inter;color:#5B6B7E">Wing-Icon = Gleitschirm-Canopy + Sonne. Wortmarke Outfit&nbsp;800.</div>
+    </div>
+    <!-- dark lockup -->
+    <div style="background:#0B1220;border:1px solid #243449;border-radius:20px;padding:28px;display:flex;flex-direction:column">
+      <div style="font:600 11px Inter;letter-spacing:.1em;text-transform:uppercase;color:#6B7E94;margin-bottom:auto">Dark</div>
+      <div style="display:flex;align-items:center;gap:14px;margin:22px 0">
+        <div style="width:54px;height:54px;border-radius:16px;background:linear-gradient(150deg,#5BB8F5,#1E90E6 55%,#0F6FBE);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(0,0,0,.5)">
+          <svg width="38" height="28" viewBox="0 0 64 44" fill="none"><circle cx="45" cy="15" r="7.5" fill="#FF6B4A"/><path d="M6 25 C 18 9, 46 9, 58 25 C 46 18, 18 18, 6 25 Z" fill="#fff"/><path d="M22 21 L30 33 M42 21 L34 33" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".92"/><circle cx="32" cy="35" r="2.4" fill="#fff"/></svg>
+        </div>
+        <span style="font:800 30px Outfit;letter-spacing:-.02em;color:#F2F6FC">Flight<span style="color:#5BB8F5">Meet</span></span>
+      </div>
+      <div style="font:400 13px Inter;color:#93A4B8">Auf Nacht-Slate: „Meet" wechselt auf das hellere Sky-300.</div>
+    </div>
+    <!-- tagline -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font:600 11px Inter;letter-spacing:.1em;text-transform:uppercase;color:#94A3B5">Claim — 3 Optionen</div>
+      <div style="background:#EAF4FE;border:1.5px solid #1E90E6;border-radius:16px;padding:16px 18px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font:700 12px Outfit;color:#0F6FBE">A</span><span style="font:600 10px Inter;letter-spacing:.08em;text-transform:uppercase;color:#0F6FBE;background:#fff;border-radius:999px;padding:3px 9px">Aktuell</span></div>
+        <div style="font:600 18px/1.35 Outfit;color:#0E1726">„Finde deine nächste Thermik – gemeinsam fliegen."</div>
+      </div>
+      <div style="background:#F6F9FC;border:1px solid #E6EDF5;border-radius:16px;padding:16px 18px">
+        <div style="font:700 12px Outfit;color:#94A3B5;margin-bottom:4px">B</div>
+        <div style="font:600 18px/1.35 Outfit;color:#2A3849">„Gemeinsam abheben, höher kommen."</div>
+      </div>
+      <div style="background:#F6F9FC;border:1px solid #E6EDF5;border-radius:16px;padding:16px 18px">
+        <div style="font:700 12px Outfit;color:#94A3B5;margin-bottom:4px">C</div>
+        <div style="font:600 18px/1.35 Outfit;color:#2A3849">„Vom Startplatz bis zur Wolkenbasis – zusammen."</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 02 · FARBEN — MARKENPALETTE ============ -->
+<div style="position:absolute;left:80px;top:726px;width:1760px;height:556px;background:#fff;border:1px solid #E2EAF2;border-radius:28px;box-shadow:0 4px 18px rgba(16,40,70,.06),0 2px 6px rgba(16,40,70,.04);padding:34px 38px">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:22px">
+    <span style="font:600 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:#1E90E6">02 — Farben · Markenpalette</span>
+    <span style="font:400 14px Inter;color:#94A3B5">Primär Himmelblau · Akzent Sonnenuntergang · Sekundär Petrol</span>
+  </div>
+
+  <!-- SKY -->
+  <div style="margin-bottom:18px">
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px"><span style="font:700 16px Outfit;color:#0E1726">Sky — Primär</span><span style="font:400 13px Inter;color:#5B6B7E">Aktionen, Links, aktive Zustände · <b style="color:#0E1726">primary&nbsp;=&nbsp;#1E90E6</b></span></div>
+    <div style="display:flex;gap:8px">
+      <div style="flex:1"><div style="height:44px;background:#EAF4FE;border-radius:8px;border:1px solid #E2EAF2"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">50</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#EAF4FE</div></div>
+      <div style="flex:1"><div style="height:44px;background:#D2E7FC;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">100</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#D2E7FC</div></div>
+      <div style="flex:1"><div style="height:44px;background:#A9D2F8;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">200</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#A9D2F8</div></div>
+      <div style="flex:1"><div style="height:44px;background:#7FBCF5;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">300</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#7FBCF5</div></div>
+      <div style="flex:1"><div style="height:44px;background:#4EA2F0;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">400</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#4EA2F0</div></div>
+      <div style="flex:1.3;position:relative"><div style="height:44px;background:#1E90E6;border-radius:8px;box-shadow:0 0 0 2px #fff,0 0 0 4px #1E90E6"></div><div style="font:700 10px Inter;color:#0F6FBE;text-align:center;margin-top:5px">500 · Primär</div><div style="font:500 10px ui-monospace,monospace;color:#1E90E6;text-align:center">#1E90E6</div></div>
+      <div style="flex:1"><div style="height:44px;background:#0F6FBE;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">600</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#0F6FBE</div></div>
+      <div style="flex:1"><div style="height:44px;background:#0C5896;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">700</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#0C5896</div></div>
+      <div style="flex:1"><div style="height:44px;background:#0B4576;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">800</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#0B4576</div></div>
+      <div style="flex:1"><div style="height:44px;background:#0B3357;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">900</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#0B3357</div></div>
+    </div>
+  </div>
+
+  <!-- CORAL -->
+  <div style="margin-bottom:18px">
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px"><span style="font:700 16px Outfit;color:#0E1726">Coral — Akzent</span><span style="font:400 13px Inter;color:#5B6B7E">Sekundär-CTAs, Badges, Highlights · <b style="color:#0E1726">accent&nbsp;=&nbsp;#FF6B4A</b> · Solid-Fill #F1572F (weißer Text, AA-large)</span></div>
+    <div style="display:flex;gap:8px">
+      <div style="flex:1"><div style="height:44px;background:#FFF2EE;border-radius:8px;border:1px solid #FBE4DC"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">50</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#FFF2EE</div></div>
+      <div style="flex:1"><div style="height:44px;background:#FFE1D8;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">100</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#FFE1D8</div></div>
+      <div style="flex:1"><div style="height:44px;background:#FFC4B4;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">200</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#FFC4B4</div></div>
+      <div style="flex:1"><div style="height:44px;background:#FF9F88;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">300</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#FF9F88</div></div>
+      <div style="flex:1"><div style="height:44px;background:#FF8062;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">400</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#FF8062</div></div>
+      <div style="flex:1.3;position:relative"><div style="height:44px;background:#FF6B4A;border-radius:8px;box-shadow:0 0 0 2px #fff,0 0 0 4px #FF6B4A"></div><div style="font:700 10px Inter;color:#C7421F;text-align:center;margin-top:5px">500 · Akzent</div><div style="font:500 10px ui-monospace,monospace;color:#C7421F;text-align:center">#FF6B4A</div></div>
+      <div style="flex:1"><div style="height:44px;background:#F1572F;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">600</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#F1572F</div></div>
+      <div style="flex:1"><div style="height:44px;background:#C7421F;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">700</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#C7421F</div></div>
+      <div style="flex:1"><div style="height:44px;background:#9E3417;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">800</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#9E3417</div></div>
+      <div style="flex:1"><div style="height:44px;background:#7A2810;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">900</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#7A2810</div></div>
+    </div>
+  </div>
+
+  <!-- PETROL -->
+  <div>
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px"><span style="font:700 16px Outfit;color:#0E1726">Petrol — Sekundär</span><span style="font:400 13px Inter;color:#5B6B7E">Ruhiger dritter Ton · Stat-Chips, „Alle Level", Karten-Wasser · <b style="color:#0E1726">secondary&nbsp;=&nbsp;#117D87</b></span></div>
+    <div style="display:flex;gap:8px">
+      <div style="flex:1"><div style="height:44px;background:#E8F3F4;border-radius:8px;border:1px solid #D8EAEB"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">50</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#E8F3F4</div></div>
+      <div style="flex:1"><div style="height:44px;background:#CDE7E9;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">100</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#CDE7E9</div></div>
+      <div style="flex:1"><div style="height:44px;background:#9CCED2;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">200</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#9CCED2</div></div>
+      <div style="flex:1"><div style="height:44px;background:#66B0B6;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">300</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#66B0B6</div></div>
+      <div style="flex:1"><div style="height:44px;background:#2E8E96;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">400</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#2E8E96</div></div>
+      <div style="flex:1.3;position:relative"><div style="height:44px;background:#117D87;border-radius:8px;box-shadow:0 0 0 2px #fff,0 0 0 4px #117D87"></div><div style="font:700 10px Inter;color:#0A4F57;text-align:center;margin-top:5px">500 · Sekundär</div><div style="font:500 10px ui-monospace,monospace;color:#0A4F57;text-align:center">#117D87</div></div>
+      <div style="flex:1"><div style="height:44px;background:#0C636C;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">600</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#0C636C</div></div>
+      <div style="flex:1"><div style="height:44px;background:#0A4F57;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">700</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#0A4F57</div></div>
+      <div style="flex:1"><div style="height:44px;background:#083E45;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">800</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#083E45</div></div>
+      <div style="flex:1"><div style="height:44px;background:#062E33;border-radius:8px"></div><div style="font:600 10px Inter;color:#94A3B5;text-align:center;margin-top:4px">900</div><div style="font:500 10px ui-monospace,monospace;color:#5B6B7E;text-align:center">#062E33</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 02b · NEUTRAL & SEMANTIK ============ -->
+<div style="position:absolute;left:80px;top:1338px;width:1760px;height:600px;background:#fff;border:1px solid #E2EAF2;border-radius:28px;box-shadow:0 4px 18px rgba(16,40,70,.06),0 2px 6px rgba(16,40,70,.04);padding:34px 38px">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:22px">
+    <span style="font:600 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:#1E90E6">02 — Farben · Neutral &amp; Semantik</span>
+    <span style="font:400 14px Inter;color:#94A3B5">Basis-Flächen Light &amp; Dark · Status-Farben dezent</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1.25fr;gap:26px">
+    <!-- NEUTRAL LIGHT -->
+    <div>
+      <div style="font:700 15px Outfit;color:#0E1726;margin-bottom:12px">Neutral — Light</div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:11px;background:#F6F9FC;border:1px solid #E2EAF2"></div><div><div style="font:600 13px Inter;color:#2A3849">base / bg</div><div style="font:500 11px ui-monospace,monospace;color:#94A3B5">#F6F9FC</div></div></div>
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:11px;background:#EEF3F9;border:1px solid #E2EAF2"></div><div><div style="font:600 13px Inter;color:#2A3849">surface</div><div style="font:500 11px ui-monospace,monospace;color:#94A3B5">#EEF3F9</div></div></div>
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:11px;background:#FFFFFF;border:1px solid #E2EAF2"></div><div><div style="font:600 13px Inter;color:#2A3849">card / base-100</div><div style="font:500 11px ui-monospace,monospace;color:#94A3B5">#FFFFFF</div></div></div>
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:11px;background:#E2EAF2"></div><div><div style="font:600 13px Inter;color:#2A3849">border</div><div style="font:500 11px ui-monospace,monospace;color:#94A3B5">#E2EAF2</div></div></div>
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:11px;background:#0E1726"></div><div><div style="font:600 13px Inter;color:#2A3849">text-strong</div><div style="font:500 11px ui-monospace,monospace;color:#94A3B5">#0E1726</div></div></div>
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:11px;background:#5B6B7E"></div><div><div style="font:600 13px Inter;color:#2A3849">text-muted</div><div style="font:500 11px ui-monospace,monospace;color:#94A3B5">#5B6B7E</div></div></div>
+      </div>
+    </div>
+    <!-- NEUTRAL DARK -->
+    <div style="background:#0B1220;border-radius:18px;padding:18px 18px 20px;margin:-4px">
+      <div style="font:700 15px Outfit;color:#F2F6FC;margin-bottom:12px">Neutral — Dark</div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:11px;background:#0B1220;border:1px solid #31435C"></div><div><div style="font:600 13px Inter;color:#D3DEEC">base / bg</div><div style="font:500 11px ui-monospace,monospace;color:#6B7E94">#0B1220</div></div></div>
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:11px;background:#0E1726;border:1px solid #31435C"></div><div><div style="font:600 13px Inter;color:#D3DEEC">surface</div><div style="font:500 11px ui-monospace,monospace;color:#6B7E94">#0E1726</div></div></div>
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:11px;background:#16243A;border:1px solid #31435C"></div><div><div style="font:600 13px Inter;color:#D3DEEC">card / base-100</div><div style="font:500 11px ui-monospace,monospace;color:#6B7E94">#16243A</div></div></div>
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:11px;background:#243449"></div><div><div style="font:600 13px Inter;color:#D3DEEC">border</div><div style="font:500 11px ui-monospace,monospace;color:#6B7E94">#243449</div></div></div>
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:11px;background:#F2F6FC"></div><div><div style="font:600 13px Inter;color:#D3DEEC">text-strong</div><div style="font:500 11px ui-monospace,monospace;color:#6B7E94">#F2F6FC</div></div></div>
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:11px;background:#93A4B8"></div><div><div style="font:600 13px Inter;color:#D3DEEC">text-muted</div><div style="font:500 11px ui-monospace,monospace;color:#6B7E94">#93A4B8</div></div></div>
+      </div>
+    </div>
+    <!-- SEMANTIC -->
+    <div>
+      <div style="font:700 15px Outfit;color:#0E1726;margin-bottom:12px">Semantik <span style="font:400 12px Inter;color:#94A3B5">— Light-Tint · 500 · Dark</span></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:120px"><div style="font:600 13px Inter;color:#2A3849">Erfolg</div><div style="font:500 11px ui-monospace,monospace;color:#94A3B5">#1E9E5A</div></div>
+          <div style="flex:1;display:flex;gap:6px"><span style="flex:1;background:#E4F6EC;color:#157A43;border-radius:8px;padding:7px 0;text-align:center;font:600 11px Inter">Offen</span><div style="width:34px;height:32px;border-radius:8px;background:#1E9E5A"></div><div style="width:34px;height:32px;border-radius:8px;background:#0B1220;display:flex;align-items:center;justify-content:center"><span style="width:14px;height:14px;border-radius:5px;background:#34C77B;display:block"></span></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:120px"><div style="font:600 13px Inter;color:#2A3849">Warnung</div><div style="font:500 11px ui-monospace,monospace;color:#94A3B5">#E8A21A</div></div>
+          <div style="flex:1;display:flex;gap:6px"><span style="flex:1;background:#FBF0D6;color:#8A5D00;border-radius:8px;padding:7px 0;text-align:center;font:600 11px Inter">Ausgebucht</span><div style="width:34px;height:32px;border-radius:8px;background:#E8A21A"></div><div style="width:34px;height:32px;border-radius:8px;background:#0B1220;display:flex;align-items:center;justify-content:center"><span style="width:14px;height:14px;border-radius:5px;background:#F5B53D;display:block"></span></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:120px"><div style="font:600 13px Inter;color:#2A3849">Fehler</div><div style="font:500 11px ui-monospace,monospace;color:#94A3B5">#E5484D</div></div>
+          <div style="flex:1;display:flex;gap:6px"><span style="flex:1;background:#FCE6E7;color:#B42318;border-radius:8px;padding:7px 0;text-align:center;font:600 11px Inter">Abgesagt</span><div style="width:34px;height:32px;border-radius:8px;background:#E5484D"></div><div style="width:34px;height:32px;border-radius:8px;background:#0B1220;display:flex;align-items:center;justify-content:center"><span style="width:14px;height:14px;border-radius:5px;background:#FF6066;display:block"></span></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:120px"><div style="font:600 13px Inter;color:#2A3849">Info</div><div style="font:500 11px ui-monospace,monospace;color:#94A3B5">#1E90E6</div></div>
+          <div style="flex:1;display:flex;gap:6px"><span style="flex:1;background:#E5F1FD;color:#0C5896;border-radius:8px;padding:7px 0;text-align:center;font:600 11px Inter">Hinweis</span><div style="width:34px;height:32px;border-radius:8px;background:#1E90E6"></div><div style="width:34px;height:32px;border-radius:8px;background:#0B1220;display:flex;align-items:center;justify-content:center"><span style="width:14px;height:14px;border-radius:5px;background:#5BB8F5;display:block"></span></div></div>
+        </div>
+        <div style="margin-top:4px;background:#F6F9FC;border:1px solid #E6EDF5;border-radius:12px;padding:11px 13px;font:400 12px/1.45 Inter;color:#5B6B7E">Status-Mapping: <b style="color:#157A43">Offen→Erfolg</b> · <b style="color:#8A5D00">Ausgebucht→Warnung</b> · <b style="color:#B42318">Abgesagt→Fehler</b> · <b style="color:#5B6B7E">Beendet→Neutral</b></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 03 · TYPOGRAFIE ============ -->
+<div style="position:absolute;left:80px;top:1994px;width:1760px;height:596px;background:#fff;border:1px solid #E2EAF2;border-radius:28px;box-shadow:0 4px 18px rgba(16,40,70,.06),0 2px 6px rgba(16,40,70,.04);padding:34px 38px">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:24px">
+    <span style="font:600 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:#1E90E6">03 — Typografie</span>
+    <span style="font:400 14px Inter;color:#94A3B5">Headings: Outfit · Fließtext/UI: Inter</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:40px">
+    <!-- specimen -->
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:1px solid #EEF3F9;padding-bottom:16px">
+        <span style="font:800 52px/1 Outfit;letter-spacing:-.03em;color:#0E1726">Gemeinsam abheben.</span>
+        <span style="font:500 11px ui-monospace,monospace;color:#94A3B5;white-space:nowrap">Outfit 800 · 52/56 · -3%</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:1px solid #EEF3F9;padding-bottom:14px">
+        <span style="font:700 32px/1.1 Outfit;letter-spacing:-.02em;color:#0E1726">Flugtreffen in deiner Region</span>
+        <span style="font:500 11px ui-monospace,monospace;color:#94A3B5;white-space:nowrap">H1 · 700 · 32</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:1px solid #EEF3F9;padding-bottom:14px">
+        <span style="font:700 26px/1.15 Outfit;letter-spacing:-.01em;color:#0E1726">Wasserkuppe — Westhang</span>
+        <span style="font:500 11px ui-monospace,monospace;color:#94A3B5;white-space:nowrap">H2 · 700 · 26</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:1px solid #EEF3F9;padding-bottom:14px">
+        <span style="font:600 21px/1.2 Outfit;color:#0E1726">Teilnehmer · 8 von 12 Plätzen</span>
+        <span style="font:500 11px ui-monospace,monospace;color:#94A3B5;white-space:nowrap">H3 · 600 · 21</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:1px solid #EEF3F9;padding-bottom:14px">
+        <span style="font:400 17px/1.55 Inter;color:#2A3849;max-width:480px">Treffpunkt 9:30 Uhr am oberen Parkplatz. Wir checken gemeinsam das Wetter und laufen zum Startplatz.</span>
+        <span style="font:500 11px ui-monospace,monospace;color:#94A3B5;white-space:nowrap">Body L · 17/1.55</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px">
+        <span style="font:400 15px/1.5 Inter;color:#5B6B7E;max-width:480px">Bitte Schirm-Check nicht vergessen. Bei Regen verschieben wir auf Sonntag.</span>
+        <span style="font:500 11px ui-monospace,monospace;color:#94A3B5;white-space:nowrap">Body M · 15/1.5</span>
+      </div>
+    </div>
+    <!-- token table -->
+    <div style="background:#F6F9FC;border:1px solid #E6EDF5;border-radius:18px;padding:22px 24px">
+      <div style="font:700 15px Outfit;color:#0E1726;margin-bottom:14px">Typo-Skala</div>
+      <div style="display:flex;flex-direction:column;font:400 13px Inter">
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #E6EDF5"><span style="color:#2A3849;font-weight:600">Display</span><span style="font:500 12px ui-monospace,monospace;color:#5B6B7E">Outfit 800 / 56 / 1.0</span></div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #E6EDF5"><span style="color:#2A3849;font-weight:600">H1</span><span style="font:500 12px ui-monospace,monospace;color:#5B6B7E">Outfit 700 / 32 / 1.1</span></div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #E6EDF5"><span style="color:#2A3849;font-weight:600">H2</span><span style="font:500 12px ui-monospace,monospace;color:#5B6B7E">Outfit 700 / 26 / 1.15</span></div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #E6EDF5"><span style="color:#2A3849;font-weight:600">H3</span><span style="font:500 12px ui-monospace,monospace;color:#5B6B7E">Outfit 600 / 21 / 1.2</span></div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #E6EDF5"><span style="color:#2A3849;font-weight:600">Body L</span><span style="font:500 12px ui-monospace,monospace;color:#5B6B7E">Inter 400 / 17 / 1.55</span></div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #E6EDF5"><span style="color:#2A3849;font-weight:600">Body M</span><span style="font:500 12px ui-monospace,monospace;color:#5B6B7E">Inter 400 / 15 / 1.5</span></div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #E6EDF5"><span style="color:#2A3849;font-weight:600">Body S</span><span style="font:500 12px ui-monospace,monospace;color:#5B6B7E">Inter 400 / 13 / 1.5</span></div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0"><span style="color:#2A3849;font-weight:600">Label / Caption</span><span style="font:500 12px ui-monospace,monospace;color:#5B6B7E">Inter 600 / 12 · +8% caps</span></div>
+      </div>
+      <div style="margin-top:16px;display:flex;align-items:center;gap:10px"><span style="font:600 12px Inter;letter-spacing:.08em;text-transform:uppercase;color:#0F6FBE">Erfahrungslevel</span><span style="font:400 12px Inter;color:#94A3B5">← Label-Stil</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 04 · RADIUS / SCHATTEN / ABSTÄNDE ============ -->
+<div style="position:absolute;left:80px;top:2646px;width:1760px;height:430px;background:#fff;border:1px solid #E2EAF2;border-radius:28px;box-shadow:0 4px 18px rgba(16,40,70,.06),0 2px 6px rgba(16,40,70,.04);padding:34px 38px">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:24px">
+    <span style="font:600 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:#1E90E6">04 — Radius · Schatten · Abstände</span>
+    <span style="font:400 14px Inter;color:#94A3B5">Weiche, runde Formensprache · diffuse Schatten</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1.25fr 1.1fr 1fr;gap:34px">
+    <!-- radius -->
+    <div>
+      <div style="font:700 15px Outfit;color:#0E1726;margin-bottom:14px">Radius</div>
+      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+        <div style="text-align:center"><div style="width:58px;height:48px;background:#EAF4FE;border:1.5px solid #7FBCF5;border-radius:8px"></div><div style="font:500 11px ui-monospace,monospace;color:#5B6B7E;margin-top:6px">8</div><div style="font:400 10px Inter;color:#94A3B5">badge</div></div>
+        <div style="text-align:center"><div style="width:58px;height:48px;background:#EAF4FE;border:1.5px solid #7FBCF5;border-radius:14px"></div><div style="font:500 11px ui-monospace,monospace;color:#5B6B7E;margin-top:6px">14</div><div style="font:400 10px Inter;color:#94A3B5">input</div></div>
+        <div style="text-align:center"><div style="width:58px;height:48px;background:#EAF4FE;border:1.5px solid #7FBCF5;border-radius:20px"></div><div style="font:500 11px ui-monospace,monospace;color:#5B6B7E;margin-top:6px">20</div><div style="font:400 10px Inter;color:#94A3B5">image</div></div>
+        <div style="text-align:center"><div style="width:58px;height:48px;background:#EAF4FE;border:1.5px solid #7FBCF5;border-radius:24px"></div><div style="font:500 11px ui-monospace,monospace;color:#5B6B7E;margin-top:6px">24</div><div style="font:400 10px Inter;color:#94A3B5">card</div></div>
+        <div style="text-align:center"><div style="width:58px;height:48px;background:#EAF4FE;border:1.5px solid #7FBCF5;border-radius:28px"></div><div style="font:500 11px ui-monospace,monospace;color:#5B6B7E;margin-top:6px">28</div><div style="font:400 10px Inter;color:#94A3B5">sheet</div></div>
+        <div style="text-align:center"><div style="width:58px;height:48px;background:#EAF4FE;border:1.5px solid #7FBCF5;border-radius:999px"></div><div style="font:500 11px ui-monospace,monospace;color:#5B6B7E;margin-top:6px">full</div><div style="font:400 10px Inter;color:#94A3B5">pill</div></div>
+      </div>
+    </div>
+    <!-- shadow -->
+    <div>
+      <div style="font:700 15px Outfit;color:#0E1726;margin-bottom:14px">Schatten</div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;padding-top:4px">
+        <div style="text-align:center"><div style="width:74px;height:56px;background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(16,40,70,.06),0 1px 3px rgba(16,40,70,.08)"></div><div style="font:600 11px Inter;color:#2A3849;margin-top:10px">sm</div></div>
+        <div style="text-align:center"><div style="width:74px;height:56px;background:#fff;border-radius:16px;box-shadow:0 4px 16px rgba(16,40,70,.06),0 2px 6px rgba(16,40,70,.04)"></div><div style="font:600 11px Inter;color:#2A3849;margin-top:10px">md · card</div></div>
+        <div style="text-align:center"><div style="width:74px;height:56px;background:#fff;border-radius:16px;box-shadow:0 12px 32px rgba(16,40,70,.1),0 4px 12px rgba(16,40,70,.06)"></div><div style="font:600 11px Inter;color:#2A3849;margin-top:10px">lg · hover</div></div>
+        <div style="text-align:center"><div style="width:74px;height:56px;background:#fff;border-radius:16px;box-shadow:0 20px 48px rgba(16,40,70,.16),0 6px 16px rgba(16,40,70,.08)"></div><div style="font:600 11px Inter;color:#2A3849;margin-top:10px">xl · popover</div></div>
+      </div>
+    </div>
+    <!-- spacing -->
+    <div>
+      <div style="font:700 15px Outfit;color:#0E1726;margin-bottom:14px">Abstände <span style="font:400 12px Inter;color:#94A3B5">· 4px-Basis</span></div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:34px;font:500 11px ui-monospace,monospace;color:#5B6B7E;text-align:right">4</span><div style="width:4px;height:11px;background:#7FBCF5;border-radius:2px"></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:34px;font:500 11px ui-monospace,monospace;color:#5B6B7E;text-align:right">8</span><div style="width:8px;height:11px;background:#7FBCF5;border-radius:2px"></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:34px;font:500 11px ui-monospace,monospace;color:#5B6B7E;text-align:right">12</span><div style="width:12px;height:11px;background:#5BB8F5;border-radius:2px"></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:34px;font:500 11px ui-monospace,monospace;color:#5B6B7E;text-align:right">16</span><div style="width:16px;height:11px;background:#4EA2F0;border-radius:2px"></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:34px;font:500 11px ui-monospace,monospace;color:#5B6B7E;text-align:right">24</span><div style="width:24px;height:11px;background:#1E90E6;border-radius:2px"></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:34px;font:500 11px ui-monospace,monospace;color:#5B6B7E;text-align:right">32</span><div style="width:32px;height:11px;background:#1E90E6;border-radius:2px"></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:34px;font:500 11px ui-monospace,monospace;color:#5B6B7E;text-align:right">48</span><div style="width:48px;height:11px;background:#0F6FBE;border-radius:2px"></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:34px;font:500 11px ui-monospace,monospace;color:#5B6B7E;text-align:right">64</span><div style="width:64px;height:11px;background:#0C5896;border-radius:2px"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ============ 05 · BUTTONS & INPUTS ============ -->
+<div style="position:absolute;left:80px;top:3132px;width:1760px;height:548px;background:#fff;border:1px solid #E2EAF2;border-radius:28px;box-shadow:0 4px 18px rgba(16,40,70,.06),0 2px 6px rgba(16,40,70,.04);padding:34px 38px">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:24px">
+    <span style="font:600 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:#1E90E6">05 — Buttons &amp; Eingaben</span>
+    <span style="font:400 14px Inter;color:#94A3B5">Pillen-Form · Mindest-Tap-Höhe 44px · klare Zustände</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:40px">
+    <!-- BUTTONS -->
+    <div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin-bottom:12px">Primär — Sky · Zustände</div>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+        <button style="background:#1E90E6;color:#fff;font:600 15px Inter;padding:13px 26px;border-radius:999px;border:none;box-shadow:0 8px 18px rgba(30,144,230,.3);cursor:pointer">Teilnehmen</button>
+        <div style="text-align:center"><button style="background:#0F6FBE;color:#fff;font:600 15px Inter;padding:13px 26px;border-radius:999px;border:none;box-shadow:0 10px 22px rgba(15,111,190,.36);cursor:pointer">Teilnehmen</button><div style="font:500 10px Inter;color:#94A3B5;margin-top:6px">Hover</div></div>
+        <div style="text-align:center"><button style="background:#0C5896;color:#fff;font:600 15px Inter;padding:13px 26px;border-radius:999px;border:none;box-shadow:inset 0 2px 4px rgba(0,0,0,.18);cursor:pointer">Teilnehmen</button><div style="font:500 10px Inter;color:#94A3B5;margin-top:6px">Active</div></div>
+        <div style="text-align:center"><button style="background:#D2E7FC;color:#7FBCF5;font:600 15px Inter;padding:13px 26px;border-radius:999px;border:none;cursor:not-allowed">Teilnehmen</button><div style="font:500 10px Inter;color:#94A3B5;margin-top:6px">Disabled</div></div>
+      </div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin:18px 0 12px">Akzent · Sekundär · Ghost · Petrol</div>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <button style="background:#F1572F;color:#fff;font:600 15px Inter;padding:13px 24px;border-radius:999px;border:none;box-shadow:0 8px 18px rgba(241,87,47,.28);cursor:pointer">Treffen erstellen</button>
+        <button style="background:#fff;color:#0F6FBE;font:600 15px Inter;padding:12px 23px;border-radius:999px;border:1.5px solid #CFDAE6;cursor:pointer">Absagen</button>
+        <button style="background:transparent;color:#0F6FBE;font:600 15px Inter;padding:12px 18px;border-radius:999px;border:none;cursor:pointer">Mehr anzeigen</button>
+        <button style="background:#117D87;color:#fff;font:600 15px Inter;padding:13px 24px;border-radius:999px;border:none;box-shadow:0 8px 18px rgba(17,125,135,.26);cursor:pointer">Anfragen</button>
+      </div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin:18px 0 12px">Größen · Icon · FAB</div>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <button style="background:#1E90E6;color:#fff;font:600 16px Inter;padding:15px 30px;border-radius:999px;border:none;box-shadow:0 8px 18px rgba(30,144,230,.3);cursor:pointer">Large · 48px</button>
+        <button style="background:#1E90E6;color:#fff;font:600 14px Inter;padding:11px 20px;border-radius:999px;border:none;cursor:pointer">Medium</button>
+        <button style="background:#1E90E6;color:#fff;font:600 13px Inter;padding:8px 16px;border-radius:999px;border:none;cursor:pointer">Small</button>
+        <button style="width:44px;height:44px;border-radius:999px;background:#fff;border:1.5px solid #E2EAF2;display:inline-flex;align-items:center;justify-content:center;cursor:pointer" aria-label="Teilen"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F6FBE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>
+        <button style="width:52px;height:52px;border-radius:999px;background:#F1572F;border:none;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 10px 22px rgba(241,87,47,.36);cursor:pointer" aria-label="Neues Treffen"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+      </div>
+    </div>
+    <!-- INPUTS -->
+    <div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin-bottom:12px">Eingabefelder</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 16px">
+        <div>
+          <label style="font:600 12px Inter;color:#5B6B7E;display:block;margin-bottom:6px">Region</label>
+          <div style="background:#fff;border:1.5px solid #CFDAE6;border-radius:14px;padding:12px 14px;font:400 15px Inter;color:#94A3B5">Region wählen…</div>
+        </div>
+        <div>
+          <label style="font:600 12px Inter;color:#0F6FBE;display:block;margin-bottom:6px">Spot</label>
+          <div style="background:#fff;border:1.5px solid #1E90E6;border-radius:14px;padding:12px 14px;font:400 15px Inter;color:#0E1726;box-shadow:0 0 0 4px rgba(30,144,230,.16)">Tegelberg</div>
+        </div>
+        <div style="grid-column:1/3">
+          <label style="font:600 12px Inter;color:#5B6B7E;display:block;margin-bottom:6px">Suche</label>
+          <div style="background:#fff;border:1.5px solid #CFDAE6;border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:10px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B5" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            <span style="font:400 15px Inter;color:#94A3B5">Spot oder Region suchen…</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:26px;margin-top:18px">
+        <!-- toggle -->
+        <div style="display:flex;align-items:center;gap:9px"><div style="width:46px;height:27px;border-radius:999px;background:#1E90E6;position:relative"><div style="position:absolute;top:3px;left:22px;width:21px;height:21px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25)"></div></div><span style="font:400 13px Inter;color:#2A3849">Nur freie Plätze</span></div>
+        <!-- checkbox -->
+        <div style="display:flex;align-items:center;gap:9px"><div style="width:22px;height:22px;border-radius:7px;background:#1E90E6;display:flex;align-items:center;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></div><span style="font:400 13px Inter;color:#2A3849">Hike &amp; Fly</span></div>
+        <!-- radio -->
+        <div style="display:flex;align-items:center;gap:9px"><div style="width:22px;height:22px;border-radius:999px;border:2px solid #1E90E6;display:flex;align-items:center;justify-content:center"><div style="width:11px;height:11px;border-radius:999px;background:#1E90E6"></div></div><span style="font:400 13px Inter;color:#2A3849">Heute</span></div>
+      </div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin:22px 0 10px">Segmented — Ansichts-Umschalter</div>
+      <div style="display:inline-flex;background:#EEF3F9;border-radius:999px;padding:4px;gap:2px">
+        <span style="background:#fff;color:#0F6FBE;font:600 14px Inter;padding:9px 20px;border-radius:999px;box-shadow:0 2px 6px rgba(16,40,70,.1);display:inline-flex;align-items:center;gap:7px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0F6FBE" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Cards</span>
+        <span style="color:#5B6B7E;font:600 14px Inter;padding:9px 20px;border-radius:999px;display:inline-flex;align-items:center;gap:7px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5B6B7E" stroke-width="2" stroke-linecap="round"><path d="M9 4v16M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3z"/></svg>Karte</span>
+        <span style="color:#5B6B7E;font:600 14px Inter;padding:9px 20px;border-radius:999px;display:inline-flex;align-items:center;gap:7px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5B6B7E" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>Tabelle</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 06 · BADGES & CHIPS ============ -->
+<div style="position:absolute;left:80px;top:3736px;width:1760px;height:556px;background:#fff;border:1px solid #E2EAF2;border-radius:28px;box-shadow:0 4px 18px rgba(16,40,70,.06),0 2px 6px rgba(16,40,70,.04);padding:34px 38px">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:22px">
+    <span style="font:600 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:#1E90E6">06 — Badges &amp; Chips</span>
+    <span style="font:400 14px Inter;color:#94A3B5">Farbcodiert &amp; sofort scanbar</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px 48px">
+    <!-- Erfahrungslevel -->
+    <div>
+      <div style="font:700 14px Outfit;color:#0E1726;margin-bottom:12px">Erfahrungslevel</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <span style="background:#E4F6EC;color:#157A43;font:600 13px Inter;padding:7px 13px;border-radius:999px;display:inline-flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:999px;background:#1E9E5A"></span>Anfänger</span>
+        <span style="background:#E5F1FD;color:#0C5896;font:600 13px Inter;padding:7px 13px;border-radius:999px;display:inline-flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:999px;background:#1E90E6"></span>Fortgeschritten</span>
+        <span style="background:#FFE1D8;color:#C7421F;font:600 13px Inter;padding:7px 13px;border-radius:999px;display:inline-flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:999px;background:#FF6B4A"></span>Experte</span>
+        <span style="background:#E8F3F4;color:#0A4F57;font:600 13px Inter;padding:7px 13px;border-radius:999px;display:inline-flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:999px;background:#117D87"></span>Alle Level</span>
+      </div>
+    </div>
+    <!-- Status -->
+    <div>
+      <div style="font:700 14px Outfit;color:#0E1726;margin-bottom:12px">Treffen-Status</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <span style="background:#E4F6EC;color:#157A43;font:600 13px Inter;padding:7px 13px;border-radius:999px;display:inline-flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:999px;background:#1E9E5A"></span>Offen</span>
+        <span style="background:#FBF0D6;color:#8A5D00;font:600 13px Inter;padding:7px 13px;border-radius:999px;display:inline-flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:999px;background:#E8A21A"></span>Ausgebucht</span>
+        <span style="background:#FCE6E7;color:#B42318;font:600 13px Inter;padding:7px 13px;border-radius:999px;display:inline-flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:999px;background:#E5484D"></span>Abgesagt</span>
+        <span style="background:#EEF3F9;color:#5B6B7E;font:600 13px Inter;padding:7px 13px;border-radius:999px;display:inline-flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:999px;background:#94A3B5"></span>Beendet</span>
+      </div>
+    </div>
+    <!-- Freie Plätze + Datum -->
+    <div>
+      <div style="font:700 14px Outfit;color:#0E1726;margin-bottom:12px">Freie Plätze · Datum/Zeit</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <span style="background:#E4F6EC;color:#157A43;font:600 13px Inter;padding:7px 13px;border-radius:999px;display:inline-flex;align-items:center;gap:7px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E9E5A" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke-linecap="round"/><circle cx="18" cy="9" r="2.4"/></svg>4 Plätze frei</span>
+        <span style="background:#FBF0D6;color:#8A5D00;font:600 13px Inter;padding:7px 13px;border-radius:999px">0 frei · Ausgebucht</span>
+        <span style="background:#fff;color:#2A3849;font:600 13px Inter;padding:6px 13px;border-radius:999px;border:1.5px solid #E2EAF2;display:inline-flex;align-items:center;gap:7px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0F6FBE" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>Sa 28. Juni · 09:30</span>
+      </div>
+    </div>
+    <!-- Region -->
+    <div>
+      <div style="font:700 14px Outfit;color:#0E1726;margin-bottom:12px">Region</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <span style="background:#fff;color:#0A4F57;font:500 13px Inter;padding:6px 13px;border-radius:999px;border:1.5px solid #CDE7E9;display:inline-flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="#117D87"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg>Rhön</span>
+        <span style="background:#fff;color:#0A4F57;font:500 13px Inter;padding:6px 13px;border-radius:999px;border:1.5px solid #CDE7E9;display:inline-flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="#117D87"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg>Allgäu</span>
+        <span style="background:#fff;color:#0A4F57;font:500 13px Inter;padding:6px 13px;border-radius:999px;border:1.5px solid #CDE7E9;display:inline-flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="#117D87"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg>Mosel</span>
+        <span style="background:#fff;color:#0A4F57;font:500 13px Inter;padding:6px 13px;border-radius:999px;border:1.5px solid #CDE7E9;display:inline-flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="#117D87"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg>Eifel</span>
+      </div>
+    </div>
+    <!-- Gruppen-Tags -->
+    <div>
+      <div style="font:700 14px Outfit;color:#0E1726;margin-bottom:12px">Gruppen-Tags</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <span style="background:#EEF3F9;color:#2A3849;font:500 13px Inter;padding:6px 13px;border-radius:999px"># XC-Streckenflug</span>
+        <span style="background:#EEF3F9;color:#2A3849;font:500 13px Inter;padding:6px 13px;border-radius:999px"># Anfängerfreundlich</span>
+        <span style="background:#EEF3F9;color:#2A3849;font:500 13px Inter;padding:6px 13px;border-radius:999px"># Hike &amp; Fly</span>
+        <span style="background:#EEF3F9;color:#2A3849;font:500 13px Inter;padding:6px 13px;border-radius:999px"># Soaring</span>
+      </div>
+    </div>
+    <!-- Notification + counts -->
+    <div>
+      <div style="font:700 14px Outfit;color:#0E1726;margin-bottom:12px">Zähler &amp; Benachrichtigung</div>
+      <div style="display:flex;gap:22px;align-items:center;flex-wrap:wrap">
+        <div style="position:relative;width:44px;height:44px;border-radius:999px;background:#fff;border:1.5px solid #E2EAF2;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A3849" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span style="position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;border-radius:999px;background:#E5484D;color:#fff;font:700 11px Inter;display:flex;align-items:center;justify-content:center;padding:0 5px;border:2px solid #fff">3</span></div>
+        <div style="position:relative;display:inline-flex;align-items:center;gap:8px;font:600 14px Inter;color:#2A3849">Chat <span style="min-width:22px;height:22px;border-radius:999px;background:#FF6B4A;color:#fff;font:700 11px Inter;display:inline-flex;align-items:center;justify-content:center;padding:0 6px">5</span></div>
+        <span style="background:#1E90E6;color:#fff;font:700 12px Inter;padding:5px 10px;border-radius:999px">NEU</span>
+        <span style="background:#FFE1D8;color:#C7421F;font:700 11px Inter;letter-spacing:.06em;padding:5px 10px;border-radius:999px;text-transform:uppercase">Ersteller</span>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ============ 07 · CARDS · PROFILKARTE · AVATARE ============ -->
+<div style="position:absolute;left:80px;top:4348px;width:1760px;height:742px;background:#fff;border:1px solid #E2EAF2;border-radius:28px;box-shadow:0 4px 18px rgba(16,40,70,.06),0 2px 6px rgba(16,40,70,.04);padding:34px 38px">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:22px">
+    <span style="font:600 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:#1E90E6">07 — Cards · Profilkarte · Avatare</span>
+    <span style="font:400 14px Inter;color:#94A3B5">Großzügige Cards, runde Avatare, schwebende Hovercard</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1.05fr;gap:30px">
+    <!-- FLUGTREFFEN CARD -->
+    <div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin-bottom:12px">Flugtreffen-Card</div>
+      <div style="background:#fff;border:1px solid #E2EAF2;border-radius:24px;overflow:hidden;box-shadow:0 12px 32px rgba(16,40,70,.1),0 4px 12px rgba(16,40,70,.05)">
+        <div style="position:relative;height:152px;background:linear-gradient(180deg,#4FA8EE 0%,#86C9F4 48%,#C7E6FA 100%)">
+          <div style="position:absolute;inset:0;background:radial-gradient(130px 90px at 82% 18%,rgba(255,193,120,.62),rgba(255,193,120,0) 70%)"></div>
+          <svg style="position:absolute;bottom:0;left:0;width:100%;height:60px" viewBox="0 0 540 60" preserveAspectRatio="none"><path d="M0 38 L90 20 L160 36 L250 12 L340 34 L430 16 L540 32 L540 60 L0 60 Z" fill="#3E7C84"/><path d="M0 50 L120 40 L240 50 L360 38 L470 50 L540 44 L540 60 L0 60 Z" fill="#2A5C63"/></svg>
+          <svg style="position:absolute;top:34px;left:60%;width:42px;height:28px" viewBox="0 0 64 44"><path d="M6 22 C 18 8, 46 8, 58 22 C 46 16, 18 16, 6 22 Z" fill="rgba(14,23,38,.78)"/><path d="M20 19 L30 31 M44 19 L34 31" stroke="rgba(14,23,38,.7)" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.94);color:#157A43;font:600 12px Inter;padding:5px 11px;border-radius:999px;display:inline-flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:999px;background:#1E9E5A"></span>Offen</span>
+          <span style="position:absolute;bottom:12px;left:12px;background:rgba(14,23,38,.5);color:#fff;font:600 12px Inter;padding:5px 11px;border-radius:999px;display:inline-flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/></svg>Tegelberg · 1720&thinsp;m</span>
+        </div>
+        <div style="padding:16px 18px 18px">
+          <div style="display:flex;gap:8px;margin-bottom:9px"><span style="background:#E5F1FD;color:#0C5896;font:600 12px Inter;padding:5px 11px;border-radius:999px;display:inline-flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:999px;background:#1E90E6"></span>Fortgeschritten</span><span style="background:#fff;color:#2A3849;font:600 12px Inter;padding:4px 11px;border-radius:999px;border:1.5px solid #E2EAF2">Sa 28.6. · 17:00</span></div>
+          <div style="font:700 19px/1.2 Outfit;color:#0E1726;margin-bottom:4px">Abendthermik am Tegelberg</div>
+          <div style="font:400 13px Inter;color:#5B6B7E;display:flex;align-items:center;gap:6px;margin-bottom:14px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B5" stroke-width="2"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>Tegelberg · Allgäu</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="display:flex">
+                <div style="width:30px;height:30px;border-radius:999px;background:#FF6B4A;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font:700 11px Inter;color:#fff">LK</div>
+                <div style="width:30px;height:30px;border-radius:999px;background:#1E90E6;border:2px solid #fff;margin-left:-9px;display:flex;align-items:center;justify-content:center;font:700 11px Inter;color:#fff">MT</div>
+                <div style="width:30px;height:30px;border-radius:999px;background:#117D87;border:2px solid #fff;margin-left:-9px;display:flex;align-items:center;justify-content:center;font:700 11px Inter;color:#fff">JS</div>
+                <div style="width:30px;height:30px;border-radius:999px;background:#EEF3F9;border:2px solid #fff;margin-left:-9px;display:flex;align-items:center;justify-content:center;font:700 11px Inter;color:#5B6B7E">+5</div>
+              </div>
+              <span style="font:600 13px Inter;color:#2A3849">8/12</span>
+            </div>
+            <button style="background:#1E90E6;color:#fff;font:600 14px Inter;padding:10px 20px;border-radius:999px;border:none;box-shadow:0 6px 14px rgba(30,144,230,.28);cursor:pointer">Teilnehmen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- GRUPPEN CARD -->
+    <div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin-bottom:12px">Gruppen-Card</div>
+      <div style="background:#fff;border:1px solid #E2EAF2;border-radius:24px;overflow:hidden;box-shadow:0 12px 32px rgba(16,40,70,.1),0 4px 12px rgba(16,40,70,.05)">
+        <div style="position:relative;height:96px;background:linear-gradient(125deg,#1E90E6 0%,#5B79C7 52%,#FF9F88 120%)">
+          <div style="position:absolute;inset:0;background:radial-gradient(120px 80px at 88% 30%,rgba(255,170,110,.5),rgba(255,170,110,0) 70%)"></div>
+          <svg style="position:absolute;bottom:0;left:0;width:100%;height:40px" viewBox="0 0 540 40" preserveAspectRatio="none"><path d="M0 24 L120 12 L240 22 L360 8 L460 20 L540 14 L540 40 L0 40 Z" fill="rgba(11,18,32,.35)"/></svg>
+          <span style="position:absolute;top:11px;right:12px;background:rgba(255,255,255,.92);color:#0C5896;font:600 11px Inter;padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0C5896" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" stroke-linecap="round"/></svg>Öffentlich</span>
+        </div>
+        <div style="padding:0 18px 18px;position:relative">
+          <div style="width:58px;height:58px;border-radius:18px;background:linear-gradient(150deg,#FF8062,#F1572F);border:3px solid #fff;margin-top:-26px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(241,87,47,.3);position:relative"><span style="font:800 20px Outfit;color:#fff">R</span></div>
+          <div style="font:700 19px/1.2 Outfit;color:#0E1726;margin-top:12px">Rhön Soaring Crew</div>
+          <div style="font:400 13px Inter;color:#5B6B7E;margin-top:3px;display:flex;align-items:center;gap:7px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B5" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2 20c0-3.3 2.8-5 7-5s7 1.7 7 5" stroke-linecap="round"/><circle cx="18" cy="9" r="2.4"/></svg>324 Mitglieder · Rhön</div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 14px"><span style="background:#EEF3F9;color:#2A3849;font:500 12px Inter;padding:5px 11px;border-radius:999px"># Soaring</span><span style="background:#EEF3F9;color:#2A3849;font:500 12px Inter;padding:5px 11px;border-radius:999px"># Anfängerfreundlich</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex"><div style="width:28px;height:28px;border-radius:999px;background:#1E90E6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font:700 10px Inter;color:#fff">AB</div><div style="width:28px;height:28px;border-radius:999px;background:#117D87;border:2px solid #fff;margin-left:-8px;display:flex;align-items:center;justify-content:center;font:700 10px Inter;color:#fff">CK</div><div style="width:28px;height:28px;border-radius:999px;background:#FF6B4A;border:2px solid #fff;margin-left:-8px;display:flex;align-items:center;justify-content:center;font:700 10px Inter;color:#fff">DE</div></div>
+            <button style="background:#F1572F;color:#fff;font:600 14px Inter;padding:9px 20px;border-radius:999px;border:none;box-shadow:0 6px 14px rgba(241,87,47,.26);cursor:pointer">Beitreten</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- PROFILKARTE + AVATARS -->
+    <div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin-bottom:12px">Profilkarte — Hovercard / Popover</div>
+      <div style="position:relative;width:312px;background:#fff;border:1px solid #E6EDF5;border-radius:22px;box-shadow:0 20px 48px rgba(16,40,70,.18),0 6px 16px rgba(16,40,70,.08);padding:18px">
+        <div style="position:absolute;top:-9px;left:40px;width:18px;height:18px;background:#fff;border-left:1px solid #E6EDF5;border-top:1px solid #E6EDF5;transform:rotate(45deg)"></div>
+        <div style="display:flex;gap:13px;align-items:center">
+          <div style="width:56px;height:56px;border-radius:999px;background:linear-gradient(150deg,#FF8062,#F1572F);display:flex;align-items:center;justify-content:center;font:800 20px Outfit;color:#fff;flex-shrink:0">LK</div>
+          <div style="min-width:0">
+            <div style="font:700 17px Outfit;color:#0E1726">Lena Krüger</div>
+            <div style="font:400 13px Inter;color:#94A3B5">@lena.thermik</div>
+            <span style="display:inline-flex;margin-top:5px;background:#FFE1D8;color:#C7421F;font:600 11px Inter;padding:3px 9px;border-radius:999px;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:999px;background:#FF6B4A"></span>Experte</span>
+          </div>
+        </div>
+        <div style="font:400 13px/1.5 Inter;color:#5B6B7E;margin:13px 0">Fliege seit 2016, am liebsten lange XC-Strecken über der Rhön. Immer für einen Frühstart zu haben. 🪂</div>
+        <div style="display:flex;gap:18px;font:400 12px Inter;color:#5B6B7E;margin-bottom:14px"><span><b style="color:#0E1726;font-weight:700">Advance Sigma</b> · Schirm</span><span><b style="color:#0E1726;font-weight:700">Rhön</b> · Heimat</span></div>
+        <div style="display:flex;gap:9px">
+          <button style="flex:1;background:#1E90E6;color:#fff;font:600 13px Inter;padding:10px 0;border-radius:999px;border:none;cursor:pointer">Profil ansehen</button>
+          <button style="flex:1;background:#fff;color:#0F6FBE;font:600 13px Inter;padding:10px 0;border-radius:999px;border:1.5px solid #CFDAE6;cursor:pointer">Direktchat</button>
+        </div>
+      </div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin:22px 0 12px">Avatare</div>
+      <div style="display:flex;align-items:flex-end;gap:16px">
+        <div style="width:24px;height:24px;border-radius:999px;background:#117D87;display:flex;align-items:center;justify-content:center;font:700 9px Inter;color:#fff">xs</div>
+        <div style="width:32px;height:32px;border-radius:999px;background:#1E90E6;display:flex;align-items:center;justify-content:center;font:700 11px Inter;color:#fff">sm</div>
+        <div style="position:relative;width:40px;height:40px;border-radius:999px;background:#FF6B4A;display:flex;align-items:center;justify-content:center;font:700 13px Inter;color:#fff">md<span style="position:absolute;bottom:0px;right:0px;width:11px;height:11px;border-radius:999px;background:#1E9E5A;border:2px solid #fff"></span></div>
+        <div style="width:56px;height:56px;border-radius:999px;background:#0C636C;display:flex;align-items:center;justify-content:center;font:700 18px Outfit;color:#fff">lg</div>
+        <div style="display:flex"><div style="width:36px;height:36px;border-radius:999px;background:#1E90E6;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font:700 12px Inter;color:#fff">MT</div><div style="width:36px;height:36px;border-radius:999px;background:#117D87;border:2px solid #fff;margin-left:-10px;display:flex;align-items:center;justify-content:center;font:700 12px Inter;color:#fff">JS</div><div style="width:36px;height:36px;border-radius:999px;background:#EEF3F9;border:2px solid #fff;margin-left:-10px;display:flex;align-items:center;justify-content:center;font:700 11px Inter;color:#5B6B7E">+3</div></div>
+      </div>
+      <div style="font:400 12px Inter;color:#94A3B5;margin-top:10px">Ersteller-Avatar trägt einen <span style="color:#C7421F;font-weight:600">Coral-Ring</span> als Markierung.</div>
+    </div>
+  </div>
+</div>
+<!-- ============ 08 · NAVIGATION ============ -->
+<div style="position:absolute;left:80px;top:5146px;width:1760px;height:516px;background:#fff;border:1px solid #E2EAF2;border-radius:28px;box-shadow:0 4px 18px rgba(16,40,70,.06),0 2px 6px rgba(16,40,70,.04);padding:34px 38px">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:20px">
+    <span style="font:600 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:#1E90E6">08 — Navigation</span>
+    <span style="font:400 14px Inter;color:#94A3B5">Mobile: Bottom-Nav (Home · Flugtreffen · Gruppen · Chat) · Desktop: Top-Bar / Sidebar</span>
+  </div>
+  <!-- DESKTOP TOP BAR -->
+  <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin-bottom:10px">Desktop — Top-Bar</div>
+  <div style="display:flex;align-items:center;gap:24px;background:#fff;border:1px solid #E6EDF5;border-radius:18px;padding:11px 18px;box-shadow:0 4px 16px rgba(16,40,70,.05)">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:36px;height:36px;border-radius:11px;background:linear-gradient(150deg,#5BB8F5,#1E90E6 55%,#0F6FBE);display:flex;align-items:center;justify-content:center"><svg width="26" height="19" viewBox="0 0 64 44" fill="none"><circle cx="45" cy="15" r="7.5" fill="#FF6B4A"/><path d="M6 25 C 18 9, 46 9, 58 25 C 46 18, 18 18, 6 25 Z" fill="#fff"/></svg></div>
+      <span style="font:800 19px Outfit;letter-spacing:-.02em;color:#0E1726">Flight<span style="color:#1E90E6">Meet</span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;margin-left:8px">
+      <span style="font:500 14px Inter;color:#5B6B7E;padding:8px 14px;border-radius:999px">Home</span>
+      <span style="font:600 14px Inter;color:#0F6FBE;padding:8px 14px;border-radius:999px;background:#EAF4FE">Flugtreffen</span>
+      <span style="font:500 14px Inter;color:#5B6B7E;padding:8px 14px;border-radius:999px">Gruppen</span>
+      <span style="font:500 14px Inter;color:#5B6B7E;padding:8px 14px;border-radius:999px;display:inline-flex;align-items:center;gap:7px">Chat <span style="min-width:19px;height:19px;border-radius:999px;background:#FF6B4A;color:#fff;font:700 10px Inter;display:inline-flex;align-items:center;justify-content:center;padding:0 5px">5</span></span>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+      <div style="background:#F6F9FC;border:1px solid #E6EDF5;border-radius:999px;padding:8px 14px;display:flex;align-items:center;gap:8px;width:200px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B5" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><span style="font:400 13px Inter;color:#94A3B5">Suchen…</span></div>
+      <div style="position:relative;width:40px;height:40px;border-radius:999px;background:#F6F9FC;border:1px solid #E6EDF5;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A3849" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span style="position:absolute;top:-1px;right:-1px;width:9px;height:9px;border-radius:999px;background:#E5484D;border:2px solid #fff"></span></div>
+      <div style="width:40px;height:40px;border-radius:999px;background:linear-gradient(150deg,#FF8062,#F1572F);display:flex;align-items:center;justify-content:center;font:700 13px Inter;color:#fff">LK</div>
+    </div>
+  </div>
+  <!-- BOTTOM ROW -->
+  <div style="display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:34px;margin-top:24px">
+    <!-- mobile bottom nav -->
+    <div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin-bottom:10px">Mobile — Bottom-Nav</div>
+      <div style="width:100%;max-width:380px;background:#fff;border:1px solid #E6EDF5;border-radius:24px;padding:10px 8px 12px;box-shadow:0 -2px 16px rgba(16,40,70,.06),0 8px 24px rgba(16,40,70,.08);display:flex;justify-content:space-around;align-items:flex-end">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1E90E6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 9v11h14V9"/></svg><span style="font:600 11px Inter;color:#0F6FBE">Home</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94A3B5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15 C 8 8, 16 8, 21 15 C 16 12, 8 12, 3 15 Z"/><path d="M8 13l3 5M16 13l-3 5"/></svg><span style="font:500 11px Inter;color:#94A3B5">Flugtreffen</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94A3B5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-5.2 6.5-5.2s6.5 1.7 6.5 5.2"/><circle cx="18" cy="9" r="2.6"/><path d="M17 14.2c2.6.3 4.5 1.9 4.5 4.8"/></svg><span style="font:500 11px Inter;color:#94A3B5">Gruppen</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px;position:relative"><div style="position:relative"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94A3B5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8 0 0 1-11.8 7.4L3 21l2.1-6.2A8.5 8 0 1 1 21 11.5z"/></svg><span style="position:absolute;top:-6px;right:-9px;min-width:18px;height:18px;border-radius:999px;background:#FF6B4A;color:#fff;font:700 10px Inter;display:flex;align-items:center;justify-content:center;padding:0 5px;border:2px solid #fff">5</span></div><span style="font:500 11px Inter;color:#94A3B5">Chat</span></div>
+      </div>
+      <div style="font:400 12px Inter;color:#94A3B5;margin-top:10px">Aktiv = Sky, gefüllter Icon-Strich + Label. Tap-Ziel ≥ 60px.</div>
+    </div>
+    <!-- desktop sidebar -->
+    <div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin-bottom:10px">Desktop — Slim Sidebar</div>
+      <div style="width:200px;background:#fff;border:1px solid #E6EDF5;border-radius:20px;padding:12px;box-shadow:0 4px 16px rgba(16,40,70,.05);display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:13px;color:#5B6B7E"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B6B7E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 9v11h14V9"/></svg><span style="font:500 14px Inter">Home</span></div>
+        <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:13px;background:#EAF4FE;color:#0F6FBE"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F6FBE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15 C 8 8, 16 8, 21 15 C 16 12, 8 12, 3 15 Z"/><path d="M8 13l3 5M16 13l-3 5"/></svg><span style="font:600 14px Inter">Flugtreffen</span></div>
+        <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:13px;color:#5B6B7E"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B6B7E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-5.2 6.5-5.2s6.5 1.7 6.5 5.2"/></svg><span style="font:500 14px Inter">Gruppen</span></div>
+        <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:13px;color:#5B6B7E"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B6B7E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8 0 0 1-11.8 7.4L3 21l2.1-6.2A8.5 8 0 1 1 21 11.5z"/></svg><span style="font:500 14px Inter;flex:1">Chat</span><span style="min-width:19px;height:19px;border-radius:999px;background:#FF6B4A;color:#fff;font:700 10px Inter;display:flex;align-items:center;justify-content:center;padding:0 5px">5</span></div>
+      </div>
+    </div>
+    <!-- mobile top bar -->
+    <div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin-bottom:10px">Mobile — Top-App-Bar</div>
+      <div style="width:100%;max-width:300px;background:#fff;border:1px solid #E6EDF5;border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(16,40,70,.05)">
+        <div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(150deg,#5BB8F5,#0F6FBE);display:flex;align-items:center;justify-content:center"><svg width="22" height="16" viewBox="0 0 64 44" fill="none"><circle cx="45" cy="15" r="7.5" fill="#FF6B4A"/><path d="M6 25 C 18 9, 46 9, 58 25 C 46 18, 18 18, 6 25 Z" fill="#fff"/></svg></div>
+        <span style="font:800 16px Outfit;color:#0E1726;flex:1">Flight<span style="color:#1E90E6">Meet</span></span>
+        <div style="width:34px;height:34px;border-radius:999px;background:#F6F9FC;display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6B7E" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
+        <div style="width:34px;height:34px;border-radius:999px;background:linear-gradient(150deg,#FF8062,#F1572F);display:flex;align-items:center;justify-content:center;font:700 12px Inter;color:#fff">LK</div>
+      </div>
+      <div style="font:400 12px Inter;color:#94A3B5;margin-top:10px">Profil-Zugang oben rechts über den Avatar.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 09 · CHAT-BUBBLES ============ -->
+<div style="position:absolute;left:80px;top:5718px;width:1760px;height:660px;background:#fff;border:1px solid #E2EAF2;border-radius:28px;box-shadow:0 4px 18px rgba(16,40,70,.06),0 2px 6px rgba(16,40,70,.04);padding:34px 38px">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:20px">
+    <span style="font:600 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:#1E90E6">09 — Chat</span>
+    <span style="font:400 14px Inter;color:#94A3B5">Konversationsliste + Verlauf · Ersteller-Nachrichten in Akzentfarbe hervorgehoben</span>
+  </div>
+  <div style="display:grid;grid-template-columns:340px 1fr;gap:30px">
+    <!-- conversation list -->
+    <div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin-bottom:10px">Konversationsliste</div>
+      <div style="background:#F6F9FC;border:1px solid #E6EDF5;border-radius:18px;padding:8px;display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;gap:11px;align-items:center;padding:11px 12px;border-radius:14px;background:#EAF4FE">
+          <div style="width:44px;height:44px;border-radius:13px;background:linear-gradient(150deg,#FF8062,#F1572F);display:flex;align-items:center;justify-content:center;font:800 16px Outfit;color:#fff;flex-shrink:0">R</div>
+          <div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font:700 14px Inter;color:#0E1726"># Rhön Soaring Crew</span><span style="font:400 11px Inter;color:#94A3B5">9:24</span></div><div style="font:400 13px Inter;color:#5B6B7E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Markus: Wetter sieht top aus für…</div></div>
+          <span style="min-width:20px;height:20px;border-radius:999px;background:#FF6B4A;color:#fff;font:700 11px Inter;display:flex;align-items:center;justify-content:center;padding:0 6px;flex-shrink:0">5</span>
+        </div>
+        <div style="display:flex;gap:11px;align-items:center;padding:11px 12px;border-radius:14px">
+          <div style="width:44px;height:44px;border-radius:13px;background:#EAF4FE;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F6FBE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15 C 8 8, 16 8, 21 15 C 16 12, 8 12, 3 15 Z"/><path d="M8 13l3 5M16 13l-3 5"/></svg></div>
+          <div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font:600 14px Inter;color:#0E1726">Abendthermik Tegelberg</span><span style="font:400 11px Inter;color:#94A3B5">Gestern</span></div><div style="font:400 13px Inter;color:#5B6B7E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Lena: Treffpunkt 9:30 oberer…</div></div>
+        </div>
+        <div style="display:flex;gap:11px;align-items:center;padding:11px 12px;border-radius:14px">
+          <div style="width:44px;height:44px;border-radius:999px;background:#117D87;display:flex;align-items:center;justify-content:center;font:700 14px Inter;color:#fff;flex-shrink:0">MT</div>
+          <div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font:600 14px Inter;color:#0E1726">Markus Thaler</span><span style="font:400 11px Inter;color:#94A3B5">Mo</span></div><div style="font:400 13px Inter;color:#5B6B7E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Sehen wir uns am Samstag?</div></div>
+          <span style="min-width:20px;height:20px;border-radius:999px;background:#FF6B4A;color:#fff;font:700 11px Inter;display:flex;align-items:center;justify-content:center;padding:0 6px;flex-shrink:0">2</span>
+        </div>
+      </div>
+    </div>
+    <!-- thread -->
+    <div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin-bottom:10px">Nachrichtenverlauf</div>
+      <div style="background:#F6F9FC;border:1px solid #E6EDF5;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px">
+        <div style="text-align:center"><span style="font:600 11px Inter;color:#94A3B5;background:#fff;padding:4px 12px;border-radius:999px;border:1px solid #E6EDF5">Heute</span></div>
+        <!-- incoming -->
+        <div style="display:flex;gap:10px;max-width:80%">
+          <div style="width:34px;height:34px;border-radius:999px;background:#117D87;display:flex;align-items:center;justify-content:center;font:700 12px Inter;color:#fff;flex-shrink:0;align-self:flex-end">MT</div>
+          <div><div style="font:600 12px Inter;color:#5B6B7E;margin-bottom:3px;padding-left:4px">Markus Thaler</div><div style="background:#fff;border:1px solid #E6EDF5;border-radius:18px 18px 18px 6px;padding:11px 14px;font:400 14px/1.45 Inter;color:#2A3849">Wetter sieht top aus für morgen früh! Wer ist dabei? ☀️</div><div style="font:400 11px Inter;color:#94A3B5;margin-top:4px;padding-left:4px">9:18</div></div>
+        </div>
+        <!-- creator highlighted -->
+        <div style="display:flex;gap:10px;max-width:82%">
+          <div style="width:34px;height:34px;border-radius:999px;background:linear-gradient(150deg,#FF8062,#F1572F);display:flex;align-items:center;justify-content:center;font:700 12px Inter;color:#fff;flex-shrink:0;align-self:flex-end;box-shadow:0 0 0 2px #FF6B4A,0 0 0 4px #fff">LK</div>
+          <div style="min-width:0"><div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;padding-left:4px"><span style="font:600 12px Inter;color:#C7421F">Lena Krüger</span><span style="background:#FFE1D8;color:#C7421F;font:700 9px Inter;letter-spacing:.06em;padding:2px 7px;border-radius:999px;text-transform:uppercase">Ersteller</span></div>
+            <div style="background:#FFF2EE;border:1px solid #FFD3C5;border-left:3px solid #FF6B4A;border-radius:14px 18px 18px 6px;padding:11px 14px;font:400 14px/1.45 Inter;color:#2A3849">Treffpunkt 9:30 Uhr am oberen Parkplatz. Bitte vorher Schirm-Check machen — wir laufen gemeinsam zum Startplatz. 🪂</div>
+            <div style="display:flex;gap:6px;margin-top:7px;padding-left:4px"><span style="background:#fff;border:1px solid #E6EDF5;border-radius:999px;padding:3px 9px;font:600 12px Inter;color:#2A3849">👍 4</span><span style="background:#fff;border:1px solid #E6EDF5;border-radius:999px;padding:3px 9px;font:600 12px Inter;color:#2A3849">🪂 2</span></div>
+          </div>
+        </div>
+        <!-- own -->
+        <div style="display:flex;justify-content:flex-end">
+          <div style="max-width:78%"><div style="background:#1E90E6;border-radius:18px 18px 6px 18px;padding:11px 14px;font:400 14px/1.45 Inter;color:#fff">Bin dabei! Nehme noch jemanden vom Parkplatz Füssen mit. 🚐</div><div style="font:400 11px Inter;color:#94A3B5;margin-top:4px;text-align:right">9:22 · Gelesen</div></div>
+        </div>
+        <!-- reply quote -->
+        <div style="display:flex;justify-content:flex-end">
+          <div style="max-width:78%"><div style="background:#1E90E6;border-radius:18px 18px 6px 18px;padding:8px 14px 11px"><div style="border-left:3px solid rgba(255,255,255,.6);padding:3px 0 3px 9px;margin-bottom:6px"><div style="font:600 11px Inter;color:#D9EEFB">Lena Krüger</div><div style="font:400 12px Inter;color:#D9EEFB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Treffpunkt 9:30 Uhr am oberen…</div></div><div style="font:400 14px/1.45 Inter;color:#fff">Perfekt, bis morgen früh!</div></div></div>
+        </div>
+        <!-- input -->
+        <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+          <div style="flex:1;background:#fff;border:1.5px solid #CFDAE6;border-radius:999px;padding:11px 16px;display:flex;align-items:center;gap:10px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15l-5-5L5 21"/><path d="M21 11.5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9"/><circle cx="8.5" cy="9" r="1.5" fill="#94A3B5" stroke="none"/></svg><span style="font:400 14px Inter;color:#94A3B5;flex:1">Nachricht an Lena…</span></div>
+          <button style="width:46px;height:46px;border-radius:999px;background:#1E90E6;border:none;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(30,144,230,.3);cursor:pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ============ 10 · KARTEN-MARKER ============ -->
+<div style="position:absolute;left:80px;top:6434px;width:1760px;height:470px;background:#fff;border:1px solid #E2EAF2;border-radius:28px;box-shadow:0 4px 18px rgba(16,40,70,.06),0 2px 6px rgba(16,40,70,.04);padding:34px 38px">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:20px">
+    <span style="font:600 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:#1E90E6">10 — Karte (Leaflet / OSM)</span>
+    <span style="font:400 14px Inter;color:#94A3B5">Markante, gut lesbare Marker · Cluster · Akzent-Pin</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:30px">
+    <!-- MAP -->
+    <div style="position:relative;height:330px;border-radius:18px;overflow:hidden;border:1px solid #E6EDF5;background:#E8EDE0">
+      <svg viewBox="0 0 640 330" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" style="display:block">
+        <rect width="640" height="330" fill="#E9EEE1"/>
+        <ellipse cx="90" cy="70" rx="120" ry="80" fill="#D2E1B6"/>
+        <ellipse cx="560" cy="260" rx="140" ry="90" fill="#D2E1B6"/>
+        <ellipse cx="300" cy="300" rx="120" ry="60" fill="#D8E5BE"/>
+        <path d="M-30 90 C 130 130, 190 60, 320 110 C 440 156, 520 96, 680 150 L 680 200 C 520 150, 440 210, 320 165 C 190 118, 130 188, -30 150 Z" fill="#AAD3DF"/>
+        <path d="M-30 90 C 130 130, 190 60, 320 110 C 440 156, 520 96, 680 150" fill="none" stroke="#93C4D6" stroke-width="1.5"/>
+        <path d="M40 320 C 180 250, 250 210, 360 150 C 470 90, 540 70, 660 40" fill="none" stroke="#fff" stroke-width="9"/>
+        <path d="M40 320 C 180 250, 250 210, 360 150 C 470 90, 540 70, 660 40" fill="none" stroke="#FBE3A6" stroke-width="5"/>
+        <path d="M120 10 C 160 90, 120 160, 200 240 C 250 290, 300 300, 360 320" fill="none" stroke="#fff" stroke-width="6"/>
+        <path d="M120 10 C 160 90, 120 160, 200 240 C 250 290, 300 300, 360 320" fill="none" stroke="#EBEBE2" stroke-width="3"/>
+        <path d="M420 0 C 440 80, 520 110, 560 200" fill="none" stroke="#fff" stroke-width="5"/>
+        <g stroke="#D8C9A8" stroke-width="1" fill="none" opacity=".7"><path d="M460 300 C 500 270, 540 280, 600 250"/><path d="M470 320 C 520 290, 560 300, 620 270"/></g>
+        <g fill="#D9D9CE"><rect x="250" y="120" width="13" height="10" rx="1.5"/><rect x="268" y="116" width="10" height="9" rx="1.5"/><rect x="255" y="135" width="11" height="8" rx="1.5"/></g>
+        <text x="190" y="180" font-family="Inter,sans-serif" font-size="12" fill="#8AA6B0" font-style="italic">Mosel</text>
+        <text x="248" y="150" font-family="Inter,sans-serif" font-size="11" fill="#9AA38C">Bremm</text>
+      </svg>
+      <!-- cluster -->
+      <div style="position:absolute;top:48%;left:18%;width:44px;height:44px;border-radius:999px;background:#1E90E6;border:3px solid #fff;box-shadow:0 4px 12px rgba(16,40,70,.3);display:flex;align-items:center;justify-content:center;font:700 15px Outfit;color:#fff;transform:translate(-50%,-50%)">8</div>
+      <!-- secondary pin -->
+      <svg style="position:absolute;top:66%;left:74%;transform:translate(-50%,-100%);filter:drop-shadow(0 4px 6px rgba(16,40,70,.35))" width="30" height="38" viewBox="0 0 30 38"><path d="M15 0C6.7 0 0 6.7 0 15c0 11 15 23 15 23s15-12 15-23C30 6.7 23.3 0 15 0z" fill="#FF6B4A"/><circle cx="15" cy="14.5" r="6" fill="#fff"/></svg>
+      <!-- selected start place pin with label -->
+      <div style="position:absolute;top:40%;left:53%;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center">
+        <div style="background:#0E1726;color:#fff;font:600 12px Inter;padding:5px 11px;border-radius:999px;white-space:nowrap;margin-bottom:6px;box-shadow:0 4px 10px rgba(16,40,70,.3)">Calmont · Bremm</div>
+        <svg style="filter:drop-shadow(0 6px 8px rgba(16,40,70,.4))" width="44" height="56" viewBox="0 0 30 38"><path d="M15 0C6.7 0 0 6.7 0 15c0 11 15 23 15 23s15-12 15-23C30 6.7 23.3 0 15 0z" fill="#F1572F"/><circle cx="15" cy="14.5" r="9" fill="#fff"/><path d="M8 16 C 10 12, 20 12, 22 16 C 20 14, 10 14, 8 16 Z" fill="#F1572F"/></svg>
+      </div>
+      <!-- your location -->
+      <div style="position:absolute;top:78%;left:40%;transform:translate(-50%,-50%)"><div style="width:18px;height:18px;border-radius:999px;background:#1E90E6;border:3px solid #fff;box-shadow:0 0 0 6px rgba(30,144,230,.25),0 2px 6px rgba(16,40,70,.3)"></div></div>
+      <!-- toggle -->
+      <div style="position:absolute;top:12px;left:12px;display:inline-flex;background:#fff;border-radius:999px;padding:3px;box-shadow:0 3px 10px rgba(16,40,70,.18)"><span style="background:#1E90E6;color:#fff;font:600 12px Inter;padding:6px 14px;border-radius:999px">Karte</span><span style="color:#5B6B7E;font:600 12px Inter;padding:6px 14px;border-radius:999px">Liste</span></div>
+      <!-- zoom -->
+      <div style="position:absolute;top:12px;right:12px;display:flex;flex-direction:column;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(16,40,70,.18)"><div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #EEF3F9;font:600 20px Inter;color:#2A3849">+</div><div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;font:600 20px Inter;color:#2A3849">−</div></div>
+      <span style="position:absolute;bottom:7px;right:9px;font:400 10px Inter;color:#6E7A66;background:rgba(255,255,255,.7);padding:2px 6px;border-radius:6px">© OpenStreetMap</span>
+    </div>
+    <!-- legend -->
+    <div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#94A3B5;margin-bottom:14px">Marker-Typen</div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;gap:14px"><svg width="28" height="36" viewBox="0 0 30 38"><path d="M15 0C6.7 0 0 6.7 0 15c0 11 15 23 15 23s15-12 15-23C30 6.7 23.3 0 15 0z" fill="#F1572F"/><circle cx="15" cy="14.5" r="9" fill="#fff"/><path d="M8 16 C 10 12, 20 12, 22 16 C 20 14, 10 14, 8 16 Z" fill="#F1572F"/></svg><div><div style="font:600 14px Inter;color:#0E1726">Startplatz / Treffen</div><div style="font:400 12px Inter;color:#5B6B7E">Coral-Pin, Wing-Symbol — aktiv vergrößert</div></div></div>
+        <div style="display:flex;align-items:center;gap:14px"><div style="width:38px;display:flex;justify-content:center"><div style="width:36px;height:36px;border-radius:999px;background:#1E90E6;border:3px solid #fff;box-shadow:0 4px 10px rgba(16,40,70,.25);display:flex;align-items:center;justify-content:center;font:700 13px Outfit;color:#fff">8</div></div><div><div style="font:600 14px Inter;color:#0E1726">Cluster</div><div style="font:400 12px Inter;color:#5B6B7E">Mehrere Treffen — Sky-Kreis mit Anzahl</div></div></div>
+        <div style="display:flex;align-items:center;gap:14px"><div style="width:38px;display:flex;justify-content:center"><div style="width:18px;height:18px;border-radius:999px;background:#1E90E6;border:3px solid #fff;box-shadow:0 0 0 5px rgba(30,144,230,.25)"></div></div><div><div style="font:600 14px Inter;color:#0E1726">Dein Standort</div><div style="font:400 12px Inter;color:#5B6B7E">Sky-Punkt mit Halo</div></div></div>
+        <div style="background:#F6F9FC;border:1px solid #E6EDF5;border-radius:14px;padding:12px 14px;font:400 12px/1.5 Inter;color:#5B6B7E;margin-top:4px">OSM-Kachel-Optik: beige Land, <b style="color:#0A4F57">Wasser in Petrol/Blau</b>, weiße Straßen-Casings, dezente Höhenlinien. Marker immer mit weißem Rand &amp; Schatten für Lesbarkeit.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 11 · DARK MODE ============ -->
+<div style="position:absolute;left:80px;top:6960px;width:1760px;height:726px;background:#0B1220;border:1px solid #243449;border-radius:28px;box-shadow:0 4px 18px rgba(0,0,0,.3);padding:34px 38px">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:22px">
+    <span style="font:600 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:#5BB8F5">11 — Komponenten im Dark Mode</span>
+    <span style="font:400 14px Inter;color:#6B7E94">Nacht-Slate-Basis · erhöhte Card-Flächen · hellere Akzente</span>
+  </div>
+  <!-- buttons -->
+  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:24px">
+    <button style="background:#1E90E6;color:#fff;font:600 15px Inter;padding:13px 26px;border-radius:999px;border:none;box-shadow:0 8px 18px rgba(30,144,230,.35);cursor:pointer">Teilnehmen</button>
+    <button style="background:#F1572F;color:#fff;font:600 15px Inter;padding:13px 24px;border-radius:999px;border:none;box-shadow:0 8px 18px rgba(241,87,47,.32);cursor:pointer">Treffen erstellen</button>
+    <button style="background:transparent;color:#D3DEEC;font:600 15px Inter;padding:12px 23px;border-radius:999px;border:1.5px solid #31435C;cursor:pointer">Absagen</button>
+    <button style="background:transparent;color:#5BB8F5;font:600 15px Inter;padding:12px 18px;border-radius:999px;border:none;cursor:pointer">Mehr anzeigen</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1.05fr;gap:30px">
+    <!-- dark flugtreffen card -->
+    <div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#6B7E94;margin-bottom:12px">Flugtreffen-Card</div>
+      <div style="background:#16243A;border:1px solid #243449;border-radius:24px;overflow:hidden;box-shadow:0 16px 40px rgba(0,0,0,.4)">
+        <div style="position:relative;height:128px;background:linear-gradient(180deg,#2E6CA8 0%,#4E8FC8 50%,#7FB0DE 100%)">
+          <div style="position:absolute;inset:0;background:radial-gradient(120px 80px at 82% 16%,rgba(255,150,90,.5),rgba(255,150,90,0) 70%)"></div>
+          <svg style="position:absolute;bottom:0;left:0;width:100%;height:52px" viewBox="0 0 540 52" preserveAspectRatio="none"><path d="M0 32 L90 16 L160 30 L250 10 L340 28 L430 14 L540 28 L540 52 L0 52 Z" fill="#1B3A40"/><path d="M0 44 L120 34 L240 44 L360 32 L470 44 L540 38 L540 52 L0 52 Z" fill="#11262B"/></svg>
+          <span style="position:absolute;top:12px;right:12px;background:rgba(52,199,123,.2);color:#5FD89B;font:600 12px Inter;padding:5px 11px;border-radius:999px;display:inline-flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:999px;background:#34C77B"></span>Offen</span>
+        </div>
+        <div style="padding:14px 16px 16px">
+          <div style="display:flex;gap:8px;margin-bottom:9px"><span style="background:rgba(91,184,245,.18);color:#8ECBF7;font:600 12px Inter;padding:5px 11px;border-radius:999px">Fortgeschritten</span><span style="background:#0E1726;color:#D3DEEC;font:600 12px Inter;padding:4px 11px;border-radius:999px;border:1px solid #31435C">Sa 28.6. · 17:00</span></div>
+          <div style="font:700 18px Outfit;color:#F2F6FC;margin-bottom:3px">Abendthermik am Tegelberg</div>
+          <div style="font:400 13px Inter;color:#93A4B8;margin-bottom:13px">Tegelberg · Allgäu</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font:600 13px Inter;color:#D3DEEC">8/12 · <span style="color:#5FD89B">4 frei</span></span>
+            <button style="background:#1E90E6;color:#fff;font:600 14px Inter;padding:9px 18px;border-radius:999px;border:none;cursor:pointer">Teilnehmen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- dark badges + inputs -->
+    <div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#6B7E94;margin-bottom:12px">Badges &amp; Eingaben</div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px">
+        <span style="background:rgba(52,199,123,.18);color:#5FD89B;font:600 13px Inter;padding:7px 13px;border-radius:999px;display:inline-flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:999px;background:#34C77B"></span>Anfänger</span>
+        <span style="background:rgba(91,184,245,.18);color:#8ECBF7;font:600 13px Inter;padding:7px 13px;border-radius:999px">Fortgeschritten</span>
+        <span style="background:rgba(255,128,98,.2);color:#FF9F88;font:600 13px Inter;padding:7px 13px;border-radius:999px">Experte</span>
+        <span style="background:rgba(245,181,61,.18);color:#F5C97A;font:600 13px Inter;padding:7px 13px;border-radius:999px">Ausgebucht</span>
+      </div>
+      <label style="font:600 12px Inter;color:#93A4B8;display:block;margin-bottom:6px">Spot</label>
+      <div style="background:#0E1726;border:1.5px solid #3BA0F0;border-radius:14px;padding:12px 14px;font:400 15px Inter;color:#F2F6FC;box-shadow:0 0 0 4px rgba(59,160,240,.2);margin-bottom:12px">Tegelberg</div>
+      <div style="background:#0E1726;border:1.5px solid #31435C;border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:10px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7E94" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><span style="font:400 15px Inter;color:#6B7E94">Spot oder Region suchen…</span></div>
+    </div>
+    <!-- dark chat -->
+    <div>
+      <div style="font:500 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#6B7E94;margin-bottom:12px">Chat-Bubbles</div>
+      <div style="background:#0E1726;border:1px solid #243449;border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px">
+        <div style="max-width:88%"><div style="font:600 11px Inter;color:#93A4B8;margin-bottom:3px;padding-left:2px">Markus Thaler</div><div style="background:#1C2E48;border-radius:16px 16px 16px 5px;padding:10px 13px;font:400 13px/1.4 Inter;color:#D3DEEC">Wetter sieht top aus für morgen! ☀️</div></div>
+        <div style="max-width:90%"><div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;padding-left:2px"><span style="font:600 11px Inter;color:#FF9F88">Lena Krüger</span><span style="background:rgba(255,128,98,.22);color:#FF9F88;font:700 9px Inter;letter-spacing:.05em;padding:2px 7px;border-radius:999px;text-transform:uppercase">Ersteller</span></div><div style="background:rgba(255,107,74,.14);border:1px solid rgba(255,107,74,.4);border-left:3px solid #FF6B4A;border-radius:13px 16px 16px 5px;padding:10px 13px;font:400 13px/1.4 Inter;color:#E8D6CF">Treffpunkt 9:30 am oberen Parkplatz. 🪂</div></div>
+        <div style="display:flex;justify-content:flex-end"><div style="max-width:82%;background:#1E90E6;border-radius:16px 16px 5px 16px;padding:10px 13px;font:400 13px/1.4 Inter;color:#fff">Bin dabei! 🚐</div></div>
+      </div>
+    </div>
+  </div>
+</div></x-dc>
+</body>
+</html>
