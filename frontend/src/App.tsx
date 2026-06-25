@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 
 /** Wing-Icon: Gleitschirm-Canopy + Coral-Sonne, auf Sky-Verlauf-Quadrat */
-function Logo({ size = 36 }) {
+function Logo({ size = 36 }: { size?: number }) {
   return (
     <span className="inline-flex items-center gap-2.5">
       <span
@@ -24,7 +24,17 @@ function Logo({ size = 36 }) {
   )
 }
 
-function Section({ n, title, sub, children }) {
+function Section({
+  n,
+  title,
+  sub,
+  children,
+}: {
+  n: string
+  title: string
+  sub?: string
+  children: ReactNode
+}) {
   return (
     <section className="rounded-box border border-base-300 bg-base-100 p-7 shadow-card">
       <div className="mb-5 flex items-baseline gap-3">
@@ -39,20 +49,32 @@ function Section({ n, title, sub, children }) {
   )
 }
 
-const EXPERIENCE = [
+type Tone = { label: string; bg: string; fg: string; dot: string }
+
+const EXPERIENCE: Tone[] = [
   { label: 'Anfänger', bg: '#E4F6EC', fg: '#157A43', dot: '#1E9E5A' },
   { label: 'Fortgeschritten', bg: '#E5F1FD', fg: '#0C5896', dot: '#1E90E6' },
   { label: 'Experte', bg: '#FFE1D8', fg: '#C7421F', dot: '#FF6B4A' },
   { label: 'Alle Level', bg: '#E8F3F4', fg: '#0A4F57', dot: '#117D87' },
 ]
-const STATUS = [
+const STATUS: Tone[] = [
   { label: 'Offen', bg: '#E4F6EC', fg: '#157A43', dot: '#1E9E5A' },
   { label: 'Ausgebucht', bg: '#FBF0D6', fg: '#8A5D00', dot: '#E8A21A' },
   { label: 'Abgesagt', bg: '#FCE6E7', fg: '#B42318', dot: '#E5484D' },
   { label: 'Beendet', bg: '#EEF3F9', fg: '#5B6B7E', dot: '#94A3B5' },
 ]
 
-function Pill({ bg, fg, dot, children }) {
+function Pill({
+  bg,
+  fg,
+  dot,
+  children,
+}: {
+  bg: string
+  fg: string
+  dot?: string
+  children: ReactNode
+}) {
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold"
@@ -66,7 +88,7 @@ function Pill({ bg, fg, dot, children }) {
 
 export default function App() {
   const [dark, setDark] = useState(false)
-  const setTheme = (d) => {
+  const setTheme = (d: boolean) => {
     setDark(d)
     document.documentElement.dataset.theme = d ? 'flightmeet-dark' : 'flightmeet'
   }
@@ -159,7 +181,9 @@ export default function App() {
               <div className="mb-3 font-display text-sm font-bold">Erfahrungslevel</div>
               <div className="flex flex-wrap gap-2.5">
                 {EXPERIENCE.map((e) => (
-                  <Pill key={e.label} {...e}>{e.label}</Pill>
+                  <Pill key={e.label} bg={e.bg} fg={e.fg} dot={e.dot}>
+                    {e.label}
+                  </Pill>
                 ))}
               </div>
             </div>
@@ -167,7 +191,9 @@ export default function App() {
               <div className="mb-3 font-display text-sm font-bold">Treffen-Status</div>
               <div className="flex flex-wrap gap-2.5">
                 {STATUS.map((s) => (
-                  <Pill key={s.label} {...s}>{s.label}</Pill>
+                  <Pill key={s.label} bg={s.bg} fg={s.fg} dot={s.dot}>
+                    {s.label}
+                  </Pill>
                 ))}
               </div>
             </div>
@@ -284,15 +310,15 @@ export default function App() {
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-base-300 bg-base-100/95 backdrop-blur sm:hidden">
         <div className="mx-auto flex max-w-md items-end justify-around px-2 py-2.5">
           {[
-            { l: 'Home', a: true },
-            { l: 'Flugtreffen' },
-            { l: 'Gruppen' },
-            { l: 'Chat', badge: 5 },
+            { l: 'Home', a: true, badge: 0 },
+            { l: 'Flugtreffen', a: false, badge: 0 },
+            { l: 'Gruppen', a: false, badge: 0 },
+            { l: 'Chat', a: false, badge: 5 },
           ].map((t) => (
             <div key={t.l} className="relative flex min-w-15 flex-col items-center gap-1">
               <div className={`size-6 rounded-md ${t.a ? 'bg-primary' : 'bg-base-content/25'}`} />
               <span className={`text-[11px] ${t.a ? 'font-semibold text-sky-700' : 'text-base-content/50'}`}>{t.l}</span>
-              {t.badge && (
+              {t.badge > 0 && (
                 <span className="absolute -top-1.5 right-2 grid size-4.5 place-items-center rounded-full bg-coral-500 text-[10px] font-bold text-white">{t.badge}</span>
               )}
             </div>
