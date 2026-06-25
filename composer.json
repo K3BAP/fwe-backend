@@ -41,6 +41,5 @@
         "test": "phpunit",
         "build:frontend": "cd frontend && npm run build",
         "deploy:local": "rsync -av --delete --exclude-from='.deployignore' ./ /Applications/MAMP/htdocs/fwe/",
-        "deploy:remote": "lftp -u \"team15,$(cat .deploypass)\" -e 'mirror -R -v --parallel=10 --delete --no-perms --exclude-glob-from=.deployignore ./ /web/; quit' sftp://hosting.wi1cm.uni-trier.de:23513"
-    }
+"deploy:remote": "lftp -u \"team15,$(cat .deploypass)\" -e 'set sftp:connect-program \"ssh -a -x -o StrictHostKeyChecking=accept-new\"; mirror -R -v --parallel=10 --delete --no-perms --exclude-glob-from=.deployignore ./ /web/; quit' sftp://hosting.wi1cm.uni-trier.de:23513"    }
 }
