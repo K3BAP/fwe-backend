@@ -1,111 +1,147 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+@import "tailwindcss";
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+@plugin "daisyui" {
+  themes: false;
+}
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* ── FlightMeet · Light (default) ───────────────────────────── */
+@plugin "daisyui/theme" {
+  name: "flightmeet";
+  default: true;
+  color-scheme: light;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
+  --color-base-100: #ffffff;   /* card */
+  --color-base-200: #eef3f9;   /* surface */
+  --color-base-300: #e2eaf2;   /* border */
+  --color-base-content: #0e1726;
+
+  --color-primary: #1e90e6;    /* Sky */
+  --color-primary-content: #ffffff;
+  --color-secondary: #117d87;  /* Petrol */
+  --color-secondary-content: #ffffff;
+  --color-accent: #f1572f;     /* Coral solid (AA-large auf Weiß) */
+  --color-accent-content: #ffffff;
+  --color-neutral: #0e1726;
+  --color-neutral-content: #f2f6fc;
+
+  --color-info: #1e90e6;
+  --color-info-content: #ffffff;
+  --color-success: #1e9e5a;
+  --color-success-content: #ffffff;
+  --color-warning: #e8a21a;
+  --color-warning-content: #3a2a00;
+  --color-error: #e5484d;
+  --color-error-content: #ffffff;
+
+  --radius-selector: 9999px;   /* Pillen */
+  --radius-field: 14px;        /* Inputs / Buttons */
+  --radius-box: 24px;          /* Cards */
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* ── FlightMeet · Dark ──────────────────────────────────────── */
+@plugin "daisyui/theme" {
+  name: "flightmeet-dark";
+  default: false;
+  prefersdark: false;
+  color-scheme: dark;
+
+  --color-base-100: #16243a;
+  --color-base-200: #0e1726;
+  --color-base-300: #0b1220;
+  --color-base-content: #f2f6fc;
+
+  --color-primary: #1e90e6;
+  --color-primary-content: #ffffff;
+  --color-secondary: #2e8e96;
+  --color-secondary-content: #04211f;
+  --color-accent: #ff8062;
+  --color-accent-content: #3a1108;
+  --color-neutral: #243449;
+  --color-neutral-content: #f2f6fc;
+
+  --color-info: #5bb8f5;
+  --color-info-content: #06243a;
+  --color-success: #34c77b;
+  --color-success-content: #042b18;
+  --color-warning: #f5b53d;
+  --color-warning-content: #3a2a00;
+  --color-error: #ff6066;
+  --color-error-content: #3a0a0c;
+
+  --radius-selector: 9999px;
+  --radius-field: 14px;
+  --radius-box: 24px;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* ── Tokens: Fonts, Schatten, Brand-Ramps ───────────────────── */
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Outfit", system-ui, sans-serif;
+
+  --shadow-card: 0 4px 16px rgba(16, 40, 70, 0.06), 0 2px 6px rgba(16, 40, 70, 0.04);
+  --shadow-hover: 0 12px 32px rgba(16, 40, 70, 0.1), 0 4px 12px rgba(16, 40, 70, 0.06);
+  --shadow-popover: 0 20px 48px rgba(16, 40, 70, 0.16), 0 6px 16px rgba(16, 40, 70, 0.08);
+
+  /* Sky — Primär */
+  --color-sky-50: #eaf4fe;
+  --color-sky-100: #d2e7fc;
+  --color-sky-200: #a9d2f8;
+  --color-sky-300: #7fbcf5;
+  --color-sky-400: #4ea2f0;
+  --color-sky-500: #1e90e6;
+  --color-sky-600: #0f6fbe;
+  --color-sky-700: #0c5896;
+  --color-sky-800: #0b4576;
+  --color-sky-900: #0b3357;
+
+  /* Coral — Akzent */
+  --color-coral-50: #fff2ee;
+  --color-coral-100: #ffe1d8;
+  --color-coral-200: #ffc4b4;
+  --color-coral-300: #ff9f88;
+  --color-coral-400: #ff8062;
+  --color-coral-500: #ff6b4a;
+  --color-coral-600: #f1572f;
+  --color-coral-700: #c7421f;
+  --color-coral-800: #9e3417;
+  --color-coral-900: #7a2810;
+
+  /* Petrol — Sekundär */
+  --color-petrol-50: #e8f3f4;
+  --color-petrol-100: #cde7e9;
+  --color-petrol-200: #9cced2;
+  --color-petrol-300: #66b0b6;
+  --color-petrol-400: #2e8e96;
+  --color-petrol-500: #117d87;
+  --color-petrol-600: #0c636c;
+  --color-petrol-700: #0a4f57;
+  --color-petrol-800: #083e45;
+  --color-petrol-900: #062e33;
+}
+
+/* ── Basis ──────────────────────────────────────────────────── */
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  body {
+    margin: 0;
   }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
-}
-
-body {
-  margin: 0;
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
 }

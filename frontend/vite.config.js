@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-// import tailwindcss from '@tailwindcss/vite' // falls Tailwind genutzt wird
+import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig(({ command }) => {
@@ -12,7 +12,7 @@ export default defineConfig(({ command }) => {
     base,
     plugins: [
       react(),
-      // tailwindcss(), // falls Tailwind genutzt wird
+      tailwindcss(),
     ],
     // Build direkt in das CodeIgniter public/-Verzeichnis, ohne index.php zu löschen.
     build: {
