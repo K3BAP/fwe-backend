@@ -1,10 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useConversation, useMarkRead, useMessages, useReactToMessage, useSendMessage } from '@/api/chat'
+import {
+  useConversation,
+  useDeleteMessage,
+  useEditMessage,
+  useMarkRead,
+  useMessages,
+  useReactToMessage,
+  useSendMessage,
+} from '@/api/chat'
 import type { Message } from '@/api/schemas'
 import { ChatMessage } from '@/components/chat/ChatMessage'
 import { MessageComposer } from '@/components/chat/MessageComposer'
-import { Skeleton } from '@/components/ui'
+import { Button, Modal, Skeleton } from '@/components/ui'
 import { useAuthStore } from '@/stores/authStore'
 
 /**
@@ -16,9 +24,13 @@ export function ChatThread({ conversationId, backTo }: { conversationId: number;
   const messages = useMessages(conversationId)
   const send = useSendMessage(conversationId)
   const react = useReactToMessage(conversationId)
+  const edit = useEditMessage(conversationId)
+  const del = useDeleteMessage(conversationId)
   const { mutate: markRead } = useMarkRead()
   const currentUserId = useAuthStore((s) => s.user?.id ?? 0)
   const [replyTo, setReplyTo] = useState<Message | null>(null)
+  const [editing, setEditing] = useState<Message | null>(null)
+  const [deleting, setDeleting] = useState<Message | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -65,7 +77,15 @@ export function ChatThread({ conversationId, backTo }: { conversationId: number;
               currentUserId={currentUserId}
               showSender={showSender}
               onReact={(emoji) => react.mutate({ messageId: m.id, emoji })}
-              onReply={setReplyTo}
+              onReply={(msg) => {
+                setEditing(null)
+                setReplyTo(msg)
+              }}
+              onEdit={(msg) => {
+                setReplyTo(null)
+                setEditing(msg)
+              }}
+              onDelete={setDeleting}
             />
           ))}
         </div>
@@ -73,9 +93,16 @@ export function ChatThread({ conversationId, backTo }: { conversationId: number;
       </div>
 
       <MessageComposer
+        key={editing ? `edit-${editing.id}` : 'compose'}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
-        disabled={send.isPending}
+        editing={editing}
+        onCancelEdit={() => setEditing(null)}
+        onSaveEdit={(text) => {
+          if (editing) edit.mutate({ messageId: editing.id, body: text })
+          setEditing(null)
+        }}
+        disabled={send.isPending || edit.isPending}
         onSend={(text) => {
           send.mutate({
             body: text,
@@ -84,6 +111,30 @@ export function ChatThread({ conversationId, backTo }: { conversationId: number;
           setReplyTo(null)
         }}
       />
+
+      <Modal
+        open={deleting != null}
+        onClose={() => setDeleting(null)}
+        title="Nachricht löschen?"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeleting(null)}>
+              Abbrechen
+            </Button>
+            <Button
+              variant="accent"
+              onClick={() => {
+                if (deleting) del.mutate(deleting.id)
+                setDeleting(null)
+              }}
+            >
+              Löschen
+            </Button>
+          </>
+        }
+      >
+        <p className="text-base-content/70">Die Nachricht wird für alle entfernt und durch einen Hinweis ersetzt.</p>
+      </Modal>
     </div>
   )
 }

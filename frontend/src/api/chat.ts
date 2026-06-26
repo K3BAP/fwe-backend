@@ -123,6 +123,32 @@ export function useReactToMessage(conversationId: number) {
   })
 }
 
+/** Eigene Nachricht bearbeiten — ersetzt sie im Cache. */
+export function useEditMessage(conversationId: number) {
+  const qc = useQueryClient()
+  const key = qk.chat.messages(conversationId)
+  return useMutation({
+    mutationFn: ({ messageId, body }: { messageId: number; body: string }): Promise<Message> =>
+      USE_MOCKS
+        ? mockWrite(() => chatTable.editMessage(conversationId, messageId, body))
+        : apiFetch(`/conversations/${conversationId}/messages/${messageId}`, messageSchema, { method: 'PATCH', body: { body } }),
+    onSuccess: (real) => qc.setQueryData<Message[]>(key, (old) => old?.map((m) => (m.id === real.id ? real : m))),
+  })
+}
+
+/** Eigene Nachricht löschen (Tombstone). */
+export function useDeleteMessage(conversationId: number) {
+  const qc = useQueryClient()
+  const key = qk.chat.messages(conversationId)
+  return useMutation({
+    mutationFn: (messageId: number): Promise<Message> =>
+      USE_MOCKS
+        ? mockWrite(() => chatTable.deleteMessage(conversationId, messageId))
+        : apiFetch(`/conversations/${conversationId}/messages/${messageId}`, messageSchema, { method: 'DELETE' }),
+    onSuccess: (real) => qc.setQueryData<Message[]>(key, (old) => old?.map((m) => (m.id === real.id ? real : m))),
+  })
+}
+
 export function useMarkRead() {
   const qc = useQueryClient()
   return useMutation({

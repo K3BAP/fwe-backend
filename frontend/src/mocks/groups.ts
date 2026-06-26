@@ -19,7 +19,7 @@ import { usersTable } from './users'
  * beim Lesen berechnet. **Channels leben in der Chat-Engine** ([[chat]], ADR-005) und kommen über
  * `chatTable.groupChannels`. In M4/M5 durch echte Endpunkte ersetzt — Hooks/Komponenten bleiben gleich.
  */
-type MemberRecord = { user_id: number; role: GroupRole; joined_at: string }
+type MemberRecord = { user_id: number; role: GroupRole; joined_at: string; status?: 'active' | 'banned' }
 type ReactionRecord = { emoji: string; user_ids: number[] }
 type FeedRecord = {
   id: number
@@ -285,6 +285,7 @@ function toDetail(g: GroupRecord): GroupDetail {
     owner_user_id: g.owner_id,
     my_membership: mem,
     can_manage: mem?.role === 'owner' || mem?.role === 'admin',
+    has_pending_request: g.requests.some((r) => r.user_id === meId() && r.status === 'pending'),
   }
 }
 
@@ -314,13 +315,46 @@ export const groupsTable = {
     find(id).members.map((m) => ({
       user: usersTable.byId(m.user_id) ?? { id: m.user_id, display_name: 'Unbekannt', handle: null, avatar_path: null },
       role: m.role,
-      status: 'active',
+      status: m.status ?? 'active',
       joined_at: m.joined_at,
     })),
 
   feed: (id: number): FeedPost[] => {
     const g = find(id)
     return [...g.feed].sort((a, b) => Number(b.is_pinned) - Number(a.is_pinned) || b.created_at.localeCompare(a.created_at)).map((f) => toFeedPost(g, f))
+  },
+
+  /** Feed-Post erstellen (Admin/Owner). */
+  createPost: (groupId: number, input: { title: string | null; body: string }): FeedPost => {
+    const g = find(groupId)
+    const id = g.feed.length ? Math.max(...g.feed.map((f) => f.id)) + 1 : 1
+    const rec: FeedRecord = { id, author_id: meId(), title: input.title, body: input.body, image_path: null, is_pinned: false, created_at: new Date().toISOString(), updated_at: null, reactions: [] }
+    g.feed.push(rec)
+    return toFeedPost(g, rec)
+  },
+
+  updatePost: (groupId: number, postId: number, input: { title: string | null; body: string }): FeedPost => {
+    const g = find(groupId)
+    const f = g.feed.find((x) => x.id === postId)
+    if (!f) throw new ApiError('not_found', 'Beitrag nicht gefunden.', 404)
+    f.title = input.title
+    f.body = input.body
+    f.updated_at = new Date().toISOString()
+    return toFeedPost(g, f)
+  },
+
+  deletePost: (groupId: number, postId: number): void => {
+    const g = find(groupId)
+    g.feed = g.feed.filter((f) => f.id !== postId)
+  },
+
+  /** Beitrag (ent)pinnen. */
+  togglePin: (groupId: number, postId: number): FeedPost => {
+    const g = find(groupId)
+    const f = g.feed.find((x) => x.id === postId)
+    if (!f) throw new ApiError('not_found', 'Beitrag nicht gefunden.', 404)
+    f.is_pinned = !f.is_pinned
+    return toFeedPost(g, f)
   },
 
   requests: (id: number): JoinRequest[] =>
@@ -366,6 +400,22 @@ export const groupsTable = {
       g.requests.push({ id: nextRequestId++, user_id: meId(), message, status: 'pending', created_at: new Date().toISOString() })
     }
     return toDetail(g)
+  },
+
+  /** Eigenen offenen Beitrittsantrag zurückziehen. */
+  withdrawRequest: (id: number): GroupDetail => {
+    const g = find(id)
+    g.requests = g.requests.filter((r) => !(r.user_id === meId() && r.status === 'pending'))
+    return toDetail(g)
+  },
+
+  /** Gerichtete Einladung an einen Nutzer erstellen (Admin). */
+  createDirectedInvite: (groupId: number, userId: number): GroupInvite[] => {
+    const g = find(groupId)
+    if (!g.invites.some((i) => i.invited_user_id === userId && i.status === 'pending')) {
+      g.invites.push({ id: nextInviteId++, invited_user_id: userId, token: null, status: 'pending', max_uses: null, uses_count: 0 })
+    }
+    return groupsTable.invites(groupId)
   },
 
   reactToPost: (groupId: number, postId: number, emoji: string): FeedPost => {
@@ -435,6 +485,61 @@ export const groupsTable = {
     groups.unshift(g)
     chatTable.createGroupChannel(g.id, 'Allgemein', g.name, true, 0)
     return toDetail(g)
+  },
+
+  /** Metadaten bearbeiten (Owner/Admin). */
+  update: (id: number, input: GroupCreateInput): GroupDetail => {
+    const g = find(id)
+    g.name = input.name
+    g.description = input.description
+    g.region = input.region
+    g.tags = input.tags
+    g.rules_text = input.rules_text
+    g.visibility = input.visibility
+    g.join_policy = input.join_policy
+    return toDetail(g)
+  },
+
+  /** Gruppe soft-löschen (aus dem Verzeichnis entfernt). */
+  softDelete: (id: number): void => {
+    const i = groups.findIndex((g) => g.id === id)
+    if (i >= 0) groups.splice(i, 1)
+  },
+
+  /** Mitglied-Rolle ändern (nicht für Owner). */
+  setMemberRole: (groupId: number, userId: number, role: GroupRole): GroupMember[] => {
+    const g = find(groupId)
+    const m = g.members.find((x) => x.user_id === userId)
+    if (m && m.role !== 'owner') m.role = role
+    return groupsTable.members(groupId)
+  },
+
+  /** Mitglied entfernen (Kick). */
+  removeMember: (groupId: number, userId: number): GroupMember[] => {
+    const g = find(groupId)
+    g.members = g.members.filter((m) => m.user_id !== userId)
+    return groupsTable.members(groupId)
+  },
+
+  /** Mitglied (ent)bannen. */
+  toggleBan: (groupId: number, userId: number): GroupMember[] => {
+    const g = find(groupId)
+    const m = g.members.find((x) => x.user_id === userId)
+    if (m && m.role !== 'owner') m.status = m.status === 'banned' ? 'active' : 'banned'
+    return groupsTable.members(groupId)
+  },
+
+  /** Owner-Rolle übertragen (alter Owner → Admin). */
+  transferOwnership: (groupId: number, userId: number): GroupMember[] => {
+    const g = find(groupId)
+    const target = g.members.find((x) => x.user_id === userId)
+    const current = g.members.find((x) => x.user_id === g.owner_id)
+    if (target) {
+      if (current) current.role = 'admin'
+      target.role = 'owner'
+      g.owner_id = userId
+    }
+    return groupsTable.members(groupId)
   },
 
   /** Eindeutige Regionen (alphabetisch) für den Verzeichnis-Filter. */

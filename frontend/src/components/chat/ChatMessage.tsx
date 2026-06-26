@@ -1,4 +1,4 @@
-import { Avatar, ReactionBar } from '@/components/ui'
+import { Avatar, Menu, ReactionBar } from '@/components/ui'
 import type { Message } from '@/api/schemas'
 import { cn } from '@/lib/cn'
 import { formatClock } from '@/lib/format'
@@ -19,12 +19,16 @@ export function ChatMessage({
   showSender,
   onReact,
   onReply,
+  onEdit,
+  onDelete,
 }: {
   message: Message
   currentUserId: number
   showSender: boolean
   onReact: (emoji: string) => void
   onReply: (message: Message) => void
+  onEdit?: (message: Message) => void
+  onDelete?: (message: Message) => void
 }) {
   const own = m.sender.id === currentUserId
 
@@ -56,9 +60,18 @@ export function ChatMessage({
             {m.reply_to && <ReplyQuote reply={m.reply_to} own />}
             <div className="whitespace-pre-wrap break-words">{m.body}</div>
           </div>
-          <div className="mt-1 flex items-center gap-2">
+          <div className="mt-1 flex items-center gap-1">
             {meta}
             {time}
+            {onEdit && onDelete && (
+              <Menu
+                label="Nachricht"
+                items={[
+                  { label: 'Bearbeiten', onSelect: () => onEdit(m) },
+                  { label: 'Löschen', danger: true, onSelect: () => onDelete(m) },
+                ]}
+              />
+            )}
           </div>
           {m.reactions.length > 0 && (
             <div className="mt-1">

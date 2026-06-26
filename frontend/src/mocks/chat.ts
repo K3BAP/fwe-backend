@@ -347,6 +347,26 @@ export const chatTable = {
     return toMessage(c, m)
   },
 
+  /** Eigene Nachricht bearbeiten (Soft-Edit, setzt `edited_at`). */
+  editMessage: (id: number, messageId: number, body: string): Message => {
+    const c = find(id)
+    const m = c.messages.find((x) => x.id === messageId)
+    if (!m) throw new ApiError('not_found', 'Nachricht nicht gefunden.', 404)
+    m.body = body
+    m.edited_at = new Date().toISOString()
+    return toMessage(c, m)
+  },
+
+  /** Eigene Nachricht löschen (Tombstone: `deleted_at` gesetzt, `body` null). */
+  deleteMessage: (id: number, messageId: number): Message => {
+    const c = find(id)
+    const m = c.messages.find((x) => x.id === messageId)
+    if (!m) throw new ApiError('not_found', 'Nachricht nicht gefunden.', 404)
+    m.deleted_at = new Date().toISOString()
+    m.body = null
+    return toMessage(c, m)
+  },
+
   markRead: (id: number): void => {
     find(id).unread = 0
   },
@@ -384,6 +404,29 @@ export const chatTable = {
     }
     conversations.push(c)
     return c.id
+  },
+
+  /** Channel hinzufügen (Admin) — ans Ende einsortiert. */
+  addChannel: (groupId: number, name: string, groupTitle: string): number => {
+    const positions = conversations.filter((c) => c.type === 'group_channel' && c.context_id === groupId).map((c) => c.position)
+    const pos = (positions.length ? Math.max(...positions) : -1) + 1
+    return chatTable.createGroupChannel(groupId, name, groupTitle, false, pos)
+  },
+
+  /** Channel umbenennen (Admin). */
+  renameChannel: (convId: number, name: string): void => {
+    const c = find(convId)
+    const groupTitle = c.title.split(' · ')[0]
+    c.channel_name = name
+    c.title = `${groupTitle} · ${name}`
+  },
+
+  /** Channel löschen (Admin) — der Standard-Channel bleibt geschützt. */
+  deleteChannel: (convId: number): void => {
+    const c = find(convId)
+    if (c.is_default) throw new ApiError('conflict', 'Der Standard-Channel kann nicht gelöscht werden.', 409)
+    const i = conversations.findIndex((x) => x.id === convId)
+    if (i >= 0) conversations.splice(i, 1)
   },
 
   /** DM mit einem Nutzer finden oder anlegen (Profil → „Direktchat öffnen"). */

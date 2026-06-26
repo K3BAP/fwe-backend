@@ -306,6 +306,38 @@ export const meetupsTable = {
     return toDetail(r)
   },
 
+  /** Treffen bearbeiten (Organisator). */
+  update: (id: number, input: MeetupCreateInput): MeetupDetail => {
+    const r = find(id)
+    r.title = input.title
+    r.spot_id = input.spot_id
+    r.starts_at = input.starts_at
+    r.experience_level = input.experience_level
+    r.max_participants = input.max_participants
+    r.description = input.description
+    return toDetail(r)
+  },
+
+  /** Treffen absagen (Status → cancelled). */
+  cancel: (id: number): MeetupDetail => {
+    const r = find(id)
+    r.cancelled = true
+    return toDetail(r)
+  },
+
+  /** Treffen löschen. */
+  remove: (id: number): void => {
+    const i = meetups.findIndex((m) => m.id === id)
+    if (i >= 0) meetups.splice(i, 1)
+  },
+
+  /** Teilnehmer entfernen (Organisator). */
+  removeParticipant: (id: number, userId: number): MeetupDetail => {
+    const r = find(id)
+    r.participant_ids = r.participant_ids.filter((p) => p !== userId)
+    return toDetail(r)
+  },
+
   /** Eindeutige Regionen (alphabetisch) für den Filter-Dropdown. */
   regions: (): string[] =>
     [...new Set(meetups.map((r) => spotsTable.byId(r.spot_id)?.region ?? '—'))].sort((a, b) => a.localeCompare(b, 'de')),

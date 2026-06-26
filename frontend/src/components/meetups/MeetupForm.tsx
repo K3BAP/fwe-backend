@@ -2,10 +2,17 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { experienceLevelSchema, type MeetupCreateInput } from '@/api/schemas'
+import { experienceLevelSchema, type MeetupCreateInput, type MeetupDetail } from '@/api/schemas'
 import { Button, SelectField, TextareaField, TextField } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { SpotAutocomplete } from './SpotAutocomplete'
+
+/** Zerlegt einen ISO-Zeitstempel in lokale Datums- (YYYY-MM-DD) + Uhrzeit-Strings (HH:mm). */
+function splitDateTime(iso: string): { date: string; time: string } {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return { date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, time: `${pad(d.getHours())}:${pad(d.getMinutes())}` }
+}
 
 /** Formular-Schema (Datum/Uhrzeit getrennt; beim Submit zu `starts_at` zusammengeführt). */
 const wizardSchema = z.object({
@@ -49,9 +56,19 @@ function Stepper({ current }: { current: number }) {
 }
 
 /** Mehrstufiger Erstellen-/Wizard (RHF + Zod, schrittweise Validierung). */
-export function MeetupForm({ onSubmit, submitting }: { onSubmit: (input: MeetupCreateInput) => void; submitting: boolean }) {
+export function MeetupForm({
+  onSubmit,
+  submitting,
+  initial,
+}: {
+  onSubmit: (input: MeetupCreateInput) => void
+  submitting: boolean
+  /** Wenn gesetzt: Bearbeiten-Modus (vorbefüllt, Submit „Speichern"). */
+  initial?: MeetupDetail
+}) {
   const [step, setStep] = useState(0)
-  const [spotName, setSpotName] = useState('')
+  const [spotName, setSpotName] = useState(initial?.spot_name ?? '')
+  const dt = initial ? splitDateTime(initial.starts_at) : null
   const {
     register,
     handleSubmit,
@@ -61,13 +78,13 @@ export function MeetupForm({ onSubmit, submitting }: { onSubmit: (input: MeetupC
   } = useForm<WizardValues>({
     resolver: zodResolver(wizardSchema),
     defaultValues: {
-      title: '',
-      spot_id: 0,
-      date: '',
-      time: '',
-      experience_level: 'all',
-      max_participants: '',
-      description: '',
+      title: initial?.title ?? '',
+      spot_id: initial?.spot_id ?? 0,
+      date: dt?.date ?? '',
+      time: dt?.time ?? '',
+      experience_level: initial?.experience_level ?? 'all',
+      max_participants: initial?.max_participants?.toString() ?? '',
+      description: initial?.description ?? '',
     },
   })
 
@@ -156,7 +173,7 @@ export function MeetupForm({ onSubmit, submitting }: { onSubmit: (input: MeetupC
           </Button>
         ) : (
           <Button type="submit" disabled={submitting}>
-            {submitting ? 'Wird erstellt…' : 'Treffen erstellen'}
+            {submitting ? (initial ? 'Speichern…' : 'Wird erstellt…') : initial ? 'Speichern' : 'Treffen erstellen'}
           </Button>
         )}
       </div>

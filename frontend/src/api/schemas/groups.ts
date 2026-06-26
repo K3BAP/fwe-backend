@@ -51,6 +51,8 @@ export const groupDetailSchema = groupListItemSchema.extend({
   owner_user_id: z.number(),
   my_membership: z.object({ role: groupRoleSchema, status: membershipStatusSchema }).nullable(),
   can_manage: z.boolean(),
+  /** Eigener Beitrittsantrag offen? (für „Anfrage zurückziehen"). */
+  has_pending_request: z.boolean(),
 })
 export type GroupDetail = z.infer<typeof groupDetailSchema>
 
@@ -78,6 +80,12 @@ export const feedPostSchema = z.object({
 })
 export type FeedPost = z.infer<typeof feedPostSchema>
 export const feedPostListSchema = z.array(feedPostSchema)
+
+export const feedPostCreateInputSchema = z.object({
+  title: z.string().nullable(),
+  body: z.string().min(1, 'Bitte etwas schreiben.').max(5000, 'Höchstens 5000 Zeichen.'),
+})
+export type FeedPostCreateInput = z.infer<typeof feedPostCreateInputSchema>
 
 export const joinRequestSchema = z.object({
   id: z.number(),

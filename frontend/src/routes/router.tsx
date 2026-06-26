@@ -13,6 +13,7 @@ import { Gruppen } from './Gruppen'
 import { Landing } from './Landing'
 import { FlugtreffenLazy, Lazy, MeetupDetailLazy, StyleguideLazy } from './lazy'
 import { Login } from './Login'
+import { MeetupBearbeiten } from './MeetupBearbeiten'
 import { MeetupErstellen } from './MeetupErstellen'
 import { Placeholder } from './Placeholder'
 import { Profil } from './Profil'
@@ -42,6 +43,7 @@ export const router = createBrowserRouter(
             { path: 'flugtreffen', element: <Lazy><FlugtreffenLazy /></Lazy> },
             { path: 'flugtreffen/neu', element: <MeetupErstellen /> },
             { path: 'flugtreffen/:id', element: <Lazy><MeetupDetailLazy /></Lazy> },
+            { path: 'flugtreffen/:id/bearbeiten', element: <MeetupBearbeiten /> },
             { path: 'gruppen', element: <Gruppen /> },
             { path: 'gruppen/neu', element: <GruppeErstellen /> },
             { path: 'gruppen/:id', element: <GruppeDetail /> },

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
+  useCreateFeedPost,
+  useDeleteFeedPost,
   useGroup,
   useGroupChannels,
   useGroupFeed,
@@ -9,23 +11,29 @@ import {
   useLeaveGroup,
   useReactToPost,
   useRequestJoin,
+  useTogglePinPost,
+  useUpdateFeedPost,
+  useWithdrawRequest,
 } from '@/api/groups'
-import type { GroupDetail as GroupDetailDto } from '@/api/schemas'
+import type { FeedPost, GroupDetail as GroupDetailDto } from '@/api/schemas'
 import { ChannelList } from '@/components/groups/ChannelList'
+import { FeedComposer } from '@/components/groups/FeedComposer'
 import { FeedPostCard } from '@/components/groups/FeedPostCard'
 import { GroupHero } from '@/components/groups/GroupHero'
 import { MemberList } from '@/components/groups/MemberList'
 import { Button, Card, EmptyState, Modal, Skeleton, TextareaField } from '@/components/ui'
 import { GroupIcon } from '@/components/layout/icons'
+import { useAuthStore } from '@/stores/authStore'
 
 /** Beitritts-/Verwaltungs-Aktion abhängig von Mitgliedschaft & join_policy. */
 function GroupAction({ group }: { group: GroupDetailDto }) {
   const join = useJoinGroup()
   const leave = useLeaveGroup()
   const request = useRequestJoin()
+  const withdraw = useWithdrawRequest()
   const [reqOpen, setReqOpen] = useState(false)
   const [message, setMessage] = useState('')
-  const pending = join.isPending || leave.isPending || request.isPending
+  const pending = join.isPending || leave.isPending || request.isPending || withdraw.isPending
 
   if (group.my_membership) {
     return (
@@ -51,7 +59,13 @@ function GroupAction({ group }: { group: GroupDetailDto }) {
       </Button>
     )
 
-  if (group.join_policy === 'request')
+  if (group.join_policy === 'request') {
+    if (group.has_pending_request)
+      return (
+        <Button size="sm" variant="outline" disabled={pending} onClick={() => withdraw.mutate({ id: group.id })}>
+          Anfrage zurückziehen
+        </Button>
+      )
     return (
       <>
         <Button size="sm" disabled={pending} onClick={() => setReqOpen(true)}>
@@ -86,6 +100,7 @@ function GroupAction({ group }: { group: GroupDetailDto }) {
         </Modal>
       </>
     )
+  }
 
   return (
     <span className="rounded-full bg-base-200 px-3 py-1.5 text-sm font-semibold text-base-content/55">Nur auf Einladung</span>
@@ -101,6 +116,21 @@ export function GruppeDetail() {
   const feed = useGroupFeed(groupId)
   const members = useGroupMembers(groupId)
   const react = useReactToPost(groupId)
+  const createPost = useCreateFeedPost(groupId)
+  const updatePost = useUpdateFeedPost(groupId)
+  const deletePost = useDeleteFeedPost(groupId)
+  const togglePin = useTogglePinPost(groupId)
+  const currentUserId = useAuthStore((s) => s.user?.id ?? 0)
+  const [composerOpen, setComposerOpen] = useState(false)
+  const [editingPost, setEditingPost] = useState<FeedPost | null>(null)
+  const [composerSession, setComposerSession] = useState(0)
+  const [deletingPost, setDeletingPost] = useState<FeedPost | null>(null)
+
+  const openComposer = (post: FeedPost | null) => {
+    setEditingPost(post)
+    setComposerSession((s) => s + 1)
+    setComposerOpen(true)
+  }
 
   if (group.isLoading)
     return (
@@ -144,7 +174,14 @@ export function GruppeDetail() {
             </Card>
           )}
 
-          <h2 className="font-display text-xl">Feed</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-xl">Feed</h2>
+            {g.can_manage && (
+              <Button size="sm" onClick={() => openComposer(null)}>
+                + Beitrag
+              </Button>
+            )}
+          </div>
           {feed.isLoading && <Skeleton className="h-40 w-full" />}
           {feed.data && feed.data.length === 0 && (
             <Card className="px-6 py-10 text-center text-base-content/55">Noch keine Beiträge in dieser Gruppe.</Card>
@@ -154,6 +191,11 @@ export function GruppeDetail() {
               key={post.id}
               post={post}
               onReact={(emoji) => react.mutate({ postId: post.id, emoji })}
+              currentUserId={currentUserId}
+              canManage={g.can_manage}
+              onPin={(p) => togglePin.mutate(p.id)}
+              onEdit={(p) => openComposer(p)}
+              onDelete={setDeletingPost}
             />
           ))}
         </div>
@@ -179,6 +221,42 @@ export function GruppeDetail() {
         <h2 className="mb-3 font-display text-lg">Mitglieder ({g.members_count})</h2>
         {members.isLoading ? <Skeleton className="h-24 w-full" /> : <MemberList members={members.data ?? []} />}
       </Card>
+
+      <FeedComposer
+        key={composerSession}
+        open={composerOpen}
+        initial={editingPost}
+        submitting={createPost.isPending || updatePost.isPending}
+        onClose={() => setComposerOpen(false)}
+        onSubmit={(input) => {
+          if (editingPost) updatePost.mutate({ postId: editingPost.id, input }, { onSuccess: () => setComposerOpen(false) })
+          else createPost.mutate(input, { onSuccess: () => setComposerOpen(false) })
+        }}
+      />
+
+      <Modal
+        open={deletingPost != null}
+        onClose={() => setDeletingPost(null)}
+        title="Beitrag löschen?"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeletingPost(null)}>
+              Abbrechen
+            </Button>
+            <Button
+              variant="accent"
+              onClick={() => {
+                if (deletingPost) deletePost.mutate(deletingPost.id)
+                setDeletingPost(null)
+              }}
+            >
+              Löschen
+            </Button>
+          </>
+        }
+      >
+        <p className="text-base-content/70">Der Beitrag wird entfernt.</p>
+      </Modal>
     </div>
   )
 }

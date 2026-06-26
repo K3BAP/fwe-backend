@@ -1,14 +1,88 @@
-import type { ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useState, type ReactNode } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Marker } from 'react-leaflet'
-import { useJoinMeetup, useLeaveMeetup, useMeetup } from '@/api/meetups'
+import {
+  useCancelMeetup,
+  useDeleteMeetup,
+  useJoinMeetup,
+  useLeaveMeetup,
+  useMeetup,
+  useRemoveParticipant,
+} from '@/api/meetups'
 import type { MeetupDetail as MeetupDetailDto } from '@/api/schemas'
 import { ParticipantList } from '@/components/meetups/ParticipantList'
 import { MapShell } from '@/components/map/MapShell'
 import { pinIcon } from '@/components/map/pin'
-import { Button, Card, EmptyState, ExperienceBadge, Skeleton, StatusBadge } from '@/components/ui'
+import { Button, Card, EmptyState, ExperienceBadge, Modal, Skeleton, StatusBadge } from '@/components/ui'
 import { CalendarIcon, ChatIcon, MapPinIcon, UsersIcon, WingIcon } from '@/components/layout/icons'
 import { formatMeetupDate } from '@/lib/format'
+import { toast } from '@/stores/toastStore'
+
+/** Organisator-Steuerung: Bearbeiten / Absagen / Löschen (mit Bestätigung). */
+function OrganizerActions({ m }: { m: MeetupDetailDto }) {
+  const cancel = useCancelMeetup()
+  const del = useDeleteMeetup()
+  const navigate = useNavigate()
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const active = m.derived_status !== 'cancelled' && m.derived_status !== 'finished'
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Link to={`/flugtreffen/${m.id}/bearbeiten`} className="btn btn-primary rounded-full">
+        Bearbeiten
+      </Link>
+      {active && (
+        <Button variant="outline" onClick={() => setCancelOpen(true)}>
+          Treffen absagen
+        </Button>
+      )}
+      <Button variant="ghost" className="text-error" onClick={() => setDeleteOpen(true)}>
+        Löschen
+      </Button>
+
+      <Modal
+        open={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        title="Treffen absagen?"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setCancelOpen(false)}>
+              Abbrechen
+            </Button>
+            <Button variant="accent" disabled={cancel.isPending} onClick={() => cancel.mutate(m.id, { onSuccess: () => setCancelOpen(false) })}>
+              Absagen
+            </Button>
+          </>
+        }
+      >
+        <p className="text-base-content/70">Alle Teilnehmenden sehen das Treffen als abgesagt. Es bleibt sichtbar.</p>
+      </Modal>
+
+      <Modal
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title="Treffen löschen?"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeleteOpen(false)}>
+              Abbrechen
+            </Button>
+            <Button
+              variant="accent"
+              disabled={del.isPending}
+              onClick={() => del.mutate(m.id, { onSuccess: () => { toast.success('Treffen gelöscht.'); navigate('/flugtreffen') } })}
+            >
+              Löschen
+            </Button>
+          </>
+        }
+      >
+        <p className="text-base-content/70">Das Treffen wird unwiderruflich entfernt.</p>
+      </Modal>
+    </div>
+  )
+}
 
 /** Teilnahme-Aktion abhängig von Rolle/Status (optimistisch, Toast in den Hooks). */
 function ActionArea({ m }: { m: MeetupDetailDto }) {
@@ -16,8 +90,7 @@ function ActionArea({ m }: { m: MeetupDetailDto }) {
   const leave = useLeaveMeetup()
   const pending = join.isPending || leave.isPending
 
-  if (m.can_edit)
-    return <p className="rounded-2xl bg-petrol-50 px-4 py-3 text-center text-sm font-semibold text-petrol-700">Du organisierst dieses Treffen.</p>
+  if (m.can_edit) return <OrganizerActions m={m} />
   if (m.derived_status === 'cancelled')
     return <p className="rounded-2xl bg-error/10 px-4 py-3 text-center text-sm font-semibold text-error">Dieses Treffen wurde abgesagt.</p>
   if (m.derived_status === 'finished')
@@ -58,6 +131,7 @@ export function MeetupDetail() {
   const { id } = useParams()
   const meetupId = Number(id)
   const { data: m, isLoading, isError } = useMeetup(meetupId)
+  const removeP = useRemoveParticipant(meetupId)
 
   if (isLoading)
     return (
@@ -128,7 +202,11 @@ export function MeetupDetail() {
 
           <Card className="p-5">
             <h2 className="mb-3 font-display text-lg">Teilnehmende ({m.participant_count})</h2>
-            <ParticipantList participants={m.participants} creatorId={m.creator_user_id} />
+            <ParticipantList
+              participants={m.participants}
+              creatorId={m.creator_user_id}
+              onRemove={m.can_edit ? (uid) => removeP.mutate(uid) : undefined}
+            />
           </Card>
 
           <Card className="flex items-center justify-between gap-3 p-5">

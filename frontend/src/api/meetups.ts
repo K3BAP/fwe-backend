@@ -109,3 +109,54 @@ export function useCreateMeetup() {
     },
   })
 }
+
+export function useUpdateMeetup(id: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: MeetupCreateInput): Promise<MeetupDetail> =>
+      USE_MOCKS ? mockWrite(() => meetupsTable.update(id, input)) : apiFetch(`/meetups/${id}`, meetupDetailSchema, { method: 'PATCH', body: input }),
+    onSuccess: (detail) => {
+      qc.setQueryData(qk.meetups.detail(detail.id), detail)
+      qc.invalidateQueries({ queryKey: [...qk.meetups.all, 'list'] })
+    },
+  })
+}
+
+export function useCancelMeetup() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number): Promise<MeetupDetail> =>
+      USE_MOCKS ? mockWrite(() => meetupsTable.cancel(id)) : apiFetch(`/meetups/${id}`, meetupDetailSchema, { method: 'PATCH', body: { status: 'cancelled' } }),
+    onSuccess: (detail) => {
+      qc.setQueryData(qk.meetups.detail(detail.id), detail)
+      qc.invalidateQueries({ queryKey: [...qk.meetups.all, 'list'] })
+      toast.success('Treffen abgesagt.')
+    },
+  })
+}
+
+export function useDeleteMeetup() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: number): Promise<void> => {
+      if (USE_MOCKS) {
+        await mockWrite(() => meetupsTable.remove(id))
+        return
+      }
+      await apiFetch(`/meetups/${id}`, meetupListSchema, { method: 'DELETE' })
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...qk.meetups.all, 'list'] }),
+  })
+}
+
+export function useRemoveParticipant(id: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (userId: number): Promise<MeetupDetail> =>
+      USE_MOCKS ? mockWrite(() => meetupsTable.removeParticipant(id, userId)) : apiFetch(`/meetups/${id}/participants/${userId}`, meetupDetailSchema, { method: 'DELETE' }),
+    onSuccess: (detail) => {
+      qc.setQueryData(qk.meetups.detail(detail.id), detail)
+      qc.invalidateQueries({ queryKey: [...qk.meetups.all, 'list'] })
+    },
+  })
+}

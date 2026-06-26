@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { groupJoinPolicySchema, groupVisibilitySchema, type GroupCreateInput } from '@/api/schemas'
+import { groupJoinPolicySchema, groupVisibilitySchema, type GroupCreateInput, type GroupDetail } from '@/api/schemas'
 import { Button, SelectField, TextareaField, TextField } from '@/components/ui'
 
 const formSchema = z.object({
@@ -17,15 +17,32 @@ type FormValues = z.infer<typeof formSchema>
 
 const orNull = (s: string) => (s.trim() === '' ? null : s.trim())
 
-/** Formular „Gruppe erstellen" (RHF + Zod). Tags als kommagetrennte Eingabe. */
-export function GroupForm({ onSubmit, submitting }: { onSubmit: (input: GroupCreateInput) => void; submitting: boolean }) {
+/** Formular „Gruppe erstellen/bearbeiten" (RHF + Zod). Tags als kommagetrennte Eingabe. */
+export function GroupForm({
+  onSubmit,
+  submitting,
+  initial,
+}: {
+  onSubmit: (input: GroupCreateInput) => void
+  submitting: boolean
+  /** Wenn gesetzt: Bearbeiten-Modus (vorbefüllt, Submit „Speichern"). */
+  initial?: GroupDetail
+}) {
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', description: '', region: '', tags: '', rules_text: '', visibility: 'public', join_policy: 'open' },
+    defaultValues: {
+      name: initial?.name ?? '',
+      description: initial?.description ?? '',
+      region: initial?.region ?? '',
+      tags: (initial?.tags ?? []).join(', '),
+      rules_text: initial?.rules_text ?? '',
+      visibility: initial?.visibility ?? 'public',
+      join_policy: initial?.join_policy ?? 'open',
+    },
   })
 
   const submit = handleSubmit((v) => {
@@ -67,7 +84,7 @@ export function GroupForm({ onSubmit, submitting }: { onSubmit: (input: GroupCre
       <TextareaField label="Regeln (optional)" rows={3} placeholder="Verhaltensregeln, Hinweise…" {...register('rules_text')} />
       <div className="flex justify-end pt-2">
         <Button type="submit" disabled={submitting}>
-          {submitting ? 'Wird erstellt…' : 'Gruppe erstellen'}
+          {submitting ? (initial ? 'Speichern…' : 'Wird erstellt…') : initial ? 'Speichern' : 'Gruppe erstellen'}
         </Button>
       </div>
     </form>

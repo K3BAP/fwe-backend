@@ -16,12 +16,14 @@ import {
   groupMemberListSchema,
   joinRequestListSchema,
   type FeedPost,
+  type FeedPostCreateInput,
   type GroupChannel,
   type GroupCreateInput,
   type GroupDetail,
   type GroupInvite,
   type GroupListItem,
   type GroupMember,
+  type GroupRole,
   type JoinRequest,
 } from './schemas'
 
@@ -157,6 +159,51 @@ function toggleReaction(post: FeedPost, emoji: string): FeedPost {
   return { ...post, reactions }
 }
 
+/** Feed-Post erstellen (Admin/Owner) → Feed neu laden. */
+export function useCreateFeedPost(groupId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: FeedPostCreateInput): Promise<FeedPost> =>
+      USE_MOCKS ? mockWrite(() => groupsTable.createPost(groupId, input)) : apiFetch(`/groups/${groupId}/feed`, feedPostSchema, { method: 'POST', body: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.groups.feed(groupId) })
+      toast.success('Beitrag veröffentlicht.')
+    },
+  })
+}
+
+export function useUpdateFeedPost(groupId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ postId, input }: { postId: number; input: FeedPostCreateInput }): Promise<FeedPost> =>
+      USE_MOCKS ? mockWrite(() => groupsTable.updatePost(groupId, postId, input)) : apiFetch(`/groups/${groupId}/feed/${postId}`, feedPostSchema, { method: 'PATCH', body: input }),
+    onSuccess: (post) => qc.setQueryData<FeedPost[]>(qk.groups.feed(groupId), (old) => old?.map((p) => (p.id === post.id ? post : p))),
+  })
+}
+
+export function useDeleteFeedPost(groupId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (postId: number): Promise<void> => {
+      if (USE_MOCKS) {
+        await mockWrite(() => groupsTable.deletePost(groupId, postId))
+        return
+      }
+      await apiFetch(`/groups/${groupId}/feed/${postId}`, feedPostListSchema, { method: 'DELETE' })
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.groups.feed(groupId) }),
+  })
+}
+
+export function useTogglePinPost(groupId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (postId: number): Promise<FeedPost> =>
+      USE_MOCKS ? mockWrite(() => groupsTable.togglePin(groupId, postId)) : apiFetch(`/groups/${groupId}/feed/${postId}/pin`, feedPostSchema, { method: 'POST' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.groups.feed(groupId) }),
+  })
+}
+
 export function useCreateGroup() {
   const qc = useQueryClient()
   return useMutation({
@@ -167,6 +214,91 @@ export function useCreateGroup() {
       qc.invalidateQueries({ queryKey: [...qk.groups.all, 'list'] })
     },
   })
+}
+
+export function useUpdateGroup(id: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: GroupCreateInput): Promise<GroupDetail> =>
+      USE_MOCKS ? mockWrite(() => groupsTable.update(id, input)) : apiFetch(`/groups/${id}`, groupDetailSchema, { method: 'PATCH', body: input }),
+    onSuccess: (detail) => {
+      qc.setQueryData(qk.groups.detail(detail.id), detail)
+      qc.invalidateQueries({ queryKey: [...qk.groups.all, 'list'] })
+      toast.success('Gruppe gespeichert.')
+    },
+  })
+}
+
+export function useDeleteGroup() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: number): Promise<void> => {
+      if (USE_MOCKS) {
+        await mockWrite(() => groupsTable.softDelete(id))
+        return
+      }
+      await apiFetch(`/groups/${id}`, groupListSchema, { method: 'DELETE' })
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...qk.groups.all, 'list'] }),
+  })
+}
+
+/** Mitglieder-Verwaltung: aktualisiert Mitglieder + Detail (Owner/Rolle) + Liste (Anzahl). */
+function useMemberMutation<V>(groupId: number, fn: (vars: V) => Promise<GroupMember[]>, msg?: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (members) => {
+      qc.setQueryData(qk.groups.members(groupId), members)
+      qc.invalidateQueries({ queryKey: qk.groups.detail(groupId) })
+      qc.invalidateQueries({ queryKey: [...qk.groups.all, 'list'] })
+      if (msg) toast.success(msg)
+    },
+  })
+}
+
+export function useSetMemberRole(groupId: number) {
+  return useMemberMutation<{ userId: number; role: GroupRole }>(
+    groupId,
+    ({ userId, role }) =>
+      USE_MOCKS
+        ? mockWrite(() => groupsTable.setMemberRole(groupId, userId, role))
+        : apiFetch(`/groups/${groupId}/members/${userId}`, groupMemberListSchema, { method: 'PATCH', body: { role } }),
+    'Rolle aktualisiert.',
+  )
+}
+
+export function useRemoveMember(groupId: number) {
+  return useMemberMutation<number>(
+    groupId,
+    (userId) =>
+      USE_MOCKS
+        ? mockWrite(() => groupsTable.removeMember(groupId, userId))
+        : apiFetch(`/groups/${groupId}/members/${userId}`, groupMemberListSchema, { method: 'DELETE' }),
+    'Mitglied entfernt.',
+  )
+}
+
+export function useToggleBan(groupId: number) {
+  return useMemberMutation<number>(
+    groupId,
+    (userId) =>
+      USE_MOCKS
+        ? mockWrite(() => groupsTable.toggleBan(groupId, userId))
+        : apiFetch(`/groups/${groupId}/members/${userId}/ban`, groupMemberListSchema, { method: 'POST' }),
+    'Status aktualisiert.',
+  )
+}
+
+export function useTransferOwnership(groupId: number) {
+  return useMemberMutation<number>(
+    groupId,
+    (userId) =>
+      USE_MOCKS
+        ? mockWrite(() => groupsTable.transferOwnership(groupId, userId))
+        : apiFetch(`/groups/${groupId}/transfer`, groupMemberListSchema, { method: 'POST', body: { user_id: userId } }),
+    'Eigentümerschaft übertragen.',
+  )
 }
 
 /** Admin: Antrag genehmigen/ablehnen → aktualisiert Anträge + (bei Genehmigung) Mitglieder. */
@@ -219,4 +351,81 @@ export function useRevokeInvite() {
     (g, i) => (USE_MOCKS ? mockWrite(() => groupsTable.revokeInvite(g, i)) : apiFetch(`/groups/${g}/invites/${i}`, groupInviteListSchema, { method: 'DELETE' })),
     'Einladung widerrufen.',
   )
+}
+
+/** Gerichtete Einladung an einen Nutzer (Admin). */
+export function useCreateDirectedInvite(groupId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (userId: number): Promise<GroupInvite[]> =>
+      USE_MOCKS
+        ? mockWrite(() => groupsTable.createDirectedInvite(groupId, userId))
+        : apiFetch(`/groups/${groupId}/invites`, groupInviteListSchema, { method: 'POST', body: { user_id: userId } }),
+    onSuccess: (invites) => {
+      qc.setQueryData(qk.groups.invites(groupId), invites)
+      toast.success('Einladung gesendet.')
+    },
+  })
+}
+
+/** Eigenen offenen Beitrittsantrag zurückziehen. */
+export function useWithdrawRequest() {
+  return useGroupMembershipMutation(
+    ({ id }) => (USE_MOCKS ? mockWrite(() => groupsTable.withdrawRequest(id)) : apiFetch(`/groups/${id}/join-requests/mine`, groupDetailSchema, { method: 'DELETE' })),
+    'Anfrage zurückgezogen.',
+  )
+}
+
+/** Channels verwalten (Admin) — Channels sind Konversationen (ADR-005), daher Chat-Cache mit auffrischen. */
+export function useCreateChannel(groupId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ name, groupTitle }: { name: string; groupTitle: string }): Promise<void> => {
+      if (USE_MOCKS) {
+        await mockWrite(() => chatTable.addChannel(groupId, name, groupTitle))
+        return
+      }
+      await apiFetch(`/groups/${groupId}/channels`, groupChannelListSchema, { method: 'POST', body: { name } })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.groups.channels(groupId) })
+      qc.invalidateQueries({ queryKey: qk.chat.conversations })
+      toast.success('Channel erstellt.')
+    },
+  })
+}
+
+export function useRenameChannel(groupId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ conversationId, name }: { conversationId: number; name: string }): Promise<void> => {
+      if (USE_MOCKS) {
+        await mockWrite(() => chatTable.renameChannel(conversationId, name))
+        return
+      }
+      await apiFetch(`/groups/${groupId}/channels/${conversationId}`, groupChannelListSchema, { method: 'PATCH', body: { name } })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.groups.channels(groupId) })
+      qc.invalidateQueries({ queryKey: qk.chat.conversations })
+    },
+  })
+}
+
+export function useDeleteChannel(groupId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (conversationId: number): Promise<void> => {
+      if (USE_MOCKS) {
+        await mockWrite(() => chatTable.deleteChannel(conversationId))
+        return
+      }
+      await apiFetch(`/groups/${groupId}/channels/${conversationId}`, groupChannelListSchema, { method: 'DELETE' })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.groups.channels(groupId) })
+      qc.invalidateQueries({ queryKey: qk.chat.conversations })
+    },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Löschen fehlgeschlagen.'),
+  })
 }
