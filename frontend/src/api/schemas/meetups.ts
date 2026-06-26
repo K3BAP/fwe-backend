@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { experienceLevelSchema } from './common'
+import { experienceLevelSchema, publicUserCardSchema } from './common'
 
 /** Flugtreffen-DTOs (API.md §5, DATA_MODEL §4). */
 
@@ -15,6 +15,8 @@ export const spotSchema = z.object({
   lng: z.number(),
 })
 export type Spot = z.infer<typeof spotSchema>
+
+export const spotListSchema = z.array(spotSchema)
 
 /** Listen-Projektion eines Flugtreffens (Karte/Tabelle/Cards). */
 export const meetupListItemSchema = z.object({
@@ -34,3 +36,25 @@ export const meetupListItemSchema = z.object({
 export type MeetupListItem = z.infer<typeof meetupListItemSchema>
 
 export const meetupListSchema = z.array(meetupListItemSchema)
+
+/** Detail-Projektion: Listenfelder + Beschreibung, Teilnehmer und nutzerbezogene Flags. */
+export const meetupDetailSchema = meetupListItemSchema.extend({
+  spot_id: z.number(),
+  creator_user_id: z.number(),
+  description: z.string().nullable(),
+  participants: z.array(publicUserCardSchema),
+  is_participant: z.boolean(),
+  can_edit: z.boolean(),
+})
+export type MeetupDetail = z.infer<typeof meetupDetailSchema>
+
+/** Eingabe für „Treffen erstellen/bearbeiten" (API.md §5.3). */
+export const meetupCreateInputSchema = z.object({
+  title: z.string().min(3, 'Mindestens 3 Zeichen.').max(150, 'Höchstens 150 Zeichen.'),
+  spot_id: z.number({ error: 'Bitte einen Startplatz wählen.' }).int().positive('Bitte einen Startplatz wählen.'),
+  starts_at: z.string().min(1, 'Bitte Datum und Uhrzeit angeben.'),
+  experience_level: experienceLevelSchema,
+  max_participants: z.number().int().min(1, 'Mindestens 1 Platz.').nullable(),
+  description: z.string().max(5000, 'Höchstens 5000 Zeichen.').nullable(),
+})
+export type MeetupCreateInput = z.infer<typeof meetupCreateInputSchema>

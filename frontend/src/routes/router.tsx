@@ -3,10 +3,10 @@ import { RequireAuth, RequireGuest } from '@/components/auth/guards'
 import { AppShell } from '@/components/layout/AppShell'
 import { Dashboard } from './Dashboard'
 import { Einstellungen } from './Einstellungen'
-import { Flugtreffen } from './Flugtreffen'
 import { Landing } from './Landing'
-import { Lazy, StyleguideLazy } from './lazy'
+import { FlugtreffenLazy, Lazy, MeetupDetailLazy, StyleguideLazy } from './lazy'
 import { Login } from './Login'
+import { MeetupErstellen } from './MeetupErstellen'
 import { Placeholder } from './Placeholder'
 import { Register } from './Register'
 
@@ -30,7 +30,9 @@ export const router = createBrowserRouter(
           element: <AppShell />,
           children: [
             { index: true, element: <Dashboard /> },
-            { path: 'flugtreffen', element: <Flugtreffen /> },
+            { path: 'flugtreffen', element: <Lazy><FlugtreffenLazy /></Lazy> },
+            { path: 'flugtreffen/neu', element: <MeetupErstellen /> },
+            { path: 'flugtreffen/:id', element: <Lazy><MeetupDetailLazy /></Lazy> },
             { path: 'gruppen', element: <Placeholder title="Gruppen" /> },
             { path: 'chat', element: <Placeholder title="Chat" /> },
             { path: 'einstellungen', element: <Einstellungen /> },
