@@ -18,6 +18,14 @@ export const publicUserCardSchema = z.object({
 })
 export type PublicUserCard = z.infer<typeof publicUserCardSchema>
 
+/** Aggregierte Emoji-Reaktion (Feed-Posts & Chat-Nachrichten, ADR-009). `me` = hat selbst reagiert. */
+export const reactionSchema = z.object({
+  emoji: z.string(),
+  count: z.number(),
+  me: z.boolean(),
+})
+export type Reaction = z.infer<typeof reactionSchema>
+
 /** Standard-Pagination-Block der Listen-Endpunkte. */
 export const paginationSchema = z.object({
   page: z.number(),
