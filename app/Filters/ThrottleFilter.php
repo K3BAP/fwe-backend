@@ -21,7 +21,8 @@ class ThrottleFilter implements FilterInterface
         $bucket   = $arguments[0] ?? 'global';
         $capacity = isset($arguments[1]) ? (int) $arguments[1] : self::DEFAULT_CAPACITY;
 
-        $key = 'throttle:' . $bucket . ':' . $request->getIPAddress();
+        // Cache-sicherer Schlüssel: IPv6 (`::1`) und Doppelpunkte sind reservierte Cache-Zeichen.
+        $key = 'throttle_' . preg_replace('/[^a-z0-9]/i', '_', $bucket . '_' . $request->getIPAddress());
 
         if (Services::throttler()->check($key, $capacity, MINUTE) === false) {
             return service('response')

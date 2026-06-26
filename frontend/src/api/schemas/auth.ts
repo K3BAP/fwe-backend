@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ownProfileSchema } from './profiles'
 
 /** Auth-Ein-/Ausgaben (API.md §2). Eingabe-Schemas treiben zugleich die RHF-Validierung. */
 
@@ -18,10 +19,30 @@ export const registerInputSchema = z.object({
 })
 export type RegisterInput = z.infer<typeof registerInputSchema>
 
-/** UI-Session-Spiegel (entspricht dem authStore-SessionUser). In M2 aus OwnProfile gemappt. */
+/** UI-Session-Spiegel (entspricht dem authStore-SessionUser). In M2 aus `PublicUser` gemappt. */
 export const sessionUserSchema = z.object({
   id: z.number(),
   displayName: z.string(),
   avatarUrl: z.string().nullable(),
 })
 export type SessionUserDto = z.infer<typeof sessionUserSchema>
+
+/** Wire-DTO „öffentlicher Nutzer" (das `user`-Objekt in Auth-Antworten, API.md §2). */
+export const publicUserSchema = z.object({
+  id: z.number(),
+  display_name: z.string(),
+  handle: z.string().nullable(),
+  avatar_path: z.string().nullable(),
+})
+export type PublicUser = z.infer<typeof publicUserSchema>
+
+/**
+ * Antwort von `GET /auth/me` (mit `unread`) sowie `POST /auth/login|register` (ohne `unread`).
+ * Wird im Auth-Hook auf den schlanken `SessionUser` des Stores reduziert.
+ */
+export const authSessionSchema = z.object({
+  user: publicUserSchema,
+  profile: ownProfileSchema,
+  unread: z.object({ messages: z.number(), notifications: z.number() }).optional(),
+})
+export type AuthSession = z.infer<typeof authSessionSchema>

@@ -4,7 +4,7 @@
  * Schalter wird in seinem Milestone von `true` (Mock) auf `false` (echtes Backend) gekippt.
  */
 export const USE_MOCKS = {
-  auth: true, // M2 Slice 2 kippt auf false
+  auth: false, // M2 Slice 2 — echtes Shield-Backend
   profile: true, // M2 Slice 3 kippt auf false
   meetups: true, // M3
   groups: true, // M4

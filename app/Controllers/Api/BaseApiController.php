@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Api;
 
+use App\Exceptions\ApiException;
 use CodeIgniter\Controller;
 use CodeIgniter\HTTP\ResponseInterface;
 
@@ -27,10 +28,20 @@ abstract class BaseApiController extends Controller
         return $this->response->setStatusCode($status)->setJSON($body);
     }
 
-    /** `204 No Content` (leave, markRead, delete, logout). */
+    /**
+     * Erfolg ohne Nutzlast (leave, markRead, delete, logout). Produktionskonform `204 No Content`
+     * (API.md). **Ausnahme nur unter PHPs eingebautem Dev-Server** (`php spark serve`): der sendet hinter
+     * den 204-Headern einen fehlerhaften Frame, den Nodes strikter HTTP-Parser im Vite-Proxy mit `502`
+     * ablehnt („Data after Connection: close"). Dort weichen wir auf `200 { data: null }` aus — semantisch
+     * identisch, vom Frontend (`apiFetch`) gleich behandelt. Apache in Prod liefert das echte 204.
+     */
     protected function respondNoContent(): ResponseInterface
     {
-        return $this->response->setStatusCode(204);
+        if (str_contains($_SERVER['SERVER_SOFTWARE'] ?? '', 'Development Server')) {
+            return $this->response->setStatusCode(200)->setJSON(['data' => null]);
+        }
+
+        return $this->response->setStatusCode(204)->setBody('')->setHeader('Content-Length', '0');
     }
 
     /**
@@ -46,6 +57,16 @@ abstract class BaseApiController extends Controller
         }
 
         return $this->response->setStatusCode($status)->setJSON(['error' => $error]);
+    }
+
+    /**
+     * Übersetzt einen fachlichen {@see ApiException} direkt in den Fehler-Envelope. So bleiben
+     * Fehlerpfade auch im FeatureTest-Harness als echte HTTP-Antwort prüfbar (der globale
+     * Exceptions-Handler wird dort umgangen).
+     */
+    protected function fromException(ApiException $e): ResponseInterface
+    {
+        return $this->respondError($e->getErrorCode(), $e->getMessage(), $e->getStatusCode(), $e->getFields());
     }
 
     /** Vom `auth`-Filter garantiert gesetzte Shield-User-ID. */

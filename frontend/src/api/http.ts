@@ -38,6 +38,7 @@ export async function apiFetch<T>(
   path: string,
   schema: z.ZodType<T>,
   opts: ApiFetchOptions = {},
+  retryOnCsrf = true,
 ): Promise<T> {
   const { method = 'GET', body, query } = opts
   const url = new URL(`${API_BASE}${path}`, window.location.origin)
@@ -64,7 +65,15 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const err = json?.error ?? {}
+    // Das CSRF-Token rotiert serverseitig nach Login/Logout (Shield-Session-Regeneration). Einmal
+    // frisch holen und den Write wiederholen, statt den Nutzer mit „Token ungültig" zu behelligen.
+    if (res.status === 403 && err.code === 'csrf_invalid' && method !== 'GET' && retryOnCsrf) {
+      csrfToken = null
+      return apiFetch(path, schema, opts, false)
+    }
     throw new ApiError(err.code ?? 'unknown', err.message ?? 'Unbekannter Fehler.', res.status, err.fields)
   }
-  return schema.parse(json?.data)
+  // Erfolg ohne Nutzlast: `204` (Prod) oder `200 { data: null }` (Dev-Server-Fallback) → void.
+  if (json?.data == null) return undefined as T
+  return schema.parse(json.data)
 }

@@ -4,18 +4,29 @@ import { USE_MOCKS } from '@/config'
 import { sessionMock } from '@/mocks/session'
 import { mockRead, mockWrite } from '@/mocks/runtime'
 import { useAuthStore, type SessionUser } from '@/stores/authStore'
-import { apiFetch } from './http'
+import { ApiError, apiFetch } from './http'
 import { qk } from './queryKeys'
-import { sessionUserSchema, type LoginInput, type RegisterInput } from './schemas'
+import { authSessionSchema, type AuthSession, type LoginInput, type RegisterInput } from './schemas'
 
 /**
- * Auth-Naht (ADR-016): in M1 gegen den Mock-Session-Store, in M2 (Auth verkabeln) auf echte
- * Shield-Endpunkte umgestellt. Der authStore spiegelt das `['me']`-Query.
+ * Auth-Naht (ADR-016): in M1 gegen den Mock-Session-Store, ab M2 (Auth verkabelt) auf echte
+ * Shield-Endpunkte. Das Backend liefert `{ user, profile, unread? }` (API.md §2); hier wird das auf den
+ * schlanken `SessionUser` des Stores reduziert, damit Komponenten unverändert bleiben. Der authStore
+ * spiegelt das `['me']`-Query.
  */
+function toSessionUser(s: AuthSession): SessionUser {
+  return { id: s.user.id, displayName: s.user.display_name, avatarUrl: s.user.avatar_path }
+}
+
 async function fetchMe(): Promise<SessionUser | null> {
   if (USE_MOCKS.auth) return mockRead(() => sessionMock.me())
-  // M2: GET /auth/me (OwnProfile) → SessionUser-Mapping an dieser Stelle.
-  return apiFetch('/auth/me', sessionUserSchema)
+  try {
+    return toSessionUser(await apiFetch('/auth/me', authSessionSchema))
+  } catch (e) {
+    // Keine/abgelaufene Session → Gast (kein Fehlerzustand, sondern „nicht eingeloggt").
+    if (e instanceof ApiError && e.status === 401) return null
+    throw e
+  }
 }
 
 /** Lädt die Session und spiegelt sie in den authStore (einmal beim App-Start, siehe App.tsx). */
@@ -34,7 +45,7 @@ export function useLogin() {
   return useMutation({
     mutationFn: async (input: LoginInput): Promise<SessionUser> => {
       if (USE_MOCKS.auth) return mockWrite(() => sessionMock.login())
-      return apiFetch('/auth/login', sessionUserSchema, { method: 'POST', body: input })
+      return toSessionUser(await apiFetch('/auth/login', authSessionSchema, { method: 'POST', body: input }))
     },
     onSuccess: (user) => {
       setFromMe(user)
@@ -49,7 +60,7 @@ export function useRegister() {
   return useMutation({
     mutationFn: async (input: RegisterInput): Promise<SessionUser> => {
       if (USE_MOCKS.auth) return mockWrite(() => sessionMock.login())
-      return apiFetch('/auth/register', sessionUserSchema, { method: 'POST', body: input })
+      return toSessionUser(await apiFetch('/auth/register', authSessionSchema, { method: 'POST', body: input }))
     },
     onSuccess: (user) => {
       setFromMe(user)
@@ -64,7 +75,7 @@ export function useLogout() {
   return useMutation({
     mutationFn: async (): Promise<void> => {
       if (USE_MOCKS.auth) return mockWrite(() => sessionMock.logout())
-      await apiFetch('/auth/logout', sessionUserSchema, { method: 'POST' })
+      await apiFetch('/auth/logout', authSessionSchema, { method: 'POST' })
     },
     onSuccess: () => {
       clear()
