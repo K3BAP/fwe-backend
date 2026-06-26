@@ -13,7 +13,7 @@ import { sessionUserSchema, type LoginInput, type RegisterInput } from './schema
  * Shield-Endpunkte umgestellt. Der authStore spiegelt das `['me']`-Query.
  */
 async function fetchMe(): Promise<SessionUser | null> {
-  if (USE_MOCKS) return mockRead(() => sessionMock.me())
+  if (USE_MOCKS.auth) return mockRead(() => sessionMock.me())
   // M2: GET /auth/me (OwnProfile) → SessionUser-Mapping an dieser Stelle.
   return apiFetch('/auth/me', sessionUserSchema)
 }
@@ -33,7 +33,7 @@ export function useLogin() {
   const setFromMe = useAuthStore((s) => s.setFromMe)
   return useMutation({
     mutationFn: async (input: LoginInput): Promise<SessionUser> => {
-      if (USE_MOCKS) return mockWrite(() => sessionMock.login())
+      if (USE_MOCKS.auth) return mockWrite(() => sessionMock.login())
       return apiFetch('/auth/login', sessionUserSchema, { method: 'POST', body: input })
     },
     onSuccess: (user) => {
@@ -48,7 +48,7 @@ export function useRegister() {
   const setFromMe = useAuthStore((s) => s.setFromMe)
   return useMutation({
     mutationFn: async (input: RegisterInput): Promise<SessionUser> => {
-      if (USE_MOCKS) return mockWrite(() => sessionMock.login())
+      if (USE_MOCKS.auth) return mockWrite(() => sessionMock.login())
       return apiFetch('/auth/register', sessionUserSchema, { method: 'POST', body: input })
     },
     onSuccess: (user) => {
@@ -63,7 +63,7 @@ export function useLogout() {
   const clear = useAuthStore((s) => s.clear)
   return useMutation({
     mutationFn: async (): Promise<void> => {
-      if (USE_MOCKS) return mockWrite(() => sessionMock.logout())
+      if (USE_MOCKS.auth) return mockWrite(() => sessionMock.logout())
       await apiFetch('/auth/logout', sessionUserSchema, { method: 'POST' })
     },
     onSuccess: () => {

@@ -11,7 +11,7 @@ import { profileSchema, type Profile, type ProfileEditInput } from './schemas'
  * Profil-Naht (ADR-016): in M1 aus dem Mock-Store, ab M2 (Auth/Profile verkabeln) auf `apiFetch`.
  */
 async function fetchProfile(userId: number): Promise<Profile> {
-  if (USE_MOCKS) return mockRead(() => profilesTable.get(userId))
+  if (USE_MOCKS.profile) return mockRead(() => profilesTable.get(userId))
   return apiFetch(`/users/${userId}/profile`, profileSchema)
 }
 
@@ -24,7 +24,7 @@ export function useUpdateProfile() {
   const setFromMe = useAuthStore((s) => s.setFromMe)
   return useMutation({
     mutationFn: (input: ProfileEditInput): Promise<Profile> =>
-      USE_MOCKS ? mockWrite(() => profilesTable.updateSelf(input)) : apiFetch('/me/profile', profileSchema, { method: 'PATCH', body: input }),
+      USE_MOCKS.profile ? mockWrite(() => profilesTable.updateSelf(input)) : apiFetch('/me/profile', profileSchema, { method: 'PATCH', body: input }),
     onSuccess: (profile) => {
       qc.setQueryData(qk.profiles(profile.user_id), profile)
       // authStore spiegelt Name/Avatar (TopBar, eigene Nachrichten).

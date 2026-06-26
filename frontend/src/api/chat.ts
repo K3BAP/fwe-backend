@@ -37,15 +37,15 @@ function toggleReactionList(reactions: Reaction[], emoji: string): Reaction[] {
 }
 
 async function fetchConversations(): Promise<ConversationListItem[]> {
-  if (USE_MOCKS) return mockRead(() => chatTable.list(), { emptyValue: [] })
+  if (USE_MOCKS.chat) return mockRead(() => chatTable.list(), { emptyValue: [] })
   return apiFetch('/conversations', conversationListSchema)
 }
 async function fetchConversation(id: number): Promise<ConversationDetail> {
-  if (USE_MOCKS) return mockRead(() => chatTable.detail(id))
+  if (USE_MOCKS.chat) return mockRead(() => chatTable.detail(id))
   return apiFetch(`/conversations/${id}`, conversationDetailSchema)
 }
 async function fetchMessages(id: number): Promise<Message[]> {
-  if (USE_MOCKS) return mockRead(() => chatTable.messages(id), { emptyValue: [] })
+  if (USE_MOCKS.chat) return mockRead(() => chatTable.messages(id), { emptyValue: [] })
   return apiFetch(`/conversations/${id}/messages`, messageListSchema)
 }
 
@@ -62,7 +62,7 @@ export function useMessages(id: number) {
 export function useChatUnread() {
   return useQuery({
     queryKey: qk.chat.unread,
-    queryFn: async () => (USE_MOCKS ? mockRead(() => chatTable.unreadTotal()) : apiFetch('/conversations/unread-count', z.number())),
+    queryFn: async () => (USE_MOCKS.chat ? mockRead(() => chatTable.unreadTotal()) : apiFetch('/conversations/unread-count', z.number())),
   })
 }
 
@@ -75,7 +75,7 @@ export function useSendMessage(conversationId: number) {
   const key = qk.chat.messages(conversationId)
   return useMutation({
     mutationFn: ({ body, replyTo }: { body: string; replyTo?: Message['reply_to'] }): Promise<Message> =>
-      USE_MOCKS
+      USE_MOCKS.chat
         ? mockWrite(() => chatTable.send(conversationId, body, replyTo?.id ?? null))
         : apiFetch(`/conversations/${conversationId}/messages`, messageSchema, { method: 'POST', body: { body, reply_to_id: replyTo?.id ?? null } }),
     onMutate: async ({ body, replyTo }) => {
@@ -109,7 +109,7 @@ export function useReactToMessage(conversationId: number) {
   const key = qk.chat.messages(conversationId)
   return useMutation({
     mutationFn: ({ messageId, emoji }: { messageId: number; emoji: string }): Promise<Message> =>
-      USE_MOCKS
+      USE_MOCKS.chat
         ? mockWrite(() => chatTable.react(conversationId, messageId, emoji))
         : apiFetch(`/conversations/${conversationId}/messages/${messageId}/reactions`, messageSchema, { method: 'POST', body: { emoji } }),
     onMutate: async ({ messageId, emoji }) => {
@@ -129,7 +129,7 @@ export function useEditMessage(conversationId: number) {
   const key = qk.chat.messages(conversationId)
   return useMutation({
     mutationFn: ({ messageId, body }: { messageId: number; body: string }): Promise<Message> =>
-      USE_MOCKS
+      USE_MOCKS.chat
         ? mockWrite(() => chatTable.editMessage(conversationId, messageId, body))
         : apiFetch(`/conversations/${conversationId}/messages/${messageId}`, messageSchema, { method: 'PATCH', body: { body } }),
     onSuccess: (real) => qc.setQueryData<Message[]>(key, (old) => old?.map((m) => (m.id === real.id ? real : m))),
@@ -142,7 +142,7 @@ export function useDeleteMessage(conversationId: number) {
   const key = qk.chat.messages(conversationId)
   return useMutation({
     mutationFn: (messageId: number): Promise<Message> =>
-      USE_MOCKS
+      USE_MOCKS.chat
         ? mockWrite(() => chatTable.deleteMessage(conversationId, messageId))
         : apiFetch(`/conversations/${conversationId}/messages/${messageId}`, messageSchema, { method: 'DELETE' }),
     onSuccess: (real) => qc.setQueryData<Message[]>(key, (old) => old?.map((m) => (m.id === real.id ? real : m))),
@@ -153,7 +153,7 @@ export function useMarkRead() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (conversationId: number): Promise<void> => {
-      if (USE_MOCKS) {
+      if (USE_MOCKS.chat) {
         await mockWrite(() => chatTable.markRead(conversationId))
         return
       }
@@ -171,7 +171,7 @@ export function useOpenDm() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (userId: number): Promise<number> => {
-      if (USE_MOCKS) return mockWrite(() => chatTable.findOrCreateDm(userId))
+      if (USE_MOCKS.chat) return mockWrite(() => chatTable.findOrCreateDm(userId))
       const res = await apiFetch('/conversations/direct', z.object({ id: z.number() }), { method: 'POST', body: { user_id: userId } })
       return res.id
     },

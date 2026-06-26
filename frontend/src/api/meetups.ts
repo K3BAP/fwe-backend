@@ -20,12 +20,12 @@ import {
  * nur diese Funktionen ändern sich, Hooks/Komponenten bleiben gleich.
  */
 async function fetchMeetups(): Promise<MeetupListItem[]> {
-  if (USE_MOCKS) return mockRead(() => meetupsTable.list(), { emptyValue: [] })
+  if (USE_MOCKS.meetups) return mockRead(() => meetupsTable.list(), { emptyValue: [] })
   return apiFetch('/meetups', meetupListSchema)
 }
 
 async function fetchMeetup(id: number): Promise<MeetupDetail> {
-  if (USE_MOCKS) return mockRead(() => meetupsTable.detail(id))
+  if (USE_MOCKS.meetups) return mockRead(() => meetupsTable.detail(id))
   return apiFetch(`/meetups/${id}`, meetupDetailSchema)
 }
 
@@ -65,7 +65,7 @@ function applyParticipation(d: MeetupDetail, me: PublicUserCard, joining: boolea
 }
 
 async function mutateParticipation(id: number, joining: boolean, user: PublicUserCard): Promise<MeetupDetail> {
-  if (USE_MOCKS) return mockWrite(() => (joining ? meetupsTable.join(id, user) : meetupsTable.leave(id, user.id)))
+  if (USE_MOCKS.meetups) return mockWrite(() => (joining ? meetupsTable.join(id, user) : meetupsTable.leave(id, user.id)))
   return apiFetch(`/meetups/${id}/participants`, meetupDetailSchema, { method: joining ? 'POST' : 'DELETE' })
 }
 
@@ -100,7 +100,7 @@ export function useCreateMeetup() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (input: MeetupCreateInput): Promise<MeetupDetail> => {
-      if (USE_MOCKS) return mockWrite(() => meetupsTable.create(input))
+      if (USE_MOCKS.meetups) return mockWrite(() => meetupsTable.create(input))
       return apiFetch('/meetups', meetupDetailSchema, { method: 'POST', body: input })
     },
     onSuccess: (detail) => {
@@ -114,7 +114,7 @@ export function useUpdateMeetup(id: number) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (input: MeetupCreateInput): Promise<MeetupDetail> =>
-      USE_MOCKS ? mockWrite(() => meetupsTable.update(id, input)) : apiFetch(`/meetups/${id}`, meetupDetailSchema, { method: 'PATCH', body: input }),
+      USE_MOCKS.meetups ? mockWrite(() => meetupsTable.update(id, input)) : apiFetch(`/meetups/${id}`, meetupDetailSchema, { method: 'PATCH', body: input }),
     onSuccess: (detail) => {
       qc.setQueryData(qk.meetups.detail(detail.id), detail)
       qc.invalidateQueries({ queryKey: [...qk.meetups.all, 'list'] })
@@ -126,7 +126,7 @@ export function useCancelMeetup() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: number): Promise<MeetupDetail> =>
-      USE_MOCKS ? mockWrite(() => meetupsTable.cancel(id)) : apiFetch(`/meetups/${id}`, meetupDetailSchema, { method: 'PATCH', body: { status: 'cancelled' } }),
+      USE_MOCKS.meetups ? mockWrite(() => meetupsTable.cancel(id)) : apiFetch(`/meetups/${id}`, meetupDetailSchema, { method: 'PATCH', body: { status: 'cancelled' } }),
     onSuccess: (detail) => {
       qc.setQueryData(qk.meetups.detail(detail.id), detail)
       qc.invalidateQueries({ queryKey: [...qk.meetups.all, 'list'] })
@@ -139,7 +139,7 @@ export function useDeleteMeetup() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (id: number): Promise<void> => {
-      if (USE_MOCKS) {
+      if (USE_MOCKS.meetups) {
         await mockWrite(() => meetupsTable.remove(id))
         return
       }
@@ -153,7 +153,7 @@ export function useRemoveParticipant(id: number) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (userId: number): Promise<MeetupDetail> =>
-      USE_MOCKS ? mockWrite(() => meetupsTable.removeParticipant(id, userId)) : apiFetch(`/meetups/${id}/participants/${userId}`, meetupDetailSchema, { method: 'DELETE' }),
+      USE_MOCKS.meetups ? mockWrite(() => meetupsTable.removeParticipant(id, userId)) : apiFetch(`/meetups/${id}/participants/${userId}`, meetupDetailSchema, { method: 'DELETE' }),
     onSuccess: (detail) => {
       qc.setQueryData(qk.meetups.detail(detail.id), detail)
       qc.invalidateQueries({ queryKey: [...qk.meetups.all, 'list'] })

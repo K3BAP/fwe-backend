@@ -11,7 +11,7 @@ import { spotListSchema, type Spot } from './schemas'
  * Spot-Autocomplete; der Filter läuft client-seitig über diese kleine, statische Liste.
  */
 async function fetchSpots(): Promise<Spot[]> {
-  if (USE_MOCKS) return mockRead(() => spotsTable.list(), { emptyValue: [] })
+  if (USE_MOCKS.meetups) return mockRead(() => spotsTable.list(), { emptyValue: [] })
   return apiFetch('/spots', spotListSchema)
 }
 

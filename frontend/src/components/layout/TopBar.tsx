@@ -2,7 +2,7 @@ import { Link, NavLink } from 'react-router-dom'
 import { useChatUnread } from '@/api/chat'
 import { useNotificationUnread } from '@/api/notifications'
 import { Avatar, Logo, Pill } from '@/components/ui'
-import { USE_MOCKS } from '@/config'
+import { ANY_MOCK } from '@/config'
 import { cn } from '@/lib/cn'
 import { useAuthStore } from '@/stores/authStore'
 import { BellIcon, SearchIcon } from './icons'
@@ -21,8 +21,8 @@ export function TopBar() {
         <Link to="/" aria-label="FlightMeet — Startseite">
           <Logo />
         </Link>
-        {/* Demo-Hinweis: UI läuft gegen Mock-Daten (ADR-016). Verschwindet, sobald USE_MOCKS in M2+ fällt. */}
-        {USE_MOCKS && (
+        {/* Demo-Hinweis: solange irgendeine Domäne noch Mock-Daten liefert (ADR-016). Fällt mit der letzten. */}
+        {ANY_MOCK && (
           <Pill tone="warning" dot className="px-2.5 py-1 text-[11px] uppercase tracking-wide">
             Mock-Daten
           </Pill>

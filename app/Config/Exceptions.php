@@ -101,6 +101,13 @@ class Exceptions extends BaseConfig
      */
     public function handler(int $statusCode, Throwable $exception): ExceptionHandlerInterface
     {
+        // FlightMeet (06-backend §3): Fehler unterhalb von `/api/v1` als JSON-Envelope ausliefern,
+        // nie als HTML-Fehlerseite oder Stacktrace. Web-Routen behalten den Default-Handler.
+        $request = service('request');
+        if ($request instanceof \CodeIgniter\HTTP\IncomingRequest && str_starts_with($request->getPath(), 'api/')) {
+            return new \App\Libraries\ApiExceptionHandler($this);
+        }
+
         return new ExceptionHandler($this);
     }
 }

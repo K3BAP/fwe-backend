@@ -11,7 +11,7 @@ import { notificationListSchema, type Notification } from './schemas'
  * Benachrichtigungs-Naht (ADR-016): in M1 aus dem Mock-Store, ab M5 auf echte Endpunkte + Polling.
  */
 async function fetchNotifications(): Promise<Notification[]> {
-  if (USE_MOCKS) return mockRead(() => notificationsTable.list(), { emptyValue: [] })
+  if (USE_MOCKS.notifications) return mockRead(() => notificationsTable.list(), { emptyValue: [] })
   return apiFetch('/notifications', notificationListSchema)
 }
 
@@ -22,7 +22,7 @@ export function useNotifications() {
 export function useNotificationUnread() {
   return useQuery({
     queryKey: qk.notifications.unread,
-    queryFn: async () => (USE_MOCKS ? mockRead(() => notificationsTable.unreadCount()) : apiFetch('/notifications/unread-count', z.number())),
+    queryFn: async () => (USE_MOCKS.notifications ? mockRead(() => notificationsTable.unreadCount()) : apiFetch('/notifications/unread-count', z.number())),
   })
 }
 
@@ -40,12 +40,12 @@ function useNotificationWrite<V>(fn: (vars: V) => Promise<Notification[]>) {
 
 export function useMarkNotificationRead() {
   return useNotificationWrite((id: number) =>
-    USE_MOCKS ? mockWrite(() => notificationsTable.markRead(id)) : apiFetch(`/notifications/${id}/read`, notificationListSchema, { method: 'POST' }),
+    USE_MOCKS.notifications ? mockWrite(() => notificationsTable.markRead(id)) : apiFetch(`/notifications/${id}/read`, notificationListSchema, { method: 'POST' }),
   )
 }
 
 export function useMarkAllNotificationsRead() {
   return useNotificationWrite<void>(() =>
-    USE_MOCKS ? mockWrite(() => notificationsTable.markAllRead()) : apiFetch('/notifications/read-all', notificationListSchema, { method: 'POST' }),
+    USE_MOCKS.notifications ? mockWrite(() => notificationsTable.markAllRead()) : apiFetch('/notifications/read-all', notificationListSchema, { method: 'POST' }),
   )
 }

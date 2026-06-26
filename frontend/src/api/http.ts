@@ -21,8 +21,9 @@ let csrfToken: string | null = null
 async function ensureCsrf(): Promise<string> {
   if (csrfToken) return csrfToken
   const res = await fetch(`${API_BASE}/auth/csrf`, { credentials: 'include' })
-  const json = (await res.json()) as { csrfToken: string }
-  csrfToken = json.csrfToken
+  // Envelope-konform (API.md §2.5): `{ data: { token } }`.
+  const json = (await res.json()) as { data?: { token?: string } }
+  csrfToken = json.data?.token ?? ''
   return csrfToken
 }
 

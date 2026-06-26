@@ -9,7 +9,7 @@ import { publicUserCardSchema, type PublicUserCard } from './schemas'
 
 /** Pilot-Verzeichnis (für @-Suche / gerichtete Einladungen). M1 aus dem Mock-Store, ab M2 `GET /users`. */
 async function fetchUsers(): Promise<PublicUserCard[]> {
-  if (USE_MOCKS) return mockRead(() => usersTable.list(), { emptyValue: [] })
+  if (USE_MOCKS.profile) return mockRead(() => usersTable.list(), { emptyValue: [] })
   return apiFetch('/users', z.array(publicUserCardSchema))
 }
 
