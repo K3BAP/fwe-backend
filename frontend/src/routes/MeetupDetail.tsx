@@ -209,18 +209,20 @@ export function MeetupDetail() {
             />
           </Card>
 
-          <Card className="flex items-center justify-between gap-3 p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid size-10 place-items-center rounded-xl bg-coral-50 text-coral-600">
-                <ChatIcon size={20} />
-              </span>
-              <div>
-                <div className="font-display">Treffen-Chat</div>
-                <div className="text-sm text-base-content/55">Sprich dich mit den Teilnehmenden ab.</div>
+          <Link to={`/chat/${m.conversation_id}`} className="block">
+            <Card className="flex items-center justify-between gap-3 p-5 transition hover:border-primary/40 hover:bg-base-200/40">
+              <div className="flex items-center gap-3">
+                <span className="grid size-10 place-items-center rounded-xl bg-coral-50 text-coral-600">
+                  <ChatIcon size={20} />
+                </span>
+                <div>
+                  <div className="font-display">Treffen-Chat</div>
+                  <div className="text-sm text-base-content/55">Sprich dich mit den Teilnehmenden ab.</div>
+                </div>
               </div>
-            </div>
-            <span className="rounded-full bg-base-200 px-3 py-1 text-xs font-semibold text-base-content/55">Bald</span>
-          </Card>
+              <span className="text-lg text-base-content/40">→</span>
+            </Card>
+          </Link>
         </div>
 
         <aside className="flex flex-col gap-4">

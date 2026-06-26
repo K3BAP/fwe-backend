@@ -7,6 +7,7 @@ import type {
   MeetupStatus,
   PublicUserCard,
 } from '@/api/schemas'
+import { chatTable } from './chat'
 import { sessionMock } from './session'
 import { spotsTable } from './spots'
 import { usersTable } from './users'
@@ -251,6 +252,7 @@ function toDetail(r: MeetupRecord): MeetupDetail {
     ...toListItem(r),
     spot_id: r.spot_id,
     creator_user_id: r.creator_id,
+    conversation_id: chatTable.findOrCreateMeetupConversation(r.id, r.title, r.participant_ids, r.creator_id),
     description: r.description,
     participants: usersTable.resolve(r.participant_ids),
     is_participant: me ? r.participant_ids.includes(me.id) : false,

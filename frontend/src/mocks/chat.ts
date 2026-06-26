@@ -429,6 +429,31 @@ export const chatTable = {
     if (i >= 0) conversations.splice(i, 1)
   },
 
+  /**
+   * Treffen-Chat finden oder anlegen (ADR-005: `conversation` mit `context_type='meetup'`). Spiegelt die
+   * Backend-Garantie „Meetup-Chat wird automatisch erzeugt" (API.md §9.2) — der Mock materialisiert ihn
+   * faul beim ersten Detail-Read. Idempotent (find-or-create), Teilnehmer = Meetup-Teilnehmer.
+   */
+  findOrCreateMeetupConversation: (meetupId: number, title: string, participantIds: number[], creatorId: number): number => {
+    const existing = conversations.find((c) => c.type === 'meetup' && c.context_id === meetupId)
+    if (existing) return existing.id
+    const c: ConversationRecord = {
+      id: nextConvId++,
+      type: 'meetup',
+      title,
+      ...base,
+      context_type: 'meetup',
+      context_id: meetupId,
+      peer_id: null,
+      participant_ids: [...participantIds],
+      creator_user_id: creatorId,
+      unread: 0,
+      messages: [],
+    }
+    conversations.push(c)
+    return c.id
+  },
+
   /** DM mit einem Nutzer finden oder anlegen (Profil → „Direktchat öffnen"). */
   findOrCreateDm: (userId: number): number => {
     const existing = conversations.find((c) => c.type === 'direct' && c.peer_id === userId)

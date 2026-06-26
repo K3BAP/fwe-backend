@@ -41,6 +41,8 @@ export const meetupListSchema = z.array(meetupListItemSchema)
 export const meetupDetailSchema = meetupListItemSchema.extend({
   spot_id: z.number(),
   creator_user_id: z.number(),
+  /** Konversations-ID des automatisch erzeugten Treffen-Chats (ADR-005, context_type='meetup'). */
+  conversation_id: z.number(),
   description: z.string().nullable(),
   participants: z.array(publicUserCardSchema),
   is_participant: z.boolean(),
