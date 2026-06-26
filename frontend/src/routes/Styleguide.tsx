@@ -20,7 +20,7 @@ import {
   UserCard,
   type SegmentOption,
 } from '@/components/ui'
-import type { ExperienceLevel, MeetupStatus } from '@/components/ui'
+import type { ExperienceLevel, MeetupStatus, PillTone } from '@/components/ui'
 import type { PublicUserCard } from '@/api/schemas'
 import { MapShell } from '@/components/map/MapShell'
 import { pinIcon } from '@/components/map/pin'
@@ -42,6 +42,7 @@ function Section({ n, title, sub, children }: { n: string; title: string; sub?: 
 
 const LEVELS: ExperienceLevel[] = ['beginner', 'advanced', 'expert', 'all']
 const STATES: MeetupStatus[] = ['open', 'full', 'cancelled', 'finished']
+const PILL_TONES: PillTone[] = ['primary', 'secondary', 'success', 'warning', 'error', 'neutral']
 
 const VIEW_OPTIONS: SegmentOption<'cards' | 'table' | 'map'>[] = [
   { value: 'cards', label: 'Cards' },
@@ -130,6 +131,15 @@ export function Styleguide() {
               <span className="rounded-full bg-base-200 px-3 py-1.5 text-[13px] font-medium text-base-content/80"># Hike &amp; Fly</span>
               <Pill bg="#FFE1D8" fg="#C7421F">Ersteller</Pill>
             </div>
+          </div>
+          <div>
+            <div className="mb-3 font-display text-sm font-bold">Pill · semantische Tones</div>
+            <div className="flex flex-wrap items-center gap-2.5">
+              {PILL_TONES.map((t) => (
+                <Pill key={t} tone={t} dot>{t}</Pill>
+              ))}
+            </div>
+            <p className="mt-2 text-sm text-base-content/50">DaisyUI-Tokens, theme-adaptiv (z.B. „Mock-Daten“ in der Top-Bar).</p>
           </div>
         </div>
       </Section>

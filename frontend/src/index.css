@@ -135,6 +135,10 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Scrollbar-Rinne dauerhaft reservieren → kein horizontaler Versatz zwischen kurzen/langen Seiten
+       und beim Öffnen von Modals (Scroll-Lock). Bei Overlay-Scrollbars (macOS) 0px, greift also nur,
+       wo die Scrollbar tatsächlich Layout-Breite einnimmt. */
+    scrollbar-gutter: stable;
   }
   body {
     margin: 0;

@@ -4,26 +4,46 @@ import type { ExperienceLevel, MeetupStatus } from '@/api/schemas'
 
 export type { ExperienceLevel, MeetupStatus }
 
-/** Generische Tint-Pille mit optionalem Status-Punkt (Design-System §06). */
+/** Semantische Pillen-Tönung über DaisyUI-Tokens (theme-adaptiv hell+dunkel). */
+export type PillTone = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'neutral'
+
+const TONE_CLASS: Record<PillTone, string> = {
+  primary: 'bg-primary/12 text-primary',
+  secondary: 'bg-secondary/12 text-secondary',
+  success: 'bg-success/15 text-success',
+  warning: 'bg-warning/15 text-warning',
+  error: 'bg-error/15 text-error',
+  neutral: 'bg-base-content/10 text-base-content/70',
+}
+
+/**
+ * Generische Tint-Pille mit optionalem Punkt (Design-System §06). Zwei Modi:
+ * - `tone` → semantische DaisyUI-Tokens (theme-adaptiv) — bevorzugt für Status/Hinweise.
+ * - `bg`/`fg` → feste Identitätsfarben, wenn kein Token passt (z.B. Erfahrungslevel).
+ *
+ * `dot`: Farb-String (eigene Punktfarbe) oder `true` (übernimmt die Text-/Tone-Farbe via `currentColor`).
+ */
 export function Pill({
+  tone,
   bg,
   fg,
   dot,
   className,
   children,
 }: {
-  bg: string
-  fg: string
-  dot?: string
+  tone?: PillTone
+  bg?: string
+  fg?: string
+  dot?: string | boolean
   className?: string
   children: ReactNode
 }) {
   return (
     <span
-      className={cn('inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold', className)}
-      style={{ background: bg, color: fg }}
+      className={cn('inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold', tone && TONE_CLASS[tone], className)}
+      style={tone ? undefined : { background: bg, color: fg }}
     >
-      {dot && <span className="size-1.5 rounded-full" style={{ background: dot }} />}
+      {dot && <span className="size-1.5 rounded-full" style={{ background: typeof dot === 'string' ? dot : 'currentColor' }} />}
       {children}
     </span>
   )
