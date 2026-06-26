@@ -68,7 +68,7 @@ export type Profile = z.infer<typeof profileSchema>
 /** Eingabe für „Profil bearbeiten". `avatar_path` optional (Mock-Object-URL). */
 export const profileEditInputSchema = z.object({
   display_name: z.string().min(2, 'Mindestens 2 Zeichen.').max(80, 'Höchstens 80 Zeichen.'),
-  handle: z.union([z.literal(''), z.string().regex(/^[a-z0-9_]{3,30}$/, 'Nur a–z, 0–9, _ (3–30 Zeichen).')]).optional(),
+  handle: z.string().min(1, 'Bitte einen Benutzernamen angeben.').regex(/^[a-z0-9_]{3,30}$/, 'Nur a–z, 0–9, _ (3–30 Zeichen).'),
   bio: z.string().max(2000, 'Höchstens 2000 Zeichen.'),
   experience_level: z.union([pilotExperienceSchema, z.literal('')]),
   license_class: z.string(),

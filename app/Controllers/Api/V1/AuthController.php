@@ -34,13 +34,13 @@ class AuthController extends BaseApiController
             'email'        => 'required|valid_email|max_length[254]',
             'password'     => 'required|min_length[8]|max_length[255]',
             'display_name' => 'required|min_length[2]|max_length[80]',
-            'handle'       => 'permit_empty|regex_match[/^[a-z0-9_]{3,30}$/]',
+            'handle'       => 'required|regex_match[/^[a-z0-9_]{3,30}$/]',
         ];
         $messages = [
             'email'        => ['required' => 'Bitte eine E-Mail angeben.', 'valid_email' => 'Bitte eine gültige E-Mail angeben.'],
             'password'     => ['required' => 'Bitte ein Passwort angeben.', 'min_length' => 'Mindestens 8 Zeichen.'],
             'display_name' => ['required' => 'Bitte einen Anzeigenamen angeben.', 'min_length' => 'Mindestens 2 Zeichen.', 'max_length' => 'Höchstens 80 Zeichen.'],
-            'handle'       => ['regex_match' => 'Nur a–z, 0–9, _ (3–30 Zeichen).'],
+            'handle'       => ['required' => 'Bitte einen Benutzernamen angeben.', 'regex_match' => 'Nur a–z, 0–9, _ (3–30 Zeichen).'],
         ];
 
         $input = $this->request->getJSON(true) ?? [];

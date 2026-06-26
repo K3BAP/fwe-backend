@@ -13,9 +13,11 @@ export const registerInputSchema = z.object({
   display_name: z.string().min(2, 'Mindestens 2 Zeichen.').max(80, 'Höchstens 80 Zeichen.'),
   email: z.email('Bitte eine gültige E-Mail angeben.'),
   password: z.string().min(8, 'Mindestens 8 Zeichen.'),
+  // Pflicht: Nutzer werden über den Benutzernamen gefunden (Verzeichnis/@-Suche).
   handle: z
-    .union([z.literal(''), z.string().regex(/^[a-z0-9_]{3,30}$/, 'Nur a–z, 0–9, _ (3–30 Zeichen).')])
-    .optional(),
+    .string()
+    .min(1, 'Bitte einen Benutzernamen angeben.')
+    .regex(/^[a-z0-9_]{3,30}$/, 'Nur a–z, 0–9, _ (3–30 Zeichen).'),
 })
 export type RegisterInput = z.infer<typeof registerInputSchema>
 

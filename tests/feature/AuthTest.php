@@ -41,7 +41,11 @@ final class AuthTest extends CIUnitTestCase
         $users->save($user);
         $user = $users->findById($users->getInsertID());
         $users->addToDefaultGroup($user);
-        model(ProfileModel::class)->insert(['user_id' => $user->id, 'display_name' => $name, 'handle' => $handle]);
+        model(ProfileModel::class)->insert([
+            'user_id'      => $user->id,
+            'display_name' => $name,
+            'handle'       => $handle ?? 'u' . substr(md5($email), 0, 12), // handle ist NOT NULL + UNIQUE
+        ]);
 
         return $user;
     }
@@ -72,6 +76,7 @@ final class AuthTest extends CIUnitTestCase
             'email'        => 'lena@flightmeet.test',
             'password'     => 'passwort123',
             'display_name' => 'Klon',
+            'handle'       => 'klon_handle',
         ]);
 
         $result->assertStatus(409);
@@ -91,6 +96,33 @@ final class AuthTest extends CIUnitTestCase
         $this->assertSame('validation_error', $body['error']['code']);
         $this->assertArrayHasKey('email', $body['error']['fields']);
         $this->assertArrayHasKey('password', $body['error']['fields']);
+    }
+
+    public function testRegisterRequiresHandle(): void
+    {
+        $result = $this->withBodyFormat('json')->post('api/v1/auth/register', [
+            'email'        => 'neu@flightmeet.test',
+            'password'     => 'passwort123',
+            'display_name' => 'Ohne Handle',
+        ]);
+
+        $result->assertStatus(422);
+        $this->assertArrayHasKey('handle', json_decode($result->getJSON(), true)['error']['fields']);
+    }
+
+    public function testRegisterRejectsDuplicateHandle(): void
+    {
+        $this->createPilot('a@flightmeet.test', 'passwort123', 'A', 'taken_handle');
+
+        $result = $this->withBodyFormat('json')->post('api/v1/auth/register', [
+            'email'        => 'neu@flightmeet.test',
+            'password'     => 'passwort123',
+            'display_name' => 'Neu',
+            'handle'       => 'taken_handle',
+        ]);
+
+        $result->assertStatus(409);
+        $this->assertSame('handle_taken', json_decode($result->getJSON(), true)['error']['code']);
     }
 
     public function testLoginSucceedsWithValidCredentials(): void

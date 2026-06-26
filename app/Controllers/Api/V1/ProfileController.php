@@ -68,7 +68,6 @@ class ProfileController extends BaseApiController
         }
 
         $data = [
-            'handle'           => $handle,
             'bio_markdown'     => $this->emptyToNull($input['bio_markdown'] ?? null),
             'experience_level' => $this->emptyToNull($input['experience_level'] ?? null),
             'license_class'    => $this->emptyToNull($input['license_class'] ?? null),
@@ -76,9 +75,12 @@ class ProfileController extends BaseApiController
             'home_region'      => $this->emptyToNull($input['home_region'] ?? null),
             'flight_hours'     => $this->emptyToNull($input['flight_hours'] ?? null) === null ? null : (int) $input['flight_hours'],
         ];
-        // display_name ist NOT NULL — nur überschreiben, wenn mitgeschickt.
+        // display_name und handle sind NOT NULL — nur überschreiben, wenn mitgeschickt, nie leeren.
         if (($input['display_name'] ?? '') !== '') {
             $data['display_name'] = $input['display_name'];
+        }
+        if ($handle !== null) {
+            $data['handle'] = $handle;
         }
 
         $profiles->update($myId, $data);

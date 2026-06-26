@@ -44,6 +44,7 @@ final class ProfileTest extends CIUnitTestCase
         model(ProfileModel::class)->insert(array_merge([
             'user_id'      => $user->id,
             'display_name' => 'Test Pilot',
+            'handle'       => 'u' . substr(md5($email), 0, 12), // handle ist NOT NULL + UNIQUE
         ], $profile));
 
         return $user;

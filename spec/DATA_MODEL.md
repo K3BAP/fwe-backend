@@ -122,7 +122,7 @@ E-Mail-Verifikation und Passwort-Reset sind **nicht im MVP** (ADR-008), das Sche
 |---|---|---|---|---|
 | `user_id` | `userref` | NOT NULL | — | **PK = FK** → `users.id` (echtes 1:1) |
 | `display_name` | `VARCHAR(80)` | NOT NULL | — | Anzeigename; einziges Pflichtfeld beim Setup |
-| `handle` | `VARCHAR(40)` | NULL | NULL | eindeutiger @-Name; UNIQUE |
+| `handle` | `VARCHAR(40)` | NOT NULL | — | eindeutiger @-Name; UNIQUE; **Pflicht** (Nutzer werden darüber gefunden) |
 | `bio_markdown` | `TEXT` | NULL | NULL | **Rohtext** (eingeschränktes Markdown, ADR-011); Sanitizing beim Rendern |
 | `avatar_path` | `VARCHAR(255)` | NULL | NULL | relativer Pfad in `public/media/uploads/avatars/` |
 | `experience_level` | `ENUM('beginner','advanced','expert')` | NULL | NULL | gleiche Skala wie meetups (siehe §3.1.1) |
@@ -138,7 +138,7 @@ E-Mail-Verifikation und Passwort-Reset sind **nicht im MVP** (ADR-008), das Sche
 - **PK:** `user_id`
 - **FK:** `user_id` → `users.id` **ON DELETE CASCADE** (Profil stirbt mit User; User-„Löschen" ist aber primär Soft-Delete via Shield-`users.deleted_at`/`status`).
 - **FK:** `home_spot_id` → `spots.id` **ON DELETE SET NULL**.
-- **UNIQUE:** `handle` (`uq_profiles_handle`) — NULL erlaubt mehrfach (MySQL behandelt NULL in UNIQUE als nicht-kollidierend).
+- **UNIQUE:** `handle` (`uq_profiles_handle`) — `NOT NULL` & Pflicht bei der Registrierung (Auffindbarkeit via @-Name/Verzeichnis); kein doppelter Handle.
 - **INDEX:** `idx_profiles_experience (experience_level)` (für `/users`-Filter/Matching).
 - **Sichtbarkeit (ADR-012/C2):** Die **öffentliche** Profilkarte liefert nur `display_name`, `handle`, `avatar_path`, `bio_markdown`, `experience_level`. `home_region`, `glider`, `license_class`, `flight_hours`, `home_spot_id` gehen **nur an eingeloggte** Nutzer (serverseitig gefiltert).
 

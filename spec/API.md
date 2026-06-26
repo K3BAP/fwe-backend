@@ -101,11 +101,11 @@ Legt Shield-`users`-Eintrag (Group `user`) + zugehöriges leeres `profiles` an, 
 | `email` | string | `z.string().email()`, UNIQUE |
 | `password` | string | `min(8)` (Shield-Policy), nicht im Response |
 | `display_name` | string | `min(2).max(80)`, Pflicht (ADR-010: minimales Pflichtfeld) |
-| `handle` | string\|null | optional, `^[a-z0-9_]{3,30}$`, UNIQUE |
+| `handle` | string | **Pflicht**, `^[a-z0-9_]{3,30}$`, UNIQUE (Nutzer werden darüber gefunden) |
 
 **Response 201** → `{ data: { user: PublicUser, profile: OwnProfile } }` (Session via Cookie aktiv).
 
-**Fehler:** `422 validation_error` (`email`/`password`/`display_name`); `409 email_taken`; `409 handle_taken`.
+**Fehler:** `422 validation_error` (`email`/`password`/`display_name`/`handle`); `409 email_taken`; `409 handle_taken`.
 
 ### 2.2 POST `/auth/login`
 Validiert Credentials über Shield, startet Session-Cookie. **Throttle** gegen Brute-Force.

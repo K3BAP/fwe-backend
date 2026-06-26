@@ -18,7 +18,7 @@ class CreateProfiles extends Migration
         $this->forge->addField([
             'user_id'           => ['type' => 'bigint', 'unsigned' => true],
             'display_name'      => ['type' => 'varchar', 'constraint' => 80],
-            'handle'            => ['type' => 'varchar', 'constraint' => 40, 'null' => true],
+            'handle'            => ['type' => 'varchar', 'constraint' => 40], // NOT NULL: Pflicht (Auffindbarkeit), UNIQUE
             'bio_markdown'      => ['type' => 'text', 'null' => true],
             'avatar_path'       => ['type' => 'varchar', 'constraint' => 255, 'null' => true],
             'experience_level'  => ['type' => 'enum', 'constraint' => ['beginner', 'advanced', 'expert'], 'null' => true],

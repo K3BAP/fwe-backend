@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate } from 'react-router-dom'
 import { useRegister } from '@/api/auth'
+import { ApiError } from '@/api/http'
 import { registerInputSchema, type RegisterInput } from '@/api/schemas'
 import { AuthLayout } from '@/components/auth/AuthLayout'
 import { Button, TextField } from '@/components/ui'
@@ -14,6 +15,7 @@ export function Register() {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerInputSchema),
@@ -25,6 +27,14 @@ export function Register() {
       onSuccess: () => {
         toast.success('Konto erstellt – willkommen bei FlightMeet! 🪂')
         navigate('/')
+      },
+      onError: (e) => {
+        // Server-Konflikte (vergebene E-Mail/Benutzername) direkt am passenden Feld zeigen.
+        if (e instanceof ApiError && e.code === 'handle_taken') setError('handle', { message: e.message })
+        else if (e instanceof ApiError && e.code === 'email_taken') setError('email', { message: e.message })
+        else if (e instanceof ApiError && e.fields) {
+          for (const [field, message] of Object.entries(e.fields)) setError(field as keyof RegisterInput, { message })
+        } else toast.error(e instanceof ApiError ? e.message : 'Registrierung fehlgeschlagen.')
       },
     })
   })
@@ -51,7 +61,7 @@ export function Register() {
           {...register('display_name')}
         />
         <TextField
-          label="Benutzername (optional)"
+          label="Benutzername"
           autoComplete="username"
           placeholder="lenak"
           error={errors.handle?.message}
