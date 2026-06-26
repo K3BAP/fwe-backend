@@ -21,5 +21,10 @@ export const qk = {
     messages: (id: number) => ['chat', 'messages', id] as const,
     unread: ['chat', 'unread'] as const,
   },
+  profiles: (userId: number) => ['profiles', userId] as const,
+  notifications: {
+    list: ['notifications'] as const,
+    unread: ['notifications', 'unread'] as const,
+  },
   me: ['me'] as const,
 } as const

@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { RequireAuth, RequireGuest } from '@/components/auth/guards'
 import { AppShell } from '@/components/layout/AppShell'
+import { Benachrichtigungen } from './Benachrichtigungen'
 import { Chat } from './Chat'
 import { Dashboard } from './Dashboard'
 import { Einstellungen } from './Einstellungen'
@@ -13,6 +14,8 @@ import { FlugtreffenLazy, Lazy, MeetupDetailLazy, StyleguideLazy } from './lazy'
 import { Login } from './Login'
 import { MeetupErstellen } from './MeetupErstellen'
 import { Placeholder } from './Placeholder'
+import { Profil } from './Profil'
+import { ProfilBearbeiten } from './ProfilBearbeiten'
 import { Register } from './Register'
 
 // In Prod läuft die App unter /public/ (vite base) → basename ableiten.
@@ -44,6 +47,9 @@ export const router = createBrowserRouter(
             { path: 'gruppen/:id/einstellungen', element: <GruppeEinstellungen /> },
             { path: 'chat', element: <Chat /> },
             { path: 'chat/:id', element: <Chat /> },
+            { path: 'profil/bearbeiten', element: <ProfilBearbeiten /> },
+            { path: 'profil/:id', element: <Profil /> },
+            { path: 'benachrichtigungen', element: <Benachrichtigungen /> },
             { path: 'einstellungen', element: <Einstellungen /> },
             { path: 'styleguide', element: <Lazy><StyleguideLazy /></Lazy> },
             { path: '*', element: <Placeholder title="Seite nicht gefunden (404)" /> },

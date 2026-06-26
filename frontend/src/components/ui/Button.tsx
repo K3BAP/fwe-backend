@@ -8,8 +8,8 @@ const VARIANT: Record<Variant, string> = {
   primary: 'btn-primary shadow-[0_8px_18px_rgba(30,144,230,.3)]',
   accent: 'btn-accent',
   secondary: 'btn-secondary',
-  outline: 'btn-outline border-[1.5px] border-base-300 text-sky-700',
-  ghost: 'btn-ghost text-sky-700',
+  outline: 'btn-outline border-[1.5px] border-base-300 text-primary',
+  ghost: 'btn-ghost text-primary',
 }
 const SIZE: Record<Size, string> = { sm: 'btn-sm', md: '', lg: 'btn-lg' }
 

@@ -1,5 +1,6 @@
 import { UserCard } from '@/components/ui'
 import type { GroupMember, GroupRole } from '@/api/schemas'
+import { ProfileHovercard } from '@/components/profile/ProfileHovercard'
 
 const ROLE_LABEL: Record<GroupRole, string> = {
   owner: 'Owner',
@@ -20,7 +21,9 @@ export function MemberList({ members }: { members: GroupMember[] }) {
   return (
     <div className="grid gap-1 sm:grid-cols-2">
       {members.map((m) => (
-        <UserCard key={m.user.id} user={m.user} highlight={m.role === 'owner'} trailing={<RoleBadge role={m.role} />} />
+        <ProfileHovercard key={m.user.id} userId={m.user.id}>
+          <UserCard user={m.user} highlight={m.role === 'owner'} trailing={<RoleBadge role={m.role} />} />
+        </ProfileHovercard>
       ))}
     </div>
   )

@@ -25,6 +25,11 @@ export const usersTable = {
     const u = byId.get(id)
     return u ? { ...u } : undefined
   },
+  /** Mutiert Name/Handle/Avatar (z.B. nach Profil-Edit), damit Listen/Chat konsistent bleiben. */
+  update: (id: number, patch: Partial<Omit<PublicUserCard, 'id'>>): void => {
+    const u = byId.get(id)
+    if (u) Object.assign(u, patch)
+  },
   /** Löst eine Liste von IDs zu Karten auf (unbekannte IDs werden verworfen). */
   resolve: (ids: number[]): PublicUserCard[] =>
     ids.map((id) => byId.get(id)).filter((u): u is PublicUserCard => Boolean(u)).map((u) => ({ ...u })),

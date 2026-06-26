@@ -65,7 +65,7 @@ export function Styleguide() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <div className="font-display text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">
+        <div className="font-display text-xs font-semibold uppercase tracking-[0.16em] text-primary">
           Design-System · v1.0 · Deutsch
         </div>
         <h1 className="mt-1 text-4xl">Komponenten</h1>
@@ -126,7 +126,7 @@ export function Styleguide() {
           <div>
             <div className="mb-3 font-display text-sm font-bold">Region · Tags · Hervorhebung</div>
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-petrol-100 bg-base-100 px-3 py-1.5 text-[13px] font-medium text-petrol-700">📍 Rhön</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-secondary/30 bg-base-100 px-3 py-1.5 text-[13px] font-medium text-secondary">📍 Rhön</span>
               <span className="rounded-full bg-base-200 px-3 py-1.5 text-[13px] font-medium text-base-content/80"># Hike &amp; Fly</span>
               <Pill bg="#FFE1D8" fg="#C7421F">Ersteller</Pill>
             </div>

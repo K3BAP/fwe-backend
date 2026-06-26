@@ -1,13 +1,17 @@
 import { NavLink } from 'react-router-dom'
+import { useChatUnread } from '@/api/chat'
 import { cn } from '@/lib/cn'
 import { NAV } from './nav'
 
 /** Mobile Bottom-Navigation (Home · Flugtreffen · Gruppen · Chat). */
 export function BottomNav() {
+  const chatUnread = useChatUnread().data ?? 0
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-base-300 bg-base-100/95 backdrop-blur md:hidden">
       <div className="mx-auto flex max-w-md items-stretch justify-around px-2 py-1.5">
-        {NAV.map(({ to, label, icon: Icon, end, badge }) => (
+        {NAV.map(({ to, label, icon: Icon, end }) => {
+          const badge = to === '/chat' ? chatUnread : 0
+          return (
           <NavLink
             key={to}
             to={to}
@@ -15,7 +19,7 @@ export function BottomNav() {
             className={({ isActive }) =>
               cn(
                 'relative flex min-w-15 flex-col items-center gap-1 rounded-xl px-2 py-1.5',
-                isActive ? 'text-sky-700' : 'text-base-content/50',
+                isActive ? 'text-primary' : 'text-base-content/50',
               )
             }
           >
@@ -27,7 +31,8 @@ export function BottomNav() {
               </span>
             ) : null}
           </NavLink>
-        ))}
+          )
+        })}
       </div>
     </nav>
   )

@@ -5,13 +5,13 @@ export type NavItem = {
   label: string
   icon: typeof HomeIcon
   end?: boolean
-  badge?: number
 }
 
-/** Hauptnavigation (Home · Flugtreffen · Gruppen · Chat). */
+/** Hauptnavigation (Home · Flugtreffen · Gruppen · Chat). Der Chat-Badge wird live aus
+ * `useChatUnread` injiziert (siehe TopBar/BottomNav), nicht hier hartkodiert. */
 export const NAV: NavItem[] = [
   { to: '/', label: 'Home', icon: HomeIcon, end: true },
   { to: '/flugtreffen', label: 'Flugtreffen', icon: WingIcon },
   { to: '/gruppen', label: 'Gruppen', icon: GroupIcon },
-  { to: '/chat', label: 'Chat', icon: ChatIcon, badge: 5 },
+  { to: '/chat', label: 'Chat', icon: ChatIcon },
 ]

@@ -27,12 +27,12 @@ export function ConversationListItem({ conversation: c, active }: { conversation
   return (
     <Link
       to={`/chat/${c.id}`}
-      className={cn('flex items-center gap-3 rounded-2xl px-3 py-2.5 transition', active ? 'bg-sky-50' : 'hover:bg-base-200')}
+      className={cn('flex items-center gap-3 rounded-2xl px-3 py-2.5 transition', active ? 'bg-primary/10' : 'hover:bg-base-200')}
     >
       <ConversationAvatar conversation={c} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className={cn('truncate font-semibold', active && 'text-sky-700')}>{c.title}</span>
+          <span className={cn('truncate font-semibold', active && 'text-primary')}>{c.title}</span>
           {c.last_message_at && (
             <span className="shrink-0 text-xs text-base-content/45">{formatRelativeTime(c.last_message_at)}</span>
           )}
