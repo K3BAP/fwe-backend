@@ -15,5 +15,11 @@ export const qk = {
     invites: (id: number) => ['groups', 'detail', id, 'invites'] as const,
   },
   spots: ['spots'] as const,
+  chat: {
+    conversations: ['chat', 'conversations'] as const,
+    detail: (id: number) => ['chat', 'detail', id] as const,
+    messages: (id: number) => ['chat', 'messages', id] as const,
+    unread: ['chat', 'unread'] as const,
+  },
   me: ['me'] as const,
 } as const

@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { RequireAuth, RequireGuest } from '@/components/auth/guards'
 import { AppShell } from '@/components/layout/AppShell'
+import { Chat } from './Chat'
 import { Dashboard } from './Dashboard'
 import { Einstellungen } from './Einstellungen'
 import { GruppeDetail } from './GruppeDetail'
@@ -41,7 +42,8 @@ export const router = createBrowserRouter(
             { path: 'gruppen/neu', element: <GruppeErstellen /> },
             { path: 'gruppen/:id', element: <GruppeDetail /> },
             { path: 'gruppen/:id/einstellungen', element: <GruppeEinstellungen /> },
-            { path: 'chat', element: <Placeholder title="Chat" /> },
+            { path: 'chat', element: <Chat /> },
+            { path: 'chat/:id', element: <Chat /> },
             { path: 'einstellungen', element: <Einstellungen /> },
             { path: 'styleguide', element: <Lazy><StyleguideLazy /></Lazy> },
             { path: '*', element: <Placeholder title="Seite nicht gefunden (404)" /> },

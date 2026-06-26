@@ -47,4 +47,5 @@ export const MapPinIcon = (p: IconProps) => (
 export const PlusIcon = (p: IconProps) => <Base {...p}><path d="M12 5v14M5 12h14" /></Base>
 export const CheckIcon = (p: IconProps) => <Base {...p}><path d="M20 6 9 17l-5-5" /></Base>
 export const ChevronRightIcon = (p: IconProps) => <Base {...p}><path d="m9 6 6 6-6 6" /></Base>
+export const SendIcon = (p: IconProps) => <Base {...p}><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" /></Base>
 export const UsersIcon = GroupIcon

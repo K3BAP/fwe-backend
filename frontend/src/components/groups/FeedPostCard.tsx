@@ -1,7 +1,6 @@
-import { Avatar, Card, Pill } from '@/components/ui'
+import { Avatar, Card, Pill, ReactionBar } from '@/components/ui'
 import type { FeedPost } from '@/api/schemas'
 import { formatRelativeTime } from '@/lib/format'
-import { ReactionBar } from './ReactionBar'
 
 /** Einzelner Feed-Post mit Autor, optionalem Pin, Inhalt und Reaktionsleiste. */
 export function FeedPostCard({ post, onReact }: { post: FeedPost; onReact: (emoji: string) => void }) {

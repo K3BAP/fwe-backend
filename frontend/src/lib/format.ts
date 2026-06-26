@@ -11,6 +11,11 @@ export function formatMeetupDate(iso: string): string {
   return `${dateFmt.format(d)} · ${timeFmt.format(d)}`
 }
 
+/** „18:30" — reine Uhrzeit (Chat-Nachrichten). */
+export function formatClock(iso: string): string {
+  return timeFmt.format(new Date(iso))
+}
+
 const relFmt = new Intl.RelativeTimeFormat('de-DE', { numeric: 'auto' })
 const STEPS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['year', 31536000],
