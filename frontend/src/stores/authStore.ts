@@ -4,6 +4,7 @@ import { create } from 'zustand'
 export type SessionUser = {
   id: number
   displayName: string
+  email: string
   avatarUrl: string | null
 }
 

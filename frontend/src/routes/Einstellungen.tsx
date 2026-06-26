@@ -38,7 +38,7 @@ export function Einstellungen() {
           <Avatar name={user?.displayName ?? 'Gast'} src={user?.avatarUrl} size={48} />
           <div>
             <div className="font-semibold">{user?.displayName ?? 'Gast'}</div>
-            <div className="text-sm text-base-content/55">lena@flightmeet.de</div>
+            <div className="text-sm text-base-content/55">{user?.email ?? '—'}</div>
           </div>
         </div>
         <div>

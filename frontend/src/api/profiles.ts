@@ -90,8 +90,9 @@ export function useUpdateProfile() {
     },
     onSuccess: (profile) => {
       qc.setQueryData(qk.profiles(profile.user_id), profile)
-      // authStore spiegelt Name/Avatar (TopBar, eigene Nachrichten).
-      setFromMe({ id: profile.user_id, displayName: profile.display_name, avatarUrl: profile.avatar_path })
+      // authStore spiegelt Name/Avatar (TopBar, eigene Nachrichten); E-Mail bleibt unverändert erhalten.
+      const current = useAuthStore.getState().user
+      if (current) setFromMe({ ...current, displayName: profile.display_name, avatarUrl: profile.avatar_path })
     },
   })
 }

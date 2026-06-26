@@ -15,7 +15,7 @@ import { authSessionSchema, type AuthSession, type LoginInput, type RegisterInpu
  * spiegelt das `['me']`-Query.
  */
 function toSessionUser(s: AuthSession): SessionUser {
-  return { id: s.user.id, displayName: s.user.display_name, avatarUrl: s.user.avatar_path }
+  return { id: s.user.id, displayName: s.user.display_name, email: s.profile.email, avatarUrl: s.user.avatar_path }
 }
 
 async function fetchMe(): Promise<SessionUser | null> {

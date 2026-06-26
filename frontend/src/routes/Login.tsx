@@ -17,7 +17,7 @@ export function Login() {
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginInputSchema),
-    defaultValues: { email: 'lena@flightmeet.de', password: 'paragliding' },
+    defaultValues: { email: '', password: '' },
   })
 
   const onSubmit = handleSubmit((values) => {

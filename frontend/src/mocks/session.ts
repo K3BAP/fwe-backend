@@ -5,7 +5,7 @@ import type { SessionUser } from '@/stores/authStore'
  * so sind Gast-Landing und eingeloggte App im Prototyp beide erlebbar. In M2 ersetzt durch
  * echte Shield-Session (`GET/POST /auth/*`).
  */
-const SESSION_USER: SessionUser = { id: 1, displayName: 'Lena Krüger', avatarUrl: null }
+const SESSION_USER: SessionUser = { id: 1, displayName: 'Lena Krüger', email: 'lena@flightmeet.test', avatarUrl: null }
 let loggedIn = true
 
 export const sessionMock = {
