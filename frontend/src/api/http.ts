@@ -1,6 +1,11 @@
 import type { z } from 'zod'
 
-const API_BASE = '/api/v1'
+/**
+ * API-Wurzel **relativ zur Deploy-Base** (wie der Router-`basename`): Dev `/` → `/api/v1`,
+ * Prod (Vite-base `/public/`) → `/public/api/v1`. Sonst zielt die SPA unter `…/public/` auf die
+ * Domain-Wurzel und CI4 findet die Route nicht (404).
+ */
+const API_BASE = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/api/v1`
 
 /** Fehler aus dem API-Envelope (`{ error: { code, message, fields? } }`, 06-backend §3). */
 export class ApiError extends Error {

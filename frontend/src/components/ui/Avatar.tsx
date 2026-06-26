@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn'
+import { mediaUrl } from '@/lib/mediaUrl'
 
 /** Drei Brand-Verläufe, deterministisch je Name gewählt. */
 const GRADIENTS = [
@@ -33,6 +34,7 @@ export type AvatarProps = {
 
 /** Runder Avatar mit Bild oder Initialen-Verlauf (Design-System §07). */
 export function Avatar({ name, src, size = 40, highlight, className }: AvatarProps) {
+  const resolved = mediaUrl(src) // Deploy-Base-bewusst (Prod: /public/media/…); blob:-Vorschau bleibt
   return (
     <span
       className={cn(
@@ -40,9 +42,9 @@ export function Avatar({ name, src, size = 40, highlight, className }: AvatarPro
         highlight && 'ring-2 ring-coral-500 ring-offset-2 ring-offset-base-100',
         className,
       )}
-      style={{ width: size, height: size, background: src ? undefined : pick(name), fontSize: size * 0.34 }}
+      style={{ width: size, height: size, background: resolved ? undefined : pick(name), fontSize: size * 0.34 }}
     >
-      {src ? <img src={src} alt={name} className="size-full object-cover" /> : initials(name)}
+      {resolved ? <img src={resolved} alt={name} className="size-full object-cover" /> : initials(name)}
     </span>
   )
 }
