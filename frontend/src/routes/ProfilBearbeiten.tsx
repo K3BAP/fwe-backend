@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { useProfile, useUpdateProfile } from '@/api/profiles'
+import { useProfile, useUpdateProfile, useUploadAvatar } from '@/api/profiles'
 import { ProfileEditForm } from '@/components/profile/ProfileEditForm'
 import { Card, Skeleton } from '@/components/ui'
 import { useAuthStore } from '@/stores/authStore'
@@ -11,6 +11,7 @@ export function ProfilBearbeiten() {
   const meId = useAuthStore((s) => s.user?.id ?? 1)
   const { data: profile, isLoading } = useProfile(meId)
   const update = useUpdateProfile()
+  const uploadAvatar = useUploadAvatar()
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -28,6 +29,12 @@ export function ProfilBearbeiten() {
           <ProfileEditForm
             profile={profile}
             submitting={update.isPending}
+            onAvatarFile={(file) =>
+              uploadAvatar.mutate(file, {
+                onSuccess: () => toast.success('Avatar aktualisiert.'),
+                onError: () => toast.error('Avatar konnte nicht hochgeladen werden.'),
+              })
+            }
             onSubmit={(input) =>
               update.mutate(input, {
                 onSuccess: () => {

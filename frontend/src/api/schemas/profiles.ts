@@ -25,6 +25,29 @@ export const ownProfileSchema = z.object({
 })
 export type OwnProfile = z.infer<typeof ownProfileSchema>
 
+/**
+ * Wire-DTO „öffentliche Profilkarte" (API.md §3.1, `GET /users/{id}`). Die „Erweitert"-Felder kommen
+ * nur für eingeloggte Betrachter mit (ADR-012/C2) → optional. Wird im Hook auf das `Profile`-View-Model
+ * gemappt (`bio_markdown→bio`, `is_self` aus der Session).
+ */
+export const publicProfileSchema = z.object({
+  user_id: z.number(),
+  display_name: z.string(),
+  handle: z.string().nullable(),
+  avatar_path: z.string().nullable(),
+  bio_markdown: z.string().nullable(),
+  experience_level: pilotExperienceSchema.nullable(),
+  created_at: z.string(),
+  license_class: z.string().nullable().optional(),
+  glider: z.string().nullable().optional(),
+  home_region: z.string().nullable().optional(),
+  flight_hours: z.number().nullable().optional(),
+})
+export type PublicProfile = z.infer<typeof publicProfileSchema>
+
+/** Antwort des Avatar-Uploads (API.md §3.4). */
+export const avatarUploadSchema = z.object({ avatar_path: z.string() })
+
 /** Profil-Ansicht (eigene + fremde). `is_self` steuert Bearbeiten vs. Direktchat. */
 export const profileSchema = z.object({
   user_id: z.number(),

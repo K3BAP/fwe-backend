@@ -4,14 +4,19 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { profileEditInputSchema, type Profile, type ProfileEditInput } from '@/api/schemas'
 import { Avatar, Button, SelectField, TextareaField, TextField } from '@/components/ui'
 
-/** „Profil bearbeiten" (RHF + Zod). Avatar-Upload als Mock (Object-URL, kein echter Upload). */
+/**
+ * „Profil bearbeiten" (RHF + Zod). Der Avatar wird über `onAvatarFile` sofort hochgeladen (eigener
+ * Endpunkt, API.md §3.4); die Object-URL dient nur als sofortige Vorschau bis der echte Pfad da ist.
+ */
 export function ProfileEditForm({
   profile,
   onSubmit,
+  onAvatarFile,
   submitting,
 }: {
   profile: Profile
   onSubmit: (input: ProfileEditInput) => void
+  onAvatarFile?: (file: File) => void
   submitting: boolean
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
@@ -40,8 +45,9 @@ export function ProfileEditForm({
     const file = e.target.files?.[0]
     if (!file) return
     const url = URL.createObjectURL(file)
-    setAvatarPreview(url)
+    setAvatarPreview(url) // sofortige Vorschau
     setValue('avatar_path', url)
+    onAvatarFile?.(file) // echter Upload (ersetzt den Pfad serverseitig)
   }
 
   return (

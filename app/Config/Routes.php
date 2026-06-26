@@ -22,11 +22,19 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->get('auth/csrf', 'AuthController::csrf');
     $routes->post('auth/register', 'AuthController::register', ['filter' => 'csrf']);
     $routes->post('auth/login', 'AuthController::login', ['filter' => ['throttle:login,5', 'csrf']]); // 5/min/IP
+    $routes->get('users/(:num)', 'ProfileController::show/$1'); // öffentliche Profilkarte (reduziert)
 
     // --- auth-pflichtig (Shield-Session); csrf zusätzlich für schreibende Methoden ---
     $routes->group('', ['filter' => ['csrf', 'auth']], static function (RouteCollection $routes): void {
         $routes->post('auth/logout', 'AuthController::logout');
         $routes->get('auth/me', 'AuthController::me');
+
+        $routes->get('me/profile', 'ProfileController::me');
+        $routes->patch('me/profile', 'ProfileController::updateMe');
+        $routes->post('me/avatar', 'ProfileController::uploadAvatar');
+        $routes->delete('me/avatar', 'ProfileController::deleteAvatar');
+        $routes->get('users', 'ProfileController::index');
+
         $routes->get('health/secure', 'HealthController::secure');
     });
 });

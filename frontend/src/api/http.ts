@@ -50,7 +50,10 @@ export async function apiFetch<T>(
 
   const headers: Record<string, string> = {}
   const init: RequestInit = { method, credentials: 'include', headers }
-  if (body !== undefined) {
+  if (body instanceof FormData) {
+    // Multipart-Upload: Content-Type (inkl. Boundary) setzt der Browser selbst.
+    init.body = body
+  } else if (body !== undefined) {
     headers['Content-Type'] = 'application/json'
     init.body = JSON.stringify(body)
   }
