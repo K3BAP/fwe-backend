@@ -5,6 +5,7 @@ import { Benachrichtigungen } from './Benachrichtigungen'
 import { Chat } from './Chat'
 import { Dashboard } from './Dashboard'
 import { Einstellungen } from './Einstellungen'
+import { GruppeChannels } from './GruppeChannels'
 import { GruppeDetail } from './GruppeDetail'
 import { GruppeEinstellungen } from './GruppeEinstellungen'
 import { GruppeErstellen } from './GruppeErstellen'
@@ -45,6 +46,8 @@ export const router = createBrowserRouter(
             { path: 'gruppen/neu', element: <GruppeErstellen /> },
             { path: 'gruppen/:id', element: <GruppeDetail /> },
             { path: 'gruppen/:id/einstellungen', element: <GruppeEinstellungen /> },
+            { path: 'gruppen/:id/channels', element: <GruppeChannels /> },
+            { path: 'gruppen/:id/channels/:channelId', element: <GruppeChannels /> },
             { path: 'chat', element: <Chat /> },
             { path: 'chat/:id', element: <Chat /> },
             { path: 'profil/bearbeiten', element: <ProfilBearbeiten /> },

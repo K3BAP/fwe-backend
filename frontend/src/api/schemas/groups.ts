@@ -31,21 +31,26 @@ export type GroupRole = z.infer<typeof groupRoleSchema>
 
 export const membershipStatusSchema = z.enum(['active', 'banned'])
 
-/** Ein Channel (= conversation type=group_channel) — in Slice 3 nur Anzeige, Chat folgt in Slice 4. */
+/**
+ * Ein Gruppen-Channel = `conversation` mit `type='group_channel'` (ADR-005, API.md §7.1). Über den
+ * eigenen Endpunkt `GET /groups/:id/channels` geliefert (nicht im Detail eingebettet). `conversation_id`
+ * verbindet ihn mit der polymorphen Chat-Engine.
+ */
 export const groupChannelSchema = z.object({
-  id: z.number(),
-  title: z.string(),
+  conversation_id: z.number(),
+  name: z.string(),
   is_default: z.boolean(),
+  unread_count: z.number(),
 })
 export type GroupChannel = z.infer<typeof groupChannelSchema>
+export const groupChannelListSchema = z.array(groupChannelSchema)
 
-/** Detail-Projektion einer Gruppe (+ eigene Mitgliedschaft, Verwaltungsrecht, Channels). */
+/** Detail-Projektion einer Gruppe (+ eigene Mitgliedschaft, Verwaltungsrecht). */
 export const groupDetailSchema = groupListItemSchema.extend({
   rules_text: z.string().nullable(),
   owner_user_id: z.number(),
   my_membership: z.object({ role: groupRoleSchema, status: membershipStatusSchema }).nullable(),
   can_manage: z.boolean(),
-  channels: z.array(groupChannelSchema),
 })
 export type GroupDetail = z.infer<typeof groupDetailSchema>
 

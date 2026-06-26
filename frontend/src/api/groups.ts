@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { USE_MOCKS } from '@/config'
+import { chatTable } from '@/mocks/chat'
 import { groupsTable } from '@/mocks/groups'
 import { mockRead, mockWrite } from '@/mocks/runtime'
 import { toast } from '@/stores/toastStore'
@@ -8,12 +9,14 @@ import { qk } from './queryKeys'
 import {
   feedPostListSchema,
   feedPostSchema,
+  groupChannelListSchema,
   groupDetailSchema,
   groupInviteListSchema,
   groupListSchema,
   groupMemberListSchema,
   joinRequestListSchema,
   type FeedPost,
+  type GroupChannel,
   type GroupCreateInput,
   type GroupDetail,
   type GroupInvite,
@@ -50,6 +53,11 @@ async function fetchInvites(id: number): Promise<GroupInvite[]> {
   if (USE_MOCKS) return mockRead(() => groupsTable.invites(id), { emptyValue: [] })
   return apiFetch(`/groups/${id}/invites`, groupInviteListSchema)
 }
+async function fetchChannels(id: number): Promise<GroupChannel[]> {
+  // Channels sind Konversationen (ADR-005) → aus dem Chat-Store, Endpunkt /groups/:id/channels.
+  if (USE_MOCKS) return mockRead(() => chatTable.groupChannels(id), { emptyValue: [] })
+  return apiFetch(`/groups/${id}/channels`, groupChannelListSchema)
+}
 
 export function useGroups() {
   return useQuery({ queryKey: qk.groups.list(), queryFn: fetchGroups })
@@ -68,6 +76,9 @@ export function useGroupRequests(id: number, enabled = true) {
 }
 export function useGroupInvites(id: number, enabled = true) {
   return useQuery({ queryKey: qk.groups.invites(id), queryFn: () => fetchInvites(id), enabled: enabled && Number.isFinite(id) })
+}
+export function useGroupChannels(id: number) {
+  return useQuery({ queryKey: qk.groups.channels(id), queryFn: () => fetchChannels(id), enabled: Number.isFinite(id) })
 }
 
 /** Beitritt/Verlassen/Antrag: schreibt Detail + frischt Liste/Mitglieder auf. */

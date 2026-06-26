@@ -9,14 +9,15 @@ import type {
   GroupRole,
   JoinRequest,
 } from '@/api/schemas'
+import { chatTable } from './chat'
 import { sessionMock } from './session'
 import { usersTable } from './users'
 
 /**
  * Veränderlicher In-Memory-Datensatz der Gruppen (M1-Mock). Gespeichert wird ein Record je Gruppe
- * (Mitglieder/Channels/Feed/Anträge/Einladungen); Listen-/Detail-Projektionen + nutzerbezogene
- * Flags (eigene Mitgliedschaft, Verwaltungsrecht, Reaktion) werden beim Lesen berechnet. In M4
- * durch echte Endpunkte ersetzt — Hooks/Komponenten bleiben gleich.
+ * (Mitglieder/Feed/Anträge/Einladungen); Listen-/Detail-Projektionen + nutzerbezogene Flags werden
+ * beim Lesen berechnet. **Channels leben in der Chat-Engine** ([[chat]], ADR-005) und kommen über
+ * `chatTable.groupChannels`. In M4/M5 durch echte Endpunkte ersetzt — Hooks/Komponenten bleiben gleich.
  */
 type MemberRecord = { user_id: number; role: GroupRole; joined_at: string }
 type ReactionRecord = { emoji: string; user_ids: number[] }
@@ -33,7 +34,6 @@ type FeedRecord = {
 }
 type RequestRecord = { id: number; user_id: number; message: string | null; status: 'pending' | 'approved' | 'rejected'; created_at: string }
 type InviteRecord = { id: number; invited_user_id: number | null; token: string | null; status: 'pending' | 'accepted' | 'revoked' | 'expired'; max_uses: number | null; uses_count: number }
-type ChannelRecord = { id: number; title: string; is_default: boolean }
 
 type GroupRecord = {
   id: number
@@ -48,14 +48,12 @@ type GroupRecord = {
   rules_text: string | null
   owner_id: number
   members: MemberRecord[]
-  channels: ChannelRecord[]
   feed: FeedRecord[]
   requests: RequestRecord[]
   invites: InviteRecord[]
 }
 
 const member = (user_id: number, role: GroupRole, joined_at: string): MemberRecord => ({ user_id, role, joined_at })
-const defaultChannels = (): ChannelRecord[] => [{ id: 1, title: 'Allgemein', is_default: true }]
 
 const groups: GroupRecord[] = [
   {
@@ -79,11 +77,6 @@ const groups: GroupRecord[] = [
       member(6, 'member', '2026-01-10'),
       member(7, 'member', '2026-02-18'),
       member(8, 'member', '2026-05-30'),
-    ],
-    channels: [
-      { id: 1, title: 'Allgemein', is_default: true },
-      { id: 2, title: 'Wetter & Bedingungen', is_default: false },
-      { id: 3, title: 'Streckenmeldungen', is_default: false },
     ],
     feed: [
       {
@@ -135,10 +128,6 @@ const groups: GroupRecord[] = [
       member(5, 'member', '2026-02-02'),
       member(9, 'member', '2026-04-18'),
     ],
-    channels: [
-      { id: 1, title: 'Allgemein', is_default: true },
-      { id: 2, title: 'Orga-intern', is_default: false },
-    ],
     feed: [
       {
         id: 1,
@@ -182,7 +171,6 @@ const groups: GroupRecord[] = [
       member(9, 'member', '2026-03-12'),
       member(10, 'member', '2026-06-01'),
     ],
-    channels: defaultChannels(),
     feed: [
       {
         id: 1,
@@ -217,7 +205,6 @@ const groups: GroupRecord[] = [
       member(3, 'member', '2026-02-28'),
       member(8, 'member', '2026-05-15'),
     ],
-    channels: defaultChannels(),
     feed: [],
     requests: [],
     invites: [],
@@ -240,7 +227,6 @@ const groups: GroupRecord[] = [
       member(2, 'member', '2026-01-22'),
       member(7, 'member', '2026-04-09'),
     ],
-    channels: defaultChannels(),
     feed: [
       {
         id: 1,
@@ -299,7 +285,6 @@ function toDetail(g: GroupRecord): GroupDetail {
     owner_user_id: g.owner_id,
     my_membership: mem,
     can_manage: mem?.role === 'owner' || mem?.role === 'admin',
-    channels: g.channels.map((c) => ({ ...c })),
   }
 }
 
@@ -443,12 +428,12 @@ export const groupsTable = {
       rules_text: input.rules_text,
       owner_id: meId(),
       members: [member(meId(), 'owner', new Date().toISOString().slice(0, 10))],
-      channels: defaultChannels(),
-      feed: [],
+        feed: [],
       requests: [],
       invites: [],
     }
     groups.unshift(g)
+    chatTable.createGroupChannel(g.id, 'Allgemein', g.name, true, 0)
     return toDetail(g)
   },
 

@@ -10,6 +10,7 @@ export const qk = {
     list: (filters?: Record<string, unknown>) => ['groups', 'list', filters ?? {}] as const,
     detail: (id: number) => ['groups', 'detail', id] as const,
     members: (id: number) => ['groups', 'detail', id, 'members'] as const,
+    channels: (id: number) => ['groups', 'detail', id, 'channels'] as const,
     feed: (id: number) => ['groups', 'detail', id, 'feed'] as const,
     requests: (id: number) => ['groups', 'detail', id, 'requests'] as const,
     invites: (id: number) => ['groups', 'detail', id, 'invites'] as const,

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   useGroup,
+  useGroupChannels,
   useGroupFeed,
   useGroupMembers,
   useJoinGroup,
@@ -96,6 +97,7 @@ export function GruppeDetail() {
   const { id } = useParams()
   const groupId = Number(id)
   const group = useGroup(groupId)
+  const channels = useGroupChannels(groupId)
   const feed = useGroupFeed(groupId)
   const members = useGroupMembers(groupId)
   const react = useReactToPost(groupId)
@@ -158,8 +160,17 @@ export function GruppeDetail() {
 
         <aside className="flex flex-col gap-4">
           <Card className="p-4">
-            <h2 className="mb-2 px-1 font-display text-lg">Channels</h2>
-            <ChannelList channels={g.channels} />
+            <div className="mb-2 flex items-center justify-between px-1">
+              <h2 className="font-display text-lg">Channels</h2>
+              <Link to={`/gruppen/${groupId}/channels`} className="text-xs font-semibold text-primary hover:underline">
+                Öffnen →
+              </Link>
+            </div>
+            {channels.isLoading ? (
+              <Skeleton className="h-20 w-full" />
+            ) : (
+              <ChannelList channels={channels.data ?? []} groupId={groupId} />
+            )}
           </Card>
         </aside>
       </div>
