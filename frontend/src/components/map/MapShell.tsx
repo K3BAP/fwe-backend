@@ -23,7 +23,7 @@ export function MapShell({
   children?: ReactNode
 }) {
   return (
-    <div className={cn('overflow-hidden rounded-box border border-base-300', className)}>
+    <div className={cn('isolate overflow-hidden rounded-box border border-base-300', className)}>
       <MapContainer center={center} zoom={zoom} scrollWheelZoom className="size-full" style={{ minHeight: 320 }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

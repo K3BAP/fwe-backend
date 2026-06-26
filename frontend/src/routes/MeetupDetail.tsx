@@ -9,7 +9,7 @@ import {
   useMeetup,
   useRemoveParticipant,
 } from '@/api/meetups'
-import type { MeetupDetail as MeetupDetailDto } from '@/api/schemas'
+import type { MeetupDetail as MeetupDetailDto, PublicUserCard } from '@/api/schemas'
 import { ParticipantList } from '@/components/meetups/ParticipantList'
 import { MapShell } from '@/components/map/MapShell'
 import { pinIcon } from '@/components/map/pin'
@@ -132,6 +132,7 @@ export function MeetupDetail() {
   const meetupId = Number(id)
   const { data: m, isLoading, isError } = useMeetup(meetupId)
   const removeP = useRemoveParticipant(meetupId)
+  const [removingParticipant, setRemovingParticipant] = useState<PublicUserCard | null>(null)
 
   if (isLoading)
     return (
@@ -205,7 +206,7 @@ export function MeetupDetail() {
             <ParticipantList
               participants={m.participants}
               creatorId={m.creator_user_id}
-              onRemove={m.can_edit ? (uid) => removeP.mutate(uid) : undefined}
+              onRemove={m.can_edit ? (uid) => setRemovingParticipant(m.participants.find((p) => p.id === uid) ?? null) : undefined}
             />
           </Card>
 
@@ -236,6 +237,32 @@ export function MeetupDetail() {
           </Card>
         </aside>
       </div>
+
+      <Modal
+        open={removingParticipant != null}
+        onClose={() => setRemovingParticipant(null)}
+        title="Teilnehmer entfernen?"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setRemovingParticipant(null)}>
+              Abbrechen
+            </Button>
+            <Button
+              variant="accent"
+              disabled={removeP.isPending}
+              onClick={() => {
+                if (removingParticipant) removeP.mutate(removingParticipant.id, { onSuccess: () => setRemovingParticipant(null) })
+              }}
+            >
+              Entfernen
+            </Button>
+          </>
+        }
+      >
+        <p className="text-base-content/70">
+          <span className="font-semibold">{removingParticipant?.display_name}</span> wird aus diesem Flugtreffen entfernt.
+        </p>
+      </Modal>
     </div>
   )
 }
