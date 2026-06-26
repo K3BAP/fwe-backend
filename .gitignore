@@ -127,3 +127,6 @@ _modules/*
 
 .deploypass
 env.prod
+
+# Deploy-Artefakte (SQL-Dump etc.) — regenerierbar, kein Quelltext
+/deploy/

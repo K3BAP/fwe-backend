@@ -2,7 +2,10 @@
 .claude/
 .env
 .deploypass
+env.prod
 frontend/
 docs/
+deploy/
 writable/debugbar/
 build/
+public/media/uploads/
