@@ -1,10 +1,15 @@
 import { Link } from 'react-router-dom'
 import { ExperienceBadge, StatusBadge } from '@/components/ui'
 import type { MeetupListItem } from '@/api/schemas'
+import { cn } from '@/lib/cn'
 import { formatMeetupDate } from '@/lib/format'
 
-/** Kompakte horizontale Listenzeile für den Desktop-Split (Liste links neben der Karte). */
-export function MeetupListRow({ meetup }: { meetup: MeetupListItem }) {
+/**
+ * Kompakte horizontale Listenzeile für den Desktop-Split (Liste links neben der Karte). `selected`
+ * hebt die Zeile hervor, wenn das zugehörige Treffen auf der Karte angeklickt wurde (Anker-`id` zum
+ * Einscrollen).
+ */
+export function MeetupListRow({ meetup, selected }: { meetup: MeetupListItem; selected?: boolean }) {
   const hasCap = meetup.max_participants != null
   const seats = hasCap ? `${meetup.participant_count}/${meetup.max_participants} Plätze` : `${meetup.participant_count} Teilnehmende`
   const free =
@@ -17,7 +22,11 @@ export function MeetupListRow({ meetup }: { meetup: MeetupListItem }) {
   return (
     <Link
       to={`/flugtreffen/${meetup.id}`}
-      className="group flex gap-3.5 rounded-[18px] border border-base-300 bg-base-100 p-3 shadow-card transition hover:border-primary/40 hover:shadow-hover"
+      id={`meetup-row-${meetup.id}`}
+      className={cn(
+        'group flex gap-3.5 rounded-[18px] border bg-base-100 p-3 shadow-card transition hover:shadow-hover',
+        selected ? 'border-primary ring-2 ring-primary/25' : 'border-base-300 hover:border-primary/40',
+      )}
     >
       <div
         className="relative size-[78px] shrink-0 overflow-hidden rounded-[14px]"

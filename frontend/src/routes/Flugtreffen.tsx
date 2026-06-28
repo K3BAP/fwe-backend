@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useMeetups, type MeetupListParams } from '@/api/meetups'
 import { useSpots } from '@/api/spots'
@@ -84,6 +84,14 @@ export function Flugtreffen() {
   const items = data?.items ?? []
   const total = data?.total ?? 0
 
+  // Karte ↔ Liste: Klick auf einen Marker wählt das Treffen und scrollt seine Zeile in den Blick.
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  useEffect(() => {
+    if (selectedId != null) {
+      document.getElementById(`meetup-row-${selectedId}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }, [selectedId])
+
   function patchFilters(patch: Partial<MeetupFilterState>) {
     const next = { ...filters, ...patch }
     const sp = new URLSearchParams()
@@ -148,13 +156,13 @@ export function Flugtreffen() {
             {!isLoading && !isError && items.length === 0 && emptyState}
             {!isLoading && !isError && items.length > 0 && (
               <div className="flex flex-col gap-3">
-                {items.map((m) => <MeetupListRow key={m.id} meetup={m} />)}
+                {items.map((m) => <MeetupListRow key={m.id} meetup={m} selected={m.id === selectedId} />)}
               </div>
             )}
           </div>
         </aside>
         <div className="min-h-0 flex-1">
-          <MeetupMap meetups={items} className="h-full rounded-none border-0" />
+          <MeetupMap meetups={items} className="h-full rounded-none border-0" selectedId={selectedId} onSelect={setSelectedId} />
         </div>
       </div>
     )
