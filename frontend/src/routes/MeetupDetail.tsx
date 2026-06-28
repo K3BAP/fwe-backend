@@ -210,20 +210,23 @@ export function MeetupDetail() {
             />
           </Card>
 
-          <Link to={`/chat/${m.conversation_id}`} className="block">
-            <Card className="flex items-center justify-between gap-3 p-5 transition hover:border-primary/40 hover:bg-base-200/40">
-              <div className="flex items-center gap-3">
-                <span className="grid size-10 place-items-center rounded-xl bg-coral-50 text-coral-600">
-                  <ChatIcon size={20} />
-                </span>
-                <div>
-                  <div className="font-display">Treffen-Chat</div>
-                  <div className="text-sm text-base-content/55">Sprich dich mit den Teilnehmenden ab.</div>
+          {/* Treffen-Chat folgt in M5: solange keine conversation_id existiert, keine Verlinkung. */}
+          {m.conversation_id != null && (
+            <Link to={`/chat/${m.conversation_id}`} className="block">
+              <Card className="flex items-center justify-between gap-3 p-5 transition hover:border-primary/40 hover:bg-base-200/40">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-10 place-items-center rounded-xl bg-coral-50 text-coral-600">
+                    <ChatIcon size={20} />
+                  </span>
+                  <div>
+                    <div className="font-display">Treffen-Chat</div>
+                    <div className="text-sm text-base-content/55">Sprich dich mit den Teilnehmenden ab.</div>
+                  </div>
                 </div>
-              </div>
-              <span className="text-lg text-base-content/40">→</span>
-            </Card>
-          </Link>
+                <span className="text-lg text-base-content/40">→</span>
+              </Card>
+            </Link>
+          )}
         </div>
 
         <aside className="flex flex-col gap-4">

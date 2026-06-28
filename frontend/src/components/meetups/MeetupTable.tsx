@@ -3,18 +3,71 @@ import { ExperienceBadge, StatusBadge } from '@/components/ui'
 import type { MeetupListItem } from '@/api/schemas'
 import { formatMeetupDate } from '@/lib/format'
 
-/** Tabellen-Ansicht der Flugtreffen-Übersicht. Auf Mobile horizontal scrollbar. */
-export function MeetupTable({ meetups }: { meetups: MeetupListItem[] }) {
+/** Sortierbarer Header: rendert einen Button, wenn `onSort` gesetzt ist, sonst reinen Text. */
+function SortHeader({
+  label,
+  sortKey,
+  active,
+  indicator,
+  onSort,
+  className,
+}: {
+  label: string
+  sortKey: string
+  active: boolean
+  indicator: string
+  onSort?: (sort: string) => void
+  className?: string
+}) {
+  if (!onSort) {
+    return <th className={className}>{label}</th>
+  }
+  return (
+    <th className={className}>
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 font-semibold hover:text-primary"
+        onClick={() => onSort(sortKey)}
+        aria-pressed={active}
+      >
+        {label}
+        {active && <span aria-hidden>{indicator}</span>}
+      </button>
+    </th>
+  )
+}
+
+/** Tabellen-Ansicht der Flugtreffen-Übersicht. Header setzen den serverseitigen `sort`-Parameter. */
+export function MeetupTable({
+  meetups,
+  sort,
+  onSort,
+}: {
+  meetups: MeetupListItem[]
+  sort?: string
+  onSort?: (sort: string) => void
+}) {
+  // Datum togglet asc↔desc; die übrigen Spalten setzen ihren festen Sortierwert.
+  const dateNext = sort === 'starts_at_asc' ? 'starts_at_desc' : 'starts_at_asc'
+  const dateActive = sort === 'starts_at_asc' || sort === 'starts_at_desc'
+
   return (
     <div className="overflow-x-auto rounded-box border border-base-300 bg-base-100">
       <table className="table">
         <thead>
           <tr className="text-base-content/60">
-            <th>Treffen</th>
+            <SortHeader label="Treffen" sortKey="title_asc" active={sort === 'title_asc'} indicator="▲" onSort={onSort} />
             <th className="hidden sm:table-cell">Region</th>
-            <th className="whitespace-nowrap">Datum</th>
+            <SortHeader
+              label="Datum"
+              sortKey={dateNext}
+              active={dateActive}
+              indicator={sort === 'starts_at_desc' ? '▼' : '▲'}
+              onSort={onSort}
+              className="whitespace-nowrap"
+            />
             <th className="hidden md:table-cell">Level</th>
-            <th>Plätze</th>
+            <SortHeader label="Plätze" sortKey="participants_desc" active={sort === 'participants_desc'} indicator="▼" onSort={onSort} />
             <th>Status</th>
           </tr>
         </thead>

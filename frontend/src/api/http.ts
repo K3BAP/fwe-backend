@@ -85,3 +85,38 @@ export async function apiFetch<T>(
   if (json?.data == null) return undefined as T
   return schema.parse(json.data)
 }
+
+/** Eine Seite eines Listen-Endpunkts: validierte Items + Pagination-`meta` (06-backend §3). */
+export type Page<T> = { items: T[]; total: number; limit: number; offset: number }
+
+/**
+ * Wie {@see apiFetch}, aber für paginierte GET-Listen: validiert `data` als Array gegen das
+ * **Item**-Schema und reicht `meta` (total/limit/offset) durch — anders als `apiFetch`, das `meta`
+ * verwirft. Genutzt von der Flugtreffen-Liste (serverseitige Suche/Filter/Sort/Pagination).
+ */
+export async function apiFetchPage<T>(
+  path: string,
+  itemSchema: z.ZodType<T>,
+  opts: { query?: Query } = {},
+): Promise<Page<T>> {
+  const url = new URL(`${API_BASE}${path}`, window.location.origin)
+  if (opts.query) {
+    for (const [k, v] of Object.entries(opts.query)) {
+      if (v !== undefined && v !== '') url.searchParams.set(k, String(v))
+    }
+  }
+
+  const res = await fetch(url, { credentials: 'include' })
+  const json = (await res.json().catch(() => null)) as
+    | { data?: unknown; meta?: { total?: number; limit?: number; offset?: number }; error?: { code?: string; message?: string } }
+    | null
+
+  if (!res.ok) {
+    const err = json?.error ?? {}
+    throw new ApiError(err.code ?? 'unknown', err.message ?? 'Unbekannter Fehler.', res.status)
+  }
+
+  const items = itemSchema.array().parse(json?.data ?? [])
+  const meta = json?.meta ?? {}
+  return { items, total: meta.total ?? items.length, limit: meta.limit ?? items.length, offset: meta.offset ?? 0 }
+}

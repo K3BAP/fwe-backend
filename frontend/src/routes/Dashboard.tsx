@@ -12,7 +12,9 @@ import { ClockIcon, GroupIcon, WingIcon } from '@/components/layout/icons'
 export function Dashboard() {
   const user = useAuthStore((s) => s.user)
   const firstName = user?.displayName.split(' ')[0] ?? 'Pilot'
-  const meetups = useMeetups()
+  // Teaser: die nächsten 6 anstehenden Treffen (ab heute), nicht die vergangenen.
+  const today = new Date().toISOString().slice(0, 10)
+  const meetups = useMeetups({ sort: 'starts_at_asc', limit: 6, date_from: today })
   const groups = useGroups()
 
   return (
@@ -33,12 +35,12 @@ export function Dashboard() {
         <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:-mx-5 sm:px-5">
           {meetups.isLoading &&
             Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-64 w-[300px] shrink-0" />)}
-          {meetups.data?.slice(0, 6).map((m) => (
+          {meetups.data?.items.map((m) => (
             <div key={m.id} className="w-[300px] shrink-0">
               <MeetupCard meetup={m} />
             </div>
           ))}
-          {meetups.data && meetups.data.length === 0 && (
+          {meetups.data && meetups.data.items.length === 0 && (
             <EmptyState className="w-full" title="Noch keine Flugtreffen" description="Erstelle das erste in deiner Region." />
           )}
         </div>

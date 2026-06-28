@@ -4,24 +4,45 @@ import { meetupsTable } from '@/mocks/meetups'
 import { mockRead, mockWrite } from '@/mocks/runtime'
 import { useAuthStore, type SessionUser } from '@/stores/authStore'
 import { toast } from '@/stores/toastStore'
-import { ApiError, apiFetch } from './http'
+import { ApiError, apiFetch, apiFetchPage } from './http'
 import { qk } from './queryKeys'
 import {
   meetupDetailSchema,
-  meetupListSchema,
+  meetupListItemSchema,
   type MeetupCreateInput,
   type MeetupDetail,
   type MeetupListItem,
   type PublicUserCard,
 } from './schemas'
 
+/** Serverseitige Such-/Filter-/Sort-/Pagination-Parameter für `GET /meetups` (02-flugtreffen.md §6). */
+export type MeetupListParams = {
+  q?: string
+  region?: string
+  level?: string
+  status?: string
+  date_from?: string
+  date_to?: string
+  has_free_spots?: string
+  sort?: string
+  limit?: number
+  offset?: number
+}
+
+export type MeetupListPage = { items: MeetupListItem[]; total: number }
+
 /**
- * Daten-Naht (ADR-016): in M1 aus dem Mock-Store, ab M3 (Flugtreffen verkabeln) auf `apiFetch` —
- * nur diese Funktionen ändern sich, Hooks/Komponenten bleiben gleich.
+ * Daten-Naht (ADR-016): in M1 aus dem Mock-Store, ab M3 (Flugtreffen verkabeln) gegen das echte
+ * Backend — nur diese Funktionen ändern sich, Hooks/Komponenten bleiben gleich. Suche/Filter/Sort/
+ * Pagination laufen serverseitig; `meta.total` speist den Pager.
  */
-async function fetchMeetups(): Promise<MeetupListItem[]> {
-  if (USE_MOCKS.meetups) return mockRead(() => meetupsTable.list(), { emptyValue: [] })
-  return apiFetch('/meetups', meetupListSchema)
+async function fetchMeetups(params: MeetupListParams): Promise<MeetupListPage> {
+  if (USE_MOCKS.meetups) {
+    const items = await mockRead(() => meetupsTable.list(), { emptyValue: [] })
+    return { items, total: items.length }
+  }
+  const page = await apiFetchPage('/meetups', meetupListItemSchema, { query: params })
+  return { items: page.items, total: page.total }
 }
 
 async function fetchMeetup(id: number): Promise<MeetupDetail> {
@@ -29,8 +50,8 @@ async function fetchMeetup(id: number): Promise<MeetupDetail> {
   return apiFetch(`/meetups/${id}`, meetupDetailSchema)
 }
 
-export function useMeetups() {
-  return useQuery({ queryKey: qk.meetups.list(), queryFn: fetchMeetups })
+export function useMeetups(params: MeetupListParams) {
+  return useQuery({ queryKey: qk.meetups.list(params), queryFn: () => fetchMeetups(params) })
 }
 
 export function useMeetup(id: number) {
@@ -66,7 +87,9 @@ function applyParticipation(d: MeetupDetail, me: PublicUserCard, joining: boolea
 
 async function mutateParticipation(id: number, joining: boolean, user: PublicUserCard): Promise<MeetupDetail> {
   if (USE_MOCKS.meetups) return mockWrite(() => (joining ? meetupsTable.join(id, user) : meetupsTable.leave(id, user.id)))
-  return apiFetch(`/meetups/${id}/participants`, meetupDetailSchema, { method: joining ? 'POST' : 'DELETE' })
+  // Beitreten: POST .../participants; Austreten: DELETE .../participants/me (API.md §5.6/§5.7).
+  const path = joining ? `/meetups/${id}/participants` : `/meetups/${id}/participants/me`
+  return apiFetch(path, meetupDetailSchema, { method: joining ? 'POST' : 'DELETE' })
 }
 
 /** Teilnehmen/Absagen mit optimistischem Update + Rollback bei Fehler (z.B. 409 ausgebucht). */
@@ -143,7 +166,7 @@ export function useDeleteMeetup() {
         await mockWrite(() => meetupsTable.remove(id))
         return
       }
-      await apiFetch(`/meetups/${id}`, meetupListSchema, { method: 'DELETE' })
+      await apiFetch(`/meetups/${id}`, meetupDetailSchema, { method: 'DELETE' }) // 204 → Schema ungenutzt
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: [...qk.meetups.all, 'list'] }),
   })
