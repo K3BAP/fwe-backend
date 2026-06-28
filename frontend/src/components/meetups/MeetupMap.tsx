@@ -4,11 +4,14 @@ import { MapShell } from '@/components/map/MapShell'
 import { pinIcon } from '@/components/map/pin'
 import type { MeetupListItem } from '@/api/schemas'
 
-/** Karten-Ansicht der Übersicht: ein Marker je verortetem Treffen, Popup verlinkt aufs Detail. */
-export function MeetupMap({ meetups }: { meetups: MeetupListItem[] }) {
+/**
+ * Karten-Ansicht der Übersicht: ein Marker je verortetem Treffen, Popup verlinkt aufs Detail.
+ * `className` überschreibt die Standardhöhe (z.B. `h-full rounded-none` im Desktop-Split).
+ */
+export function MeetupMap({ meetups, className }: { meetups: MeetupListItem[]; className?: string }) {
   const located = meetups.filter((m) => m.lat != null && m.lng != null)
   return (
-    <MapShell className="h-[60vh] min-h-[420px]">
+    <MapShell className={className ?? 'h-[60vh] min-h-[420px]'}>
       {located.map((m) => (
         <Marker
           key={m.id}

@@ -2,10 +2,10 @@ import { Link } from 'react-router-dom'
 import type { GroupListItem } from '@/api/schemas'
 import { brandGradient, initials } from '@/lib/gradient'
 
-/** Schmale Gruppen-Kachel für den horizontalen Dashboard-Scroll. */
+/** Kompakte Gruppen-Kachel (Dashboard-Grid). */
 export function GroupMiniCard({ group }: { group: GroupListItem }) {
   return (
-    <Link to={`/gruppen/${group.id}`} className="block w-40 shrink-0">
+    <Link to={`/gruppen/${group.id}`} className="block">
       <div className="overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-card transition hover:shadow-hover">
         <div
           className="grid h-20 place-items-center font-display text-xl font-bold text-white"

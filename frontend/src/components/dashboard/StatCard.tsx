@@ -1,15 +1,28 @@
 import type { ReactNode } from 'react'
 import { Card } from '@/components/ui'
+import { cn } from '@/lib/cn'
 
-/** Kompakte Kennzahl-Card fürs Dashboard. Vertikal, damit auch 3 Spalten auf 375px passen. */
-export function StatCard({ icon, value, label }: { icon: ReactNode; value: ReactNode; label: string }) {
+/**
+ * Kennzahl-Card fürs Dashboard (Prototyp-Stil: großer farbiger Wert + Label, ohne Icon).
+ * `valueClassName` setzt die Wertfarbe; `className` steuert die Card (z.B. `hidden lg:block`).
+ */
+export function StatCard({
+  value,
+  label,
+  valueClassName,
+  className,
+}: {
+  value: ReactNode
+  label: string
+  valueClassName?: string
+  className?: string
+}) {
   return (
-    <Card className="flex flex-col gap-2 p-3.5">
-      <span className="grid size-9 place-items-center rounded-xl bg-sky-50 text-sky-600">{icon}</span>
-      <div>
-        <div className="whitespace-nowrap font-display text-2xl leading-none">{value}</div>
-        <div className="mt-1 text-[11px] leading-tight text-base-content/55">{label}</div>
+    <Card className={cn('p-4 sm:p-[18px]', className)}>
+      <div className={cn('whitespace-nowrap font-display text-2xl font-extrabold leading-none sm:text-[26px]', valueClassName)}>
+        {value}
       </div>
+      <div className="mt-1.5 text-xs text-base-content/55 sm:text-[13px]">{label}</div>
     </Card>
   )
 }

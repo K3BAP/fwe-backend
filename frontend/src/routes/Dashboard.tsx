@@ -6,56 +6,65 @@ import { GroupMiniCard } from '@/components/groups/GroupMiniCard'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { SectionHeader } from '@/components/dashboard/SectionHeader'
 import { EmptyState, Skeleton } from '@/components/ui'
-import { ClockIcon, GroupIcon, WingIcon } from '@/components/layout/icons'
 
-/** Eingeloggte Startseite: Begrüßung, Kennzahlen, aktuelle Treffen & eigene Gruppen (Mock). */
+/** Eingeloggte Startseite: Begrüßung, Kennzahlen, aktuelle Treffen & eigene Gruppen. */
 export function Dashboard() {
   const user = useAuthStore((s) => s.user)
   const firstName = user?.displayName.split(' ')[0] ?? 'Pilot'
-  // Teaser: die nächsten 6 anstehenden Treffen (ab heute), nicht die vergangenen.
+  // Teaser: die nächsten anstehenden Treffen (ab heute), nicht die vergangenen.
   const today = new Date().toISOString().slice(0, 10)
   const meetups = useMeetups({ sort: 'starts_at_asc', limit: 6, date_from: today })
   const groups = useGroups()
+  const upcoming = meetups.data?.items ?? []
 
   return (
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-3xl">Servus, {firstName} 👋</h1>
-        <p className="mt-1 text-base-content/60">Bereit für die nächste Thermik?</p>
+        <p className="mt-1 text-base-content/60">
+          {upcoming.length} Flugtreffen in deiner Region · plane deinen nächsten Flugtag.
+        </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard icon={<WingIcon size={22} />} value="12" label="Flüge 2026" />
-        <StatCard icon={<ClockIcon size={22} />} value="48 h" label="Flugstunden" />
-        <StatCard icon={<GroupIcon size={22} />} value={groups.data?.length ?? '–'} label="Gruppen" />
+      <div className="grid grid-cols-3 gap-3 sm:gap-3.5 lg:grid-cols-4">
+        <StatCard value="12" label="Flüge 2026" valueClassName="text-primary" />
+        <StatCard value={<>480<span className="text-base font-bold text-base-content/50">h</span></>} label="Flugstunden" valueClassName="text-secondary" />
+        <StatCard value={groups.data?.length ?? '–'} label="Gruppen" valueClassName="text-accent" />
+        <StatCard value="28" label="Teilnahmen" className="hidden lg:block" />
       </div>
 
       <section>
         <SectionHeader title="Aktuelle Flugtreffen" to="/flugtreffen" />
-        <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:-mx-5 sm:px-5">
-          {meetups.isLoading &&
-            Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-64 w-[300px] shrink-0" />)}
-          {meetups.data?.items.map((m) => (
-            <div key={m.id} className="w-[300px] shrink-0">
-              <MeetupCard meetup={m} />
-            </div>
-          ))}
-          {meetups.data && meetups.data.items.length === 0 && (
-            <EmptyState className="w-full" title="Noch keine Flugtreffen" description="Erstelle das erste in deiner Region." />
-          )}
-        </div>
+        {meetups.isLoading && (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-72" />)}
+          </div>
+        )}
+        {!meetups.isLoading && upcoming.length === 0 && (
+          <EmptyState title="Noch keine Flugtreffen" description="Erstelle das erste in deiner Region." />
+        )}
+        {upcoming.length > 0 && (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {upcoming.map((m) => <MeetupCard key={m.id} meetup={m} />)}
+          </div>
+        )}
       </section>
 
       <section>
         <SectionHeader title="Deine Gruppen" to="/gruppen" />
-        <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:-mx-5 sm:px-5">
-          {groups.isLoading &&
-            Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-32 w-40 shrink-0" />)}
-          {groups.data?.slice(0, 6).map((g) => <GroupMiniCard key={g.id} group={g} />)}
-          {groups.data && groups.data.length === 0 && (
-            <EmptyState className="w-full" title="Noch keine Gruppen" description="Entdecke Communities in deiner Region." />
-          )}
-        </div>
+        {groups.isLoading && (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-32" />)}
+          </div>
+        )}
+        {!groups.isLoading && (groups.data?.length ?? 0) === 0 && (
+          <EmptyState title="Noch keine Gruppen" description="Entdecke Communities in deiner Region." />
+        )}
+        {(groups.data?.length ?? 0) > 0 && (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {groups.data?.slice(0, 6).map((g) => <GroupMiniCard key={g.id} group={g} />)}
+          </div>
+        )}
       </section>
     </div>
   )
