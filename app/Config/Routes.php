@@ -24,6 +24,12 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->post('auth/login', 'AuthController::login', ['filter' => ['throttle:login,5', 'csrf']]); // 5/min/IP
     $routes->get('users/(:num)', 'ProfileController::show/$1'); // öffentliche Profilkarte (reduziert)
 
+    // Flugtreffen + Spots: Lesen ist öffentlich (Gäste lesen), §11.
+    $routes->get('spots', 'SpotController::index');
+    $routes->get('spots/(:num)', 'SpotController::show/$1');
+    $routes->get('meetups', 'MeetupController::index');
+    $routes->get('meetups/(:num)', 'MeetupController::show/$1');
+
     // --- auth-pflichtig (Shield-Session); csrf zusätzlich für schreibende Methoden ---
     $routes->group('', ['filter' => ['csrf', 'auth']], static function (RouteCollection $routes): void {
         $routes->post('auth/logout', 'AuthController::logout');
