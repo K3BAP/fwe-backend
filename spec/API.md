@@ -66,8 +66,7 @@ Moderierbare Inhalte werden soft-gelöscht (`deleted_at`, ggf. `deleted_by`) und
 | `profiles.experience_level` | `beginner`, `advanced`, `expert` |
 | `meetups.experience_level` | `beginner`, `advanced`, `expert`, `all` |
 | `meetups.status` (persistiert) | `open`, `cancelled` |
-| `meetups.status` (berechnet, nur im Read) | `open`, `full`, `finished`, `cancelled` |
-| `meetup_participants.status` | `confirmed` (Default), `waitlist` (deferred) |
+| `meetups.derived_status` (berechnet, nur im Read) | `open`, `full`, `finished`, `cancelled` |
 | `groups.visibility` | `public`, `private`, `unlisted` |
 | `groups.join_policy` | `open`, `request`, `invite_only` |
 | `group_members.role` | `owner`, `admin`, `member` |
@@ -209,11 +208,11 @@ Admin-Moderation: Sperren/Entsperren, Rolle ändern. **Auth: `admin`.**
 ### 4.1 GET `/spots`
 Liste/Autocomplete-Quelle. Liefert `lat`/`lng`/`region` für Treffen-Erstellung & Leaflet-Marker. FileCache + ETag (kurze TTL).
 
-**Query:** `q` (Name-Prefix/LIKE), `region`, `type` (`startplatz|landeplatz|gebiet`), `limit`, `offset`.
+**Query:** `q` (Name-Prefix/LIKE), `region`, `type` (`launch|landing|area`), `limit`, `offset`.
 **Response 200** → `{ data: Spot[] }`:
 ```json
 { "data": [ { "id": 7, "name": "Wasserkuppe", "region": "Rhön", "country": "DE",
-  "lat": 50.4986, "lng": 9.9436, "type": "startplatz" } ] }
+  "lat": 50.4986, "lng": 9.9436, "type": "launch" } ] }
 ```
 
 ### 4.2 GET `/spots/{id}`
@@ -248,24 +247,24 @@ Bedient Karte, Tabelle und Cards mit einer Route.
 | `status` | `open\|full\|finished\|cancelled` (Filter auf berechnetem Status) |
 | `date_from`, `date_to` | ISO-Datum, Range auf `starts_at` |
 | `has_free_spots` | bool |
-| `sort` | `starts_at` (Default), `-starts_at`, `participant_count` |
-| `limit`, `offset` | Pagination (Default 20) |
+| `sort` | `starts_at_asc` (Default), `starts_at_desc`, `created_at_desc`, `participants_desc`, `title_asc` |
+| `limit`, `offset` | Pagination (`limit` 1–200, Default 20) |
 
-**Response 200** → `{ data: MeetupListItem[], meta: { total, limit, offset } }`:
+**Response 200** → `{ data: MeetupListItem[], meta: { total, limit, offset, sort } }`:
 ```json
 { "data": [ {
-  "id": 12, "title": "Mosel-Soaring Sonntag", "spot_id": 7, "spot_name": "Wasserkuppe",
+  "id": 12, "title": "Mosel-Soaring Sonntag", "spot_name": "Wasserkuppe",
   "region": "Rhön", "lat": 50.4986, "lng": 9.9436,
   "starts_at": "2026-07-05T09:00:00Z", "experience_level": "all",
   "max_participants": 15, "participant_count": 8, "free_spots": 7,
-  "status": "open", "creator_user_id": 42
+  "derived_status": "open"
 } ] }
 ```
 
 ### 5.2 GET `/meetups/{id}`
 Detail inkl. Teilnehmerliste, berechnetem Status, `is_participant`-Flag für `current_user`.
 
-**Response 200** → `{ data: MeetupDetail }` (MeetupListItem + `description`, `participants: PublicUserCard[]`, `is_participant: bool`, `can_edit: bool`). **Fehler:** `404 not_found` (auch bei nicht-sichtbarem group-scoped Treffen).
+**Response 200** → `{ data: MeetupDetail }` (MeetupListItem + `spot_id`, `creator_user_id`, `description`, `conversation_id: int|null` (M3: `null`; real ab M5), `participants: PublicUserCard[]`, `is_participant: bool`, `can_edit: bool`). Teilnehmer sortiert: Ersteller zuerst, dann `joined_at` aufsteigend. **Fehler:** `404 not_found` (auch bei nicht-sichtbarem group-scoped Treffen).
 
 ### 5.3 POST `/meetups`
 Erstellt Treffen; trägt Creator automatisch als Teilnehmer ein.
@@ -278,13 +277,15 @@ Erstellt Treffen; trägt Creator automatisch als Teilnehmer ein.
 | `spot_id` | int | existierender Spot; liefert `lat`/`lng`/`region` (ADR-007) |
 | `starts_at` | datetime | ISO, **`> now()`** |
 | `experience_level` | enum | `beginner\|advanced\|expert\|all` |
-| `max_participants` | int | `>=1` |
+| `max_participants` | int\|null | `>=1` falls gesetzt; `null` = unbegrenzt |
 | `group_id` | int\|null | optional group-scoped (Schema vorbereitet; UI deferred) |
 
-**Response 201** → `{ data: MeetupDetail }`. **Fehler:** `422 validation_error` (`starts_at` in Vergangenheit → `fields.starts_at`; `max_participants < 1`); `404 spot_not_found`.
+`region`/`lat`/`lng`/`spot_name` werden **nicht** vom Client gesendet — der Server leitet sie aus `spot_id` ab.
+
+**Response 201** → `{ data: MeetupDetail }`. **Fehler:** `422 validation_error` (`starts_at` in Vergangenheit → `fields.starts_at`; `max_participants < 1`; ungültiger Spot → `fields.spot_id`).
 
 ### 5.4 PATCH `/meetups/{id}`
-Bearbeiten **oder Absagen** (`status: 'cancelled'`, soft, behält Historie). **Auth: Creator oder `admin`.** Felder wie 5.3 (alle optional). **Fehler:** `403 forbidden`; `404 not_found`; `422 validation_error`.
+Bearbeiten **oder Absagen** (`status: 'cancelled'`, soft, behält Historie). **Auth: Creator oder `admin`.** Felder wie 5.3 (alle optional); bei `spot_id`-Wechsel werden `spot_name`/`region`/`lat`/`lng` neu abgeleitet; `max_participants` darf nicht unter den aktuellen `participant_count`. **Response 200** → `{ data: MeetupDetail }`. **Fehler:** `403 forbidden`; `404 not_found`; `409 capacity_below_current`; `422 validation_error`.
 
 ### 5.5 DELETE `/meetups/{id}`
 Hartes Löschen (kaskadiert `meetup_participants` + zugehörige `conversations` bewusst aufräumen, ADR-005). **Auth: Creator oder `admin`.** Bevorzugt jedoch „Absagen" via 5.4. **Response 204.** **Fehler:** `403 forbidden`; `404 not_found`.
@@ -293,14 +294,14 @@ Hartes Löschen (kaskadiert `meetup_participants` + zugehörige `conversations` 
 „Teilnehmen": `current_user` beitreten. Transaktional mit Kapazitätsprüfung (UNIQUE `(meetup_id,user_id)`).
 
 **Request:** leer (oder `{}`).
-**Response 201** → `{ data: { participant_count, free_spots, status } }`.
-**Fehler:** `409 meetup_full`; `409 already_joined` (alternativ idempotent 200); `409 meetup_cancelled`; `409 meetup_finished`; `404 not_found`.
+**Response 200** → `{ data: MeetupDetail }` — **idempotent**: frischer wie wiederholter Beitritt liefern den aktuellen Detail-Stand (kein Duplikat dank UNIQUE).
+**Fehler:** `409 meetup_full`; `409 meetup_not_joinable` (abgesagt/abgeschlossen); `404 not_found`.
 
 ### 5.7 DELETE `/meetups/{id}/participants/me`
-„Absagen": Selbst-Austritt (Button-Toggle). **Response 204** → `{ data: { participant_count, free_spots } }` (200 mit Body möglich). **Fehler:** `404 not_found` (nicht Teilnehmer).
+„Absagen": Selbst-Austritt (Button-Toggle). **Idempotent:** war der Nutzer nicht angemeldet ⇒ aktueller Stand statt `404`. **Response 200** → `{ data: MeetupDetail }`. **Ersteller-Sonderfall:** der Organisator kann nicht austreten ⇒ `409 creator_cannot_leave` (Treffen absagen/löschen).
 
 ### 5.8 DELETE `/meetups/{id}/participants/{userId}`
-Admin/Creator entfernt Teilnehmer. **Auth: Creator oder `admin`.** **Response 204.** **Fehler:** `403 forbidden`.
+Admin/Creator entfernt Teilnehmer. **Auth: Creator oder `admin`.** Der Creator kann sich hierüber nicht selbst entfernen (`409 creator_cannot_leave`). **Response 200** → `{ data: MeetupDetail }`. **Fehler:** `403 forbidden`; `404 not_found`.
 
 ---
 
@@ -634,7 +635,7 @@ Generischer Datei-Upload (Gruppen-Logo, Feed-Bild). Validiert MIME (`image/jpeg|
 | 3 | flugtreffen, chat | `/realtime/auth`, Pusher/Supabase-Trigger | **gestrichen**; Polling-only | ADR-001 |
 | 4 | flugtreffen | `status` `geplant\|laeuft\|abgesagt\|beendet` | persistiert **`open\|cancelled`**, `full`/`finished` berechnet | ADR-002, DATA_MODEL |
 | 5 | flugtreffen vs. backend-deploy | `experience_level` `anfaenger\|fortgeschritten\|profi/experte` | **`beginner\|advanced\|expert`** (+`all` nur Meetup) | DATA_MODEL-Vereinheitlichung |
-| 6 | backend-deploy | `POST/DELETE /meetups/{id}/join`; `meetup_participants.status` `zugesagt\|vielleicht\|abgesagt` | **`/meetups/{id}/participants`** Sub-Resource; `confirmed`(+`waitlist` deferred) | konsistent zu Gruppen-Beitritt, DATA_MODEL |
+| 6 | backend-deploy | `POST/DELETE /meetups/{id}/join`; `meetup_participants.status` `zugesagt\|vielleicht\|abgesagt` | **`/meetups/{id}/participants`** Sub-Resource; **kein `status`-Feld** (Teilnahme = Zeile existiert; keine Warteliste) | konsistent zu Gruppen-Beitritt, DATA_MODEL, ADR-015 |
 | 7 | gruppen, backend-deploy | `group_channels`+`group_messages`; `/api/channels/{channelId}/messages` | Channel = `conversations type='group_channel'`; Messages über **`/conversations/{id}/messages`** | ADR-005 |
 | 8 | backend-deploy | eine `join_requests`-Tabelle (request+invite) | getrennt **`group_join_requests`** + **`group_invites`** | ADR-006 |
 | 9 | backend-deploy | `groups.visibility` `public\|private\|invite_only` (vermischt Beitritt) | **`visibility`** ∈ public/private/unlisted **+** separates **`join_policy`** | ADR-006 |

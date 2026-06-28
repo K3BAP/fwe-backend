@@ -14,7 +14,7 @@ Dieses Kapitel spezifiziert die Domäne **Flugtreffen** vollständig: Datenmodel
 | Teilnahme-Integrität | `UNIQUE(meetup_id,user_id)` + Kapazitätsprüfung in DB-Transaktion, `409` bei voll | Querschnitt „Datenintegrität" |
 | Suche/Filter | serverseitig über `GET /api/v1/meetups` (LIKE), `limit/offset`-Pagination | flugtreffen.json, openMidLow |
 | Autorisierung | Auth-Filter **plus** Objekt-Autorisierung (BOLA): Bearbeiten/Absagen nur Creator/Admin | ADR-004, Querschnitt „BOLA" |
-| Chat-Bindeglied | Treffen-Chat = `conversations(type='meetup', context_id=meetup.id)`; Flugtreffen-API liefert nur `meetup_id` | ADR-005 |
+| Chat-Bindeglied | Treffen-Chat = `conversations(type='meetup', context_id=meetup.id)`; Flugtreffen-API liefert `conversation_id` (nullable; in M3 `null`, real ab M5) | ADR-005 |
 | Sprache | DB/Enum/API englisch, Labels deutsch, Datum/Zeit `Intl` de-DE | Querschnitt „Enum/Sprache" |
 
 > **✅ Entschieden (ADR-012/A1):** `users.id` projektweit `BIGINT UNSIGNED`; `meetups.creator_user_id` und `meetup_participants.user_id` sind `BIGINT UNSIGNED`. Der Platzhalter `<user_id-Typ>` in diesem Kapitel = `BIGINT UNSIGNED`.
@@ -30,23 +30,24 @@ Verbindlich gemäß `DATA_MODEL.md`, Abschnitt 4 (Flugtreffen & Geo). `regions` 
 | Spalte | Typ | Constraints / Default | Bedeutung |
 |---|---|---|---|
 | `id` | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| `creator_user_id` | `<user_id-Typ>` | FK→`users.id`, NOT NULL, ON DELETE CASCADE | Ersteller |
+| `spot_id` | BIGINT UNSIGNED | FK→`spots.id`, NULL, ON DELETE SET NULL | gewählter Startplatz (Pflicht beim Erstellen) |
+| `spot_name` | VARCHAR(150) | NULL | denormalisiert aus Spot (Snapshot; beim Erstellen gesetzt) |
+| `region` | VARCHAR(80) | NULL | denormalisiert aus `spot.region` (Filterspalte) |
+| `lat` | DECIMAL(9,6) | NULL | aus Spot kopiert (Marker) |
+| `lng` | DECIMAL(9,6) | NULL | aus Spot kopiert (Marker) |
 | `title` | VARCHAR(150) | NOT NULL | Titel |
 | `description` | TEXT | NULL | Beschreibung (Plaintext) |
-| `spot_id` | BIGINT UNSIGNED | FK→`spots.id`, NOT NULL, ON DELETE RESTRICT | gewählter Startplatz |
-| `spot_name` | VARCHAR(150) | NOT NULL | denormalisiert aus Spot (Snapshot zum Erstellzeitpunkt) |
-| `region` | VARCHAR(80) | NOT NULL | denormalisiert aus `spot.region` |
-| `lat` | DECIMAL(9,6) | NOT NULL | aus Spot kopiert (Marker) |
-| `lng` | DECIMAL(9,6) | NOT NULL | aus Spot kopiert (Marker) |
 | `starts_at` | DATETIME | NOT NULL | kombiniertes Datum+Uhrzeit (Single Source of Truth) |
 | `experience_level` | ENUM(`beginner`,`advanced`,`expert`,`all`) | NOT NULL, DEFAULT `all` | Zielniveau (siehe §3) |
-| `max_participants` | SMALLINT UNSIGNED | NOT NULL, CHECK ≥ 1 | Kapazität |
-| `status` | ENUM(`open`,`cancelled`) | NOT NULL, DEFAULT `open` | **nur** persistierter Status |
-| `creator_user_id` | `<user_id-Typ>` | FK→`users.id`, NOT NULL, ON DELETE … (s.u.) | Ersteller |
+| `max_participants` | SMALLINT UNSIGNED | NULL (NULL = unbegrenzt; falls gesetzt ≥ 1) | Kapazität |
+| `status` | ENUM(`open`,`cancelled`) | NOT NULL, DEFAULT `open` | **nur** persistierter Status (kein `deleted_at` — DELETE ist hart) |
+| `visibility` | ENUM(`public`,`group`) | NOT NULL, DEFAULT `public` | vorbereitet (ADR-012/B5); MVP immer `public` |
+| `group_id` | BIGINT UNSIGNED | NULL | FK→`groups.id` ab M4; gruppen-internes Treffen |
 | `created_at` | TIMESTAMP | | |
 | `updated_at` | TIMESTAMP | | |
-| `deleted_at` | DATETIME NULL | Soft-Delete (moderierbar) | |
 
-**Indizes:** `INDEX(starts_at)`, `INDEX(region)`, `INDEX(experience_level)`, `INDEX(status)`, `INDEX(spot_id)`, `INDEX(creator_user_id)`.
+**Indizes:** `INDEX(starts_at)`, `INDEX(region)`, `INDEX(experience_level)`, `INDEX(status)`, `INDEX(spot_id)`, `INDEX(creator_user_id)`, `INDEX(group_id)`, kombiniert `INDEX(status, starts_at)`.
 
 **Denormalisierungs-Begründung:** `spot_name/region/lat/lng` werden beim Erstellen aus dem Spot kopiert. Das hält Karten-/Listen-Reads ohne Join schnell und friert die Geo-Angabe als Snapshot ein, falls ein Admin den Spot später ändert. `spot_id` bleibt als Referenz erhalten.
 
@@ -77,8 +78,10 @@ Verbindlich gemäß `DATA_MODEL.md`, Abschnitt 4 (Flugtreffen & Geo). `regions` 
 | `id` | BIGINT UNSIGNED PK | |
 | `name` | VARCHAR(150) NOT NULL | Startplatz-Name |
 | `region` | VARCHAR(80) NOT NULL | abgeleitete Region |
+| `country` | CHAR(2) NOT NULL, DEFAULT `DE` | ISO-3166-alpha2 |
 | `lat` | DECIMAL(9,6) NOT NULL | |
 | `lng` | DECIMAL(9,6) NOT NULL | |
+| `type` | ENUM(`launch`,`landing`,`area`) NOT NULL, DEFAULT `launch` | Startplatz/Landeplatz/Fluggebiet |
 | `description` | TEXT NULL | |
 | `created_at` | TIMESTAMP | |
 
@@ -105,17 +108,17 @@ Hinweis: Die im Quell-Dossier genannten deutschen Keys (`anfaenger|fortgeschritt
 
 ## 4. Abgeleiteter Status (Read-Pfad, kein Cron)
 
-Persistiert ist nur `meetups.status ∈ {open, cancelled}`. Der **effektive Status** (`effective_status`) wird serverseitig bei jedem Read berechnet und im Response ausgeliefert. Frontend rendert ausschließlich `effective_status`.
+Persistiert ist nur `meetups.status ∈ {open, cancelled}`. Der **effektive Status** (`derived_status`) wird serverseitig bei jedem Read berechnet und im Response ausgeliefert. Frontend rendert ausschließlich `derived_status`.
 
 ```
-funktion effective_status(meetup, participant_count, now):
+funktion derived_status(meetup, participant_count, now):
     wenn meetup.status == 'cancelled':            -> 'cancelled'   // Abgesagt (hat Vorrang)
     sonst wenn meetup.starts_at < now:            -> 'finished'    // Abgeschlossen
     sonst wenn participant_count >= max_participants: -> 'full'    // Ausgebucht
     sonst:                                        -> 'open'        // Offen
 ```
 
-| `effective_status` | Label | UI-Verhalten Teilnehmen-Button |
+| `derived_status` | Label | UI-Verhalten Teilnehmen-Button |
 |---|---|---|
 | `open` | „Offen" | aktiv (Teilnehmen/Absagen-Toggle) |
 | `full` | „Ausgebucht" | deaktiviert für Nicht-Teilnehmer; „Absagen" bleibt aktiv für Teilnehmer |
@@ -124,7 +127,7 @@ funktion effective_status(meetup, participant_count, now):
 
 **Präzedenz** (wichtig, fest verdrahtet): `cancelled` > `finished` > `full` > `open`. Ein abgesagtes Treffen bleibt „Abgesagt", auch wenn das Datum in der Vergangenheit liegt.
 
-**Vergangenheit & Beitritt:** Beitritt zu einem Treffen mit `effective_status ∈ {finished, cancelled}` ist serverseitig verboten (`409 meetup_not_joinable`).
+**Vergangenheit & Beitritt:** Beitritt zu einem Treffen mit `derived_status ∈ {finished, cancelled}` ist serverseitig verboten (`409 meetup_not_joinable`).
 
 ---
 
@@ -134,7 +137,7 @@ Alle drei Ansichten konsumieren **denselben** `GET /api/v1/meetups`-Response. Di
 
 | View | Key | Inhalt | Polling-Intervall (ADR-001) |
 |---|---|---|---|
-| Karte | `map` | Leaflet + OSM-Tiles, ein Marker je Treffen aus `lat/lng`; Popup mit Titel, `starts_at`, `effective_status`, `free_spots`, Link zur Detailseite | 15–30 s, pausiert bei `document.hidden` |
+| Karte | `map` | Leaflet + OSM-Tiles, ein Marker je Treffen aus `lat/lng`; Popup mit Titel, `starts_at`, `derived_status`, `free_spots`, Link zur Detailseite | 15–30 s, pausiert bei `document.hidden` |
 | Tabelle | `table` | Spalten: Titel · Spot · Region · `starts_at` · Level · Teilnehmer (`x/max`) · Status. Sortierbare Header. | 15–30 s |
 | Cards (Dashboard) | `cards` | Karten-Grid: Titel, Region/Spot, Datum, Level-Badge, Status-Badge, Belegungs-Balken, Teilnehmen-Button | 15–30 s |
 
@@ -143,7 +146,7 @@ Alle drei Ansichten konsumieren **denselben** `GET /api/v1/meetups`-Response. Di
 **Karten-Spezifika:**
 - OSM-Tile-URL `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`, Attribution Pflicht: „© OpenStreetMap-Mitwirkende".
 - Bei vielen/nahen Markern optional `leaflet.markercluster` (Phase-2-fähig, MVP: einfache Marker).
-- Marker-Farbe nach `effective_status` (z. B. grün=offen, grau=ausgebucht/abgeschlossen, rot=abgesagt).
+- Marker-Farbe nach `derived_status` (z. B. grün=offen, grau=ausgebucht/abgeschlossen, rot=abgesagt).
 - `fitBounds` auf die geladenen Marker; leeres Ergebnis ⇒ Default-Center (z. B. Mosel-Region).
 - Nur Treffen mit gültigen `lat/lng` werden gemappt (durch Spot-Pflicht immer gegeben).
 
@@ -172,11 +175,11 @@ Alles serverseitig über **eine** Route `GET /api/v1/meetups`. Suche = LIKE übe
 
 **Level-Filter-Semantik:** Wählt der Nutzer im Filter z. B. „Fortgeschritten", werden Treffen mit `experience_level IN ('advanced','all')` zurückgegeben (ein „Alle Level"-Treffen passt zu jedem gewählten Niveau). Der Wert `all` als expliziter Filter liefert alle Treffen (kein Filter).
 
-**Region-Filter-Quelle:** Region-Optionen kommen aus `GET /api/v1/regions` (DISTINCT der in Treffen/Spots vorkommenden Regionen). Dropdown statt Freitext — keine fehleranfälligen Tippvarianten.
+**Region-Filter-Quelle:** Region-Optionen werden aus `GET /api/v1/spots` abgeleitet (DISTINCT der Spot-Regionen). Dropdown statt Freitext — keine fehleranfälligen Tippvarianten. Ein eigener `GET /regions`-Endpunkt ist **deferred**.
 
 ### 6.2 `status`-Filter und berechneter Status
 
-Da `effective_status` nicht persistiert ist, wird der `status`-Filter serverseitig in SQL-Bedingungen übersetzt:
+Da `derived_status` nicht persistiert ist, wird der `status`-Filter serverseitig in SQL-Bedingungen übersetzt:
 
 | Filterwert | SQL-Bedingung (vereinfacht) |
 |---|---|
@@ -214,51 +217,46 @@ Da `effective_status` nicht persistiert ist, wird der `status`-Filter serverseit
 
 Zeigt alle Felder + Teilnehmerliste + freie Plätze + Beziehung des aktuellen Nutzers.
 
-**Response (Beispiel):**
+**Response (Beispiel)** — flache DTO-Form (so wird sie geliefert):
 
 ```json
 {
   "data": {
     "id": 42,
-    "title": "Morgenthermik am Mont Blanc",
-    "description": "Frühstart, Treffpunkt Parkplatz...",
-    "spot": { "id": 7, "name": "Planfait", "region": "Alpen", "lat": 45.829100, "lng": 6.213400 },
-    "region": "Alpen",
-    "lat": 45.829100,
-    "lng": 6.213400,
-    "starts_at": "2026-07-12T07:30:00",
+    "title": "Morgenthermik am Tegelberg",
+    "spot_id": 7,
+    "spot_name": "Tegelberg",
+    "region": "Allgäu",
+    "lat": 47.585000,
+    "lng": 10.764000,
+    "starts_at": "2026-07-12T07:30:00Z",
     "experience_level": "advanced",
     "max_participants": 8,
     "participant_count": 5,
     "free_spots": 3,
-    "status": "open",
-    "effective_status": "open",
-    "creator": { "id": 3, "display_name": "Lena W.", "avatar_url": "/media/uploads/ab12.webp" },
-    "is_creator": false,
-    "is_participant": true,
-    "can_edit": false,
-    "can_join": false,
+    "derived_status": "open",
+    "creator_user_id": 3,
+    "description": "Frühstart, Treffpunkt Parkplatz...",
+    "conversation_id": null,
     "participants": [
-      { "user_id": 3, "display_name": "Lena W.", "avatar_url": "...", "is_creator": true,  "joined_at": "2026-06-20T10:00:00" },
-      { "user_id": 9, "display_name": "Tom K.",  "avatar_url": "...", "is_creator": false, "joined_at": "2026-06-21T08:11:00" }
+      { "id": 3, "display_name": "Lena W.", "handle": "lena_xc", "avatar_path": "/media/uploads/avatars/ab12.webp" },
+      { "id": 9, "display_name": "Tom K.",  "handle": "tom_k",   "avatar_path": null }
     ],
-    "conversation_id": 88,
-    "created_at": "2026-06-20T10:00:00",
-    "updated_at": "2026-06-20T10:00:00"
+    "is_participant": true,
+    "can_edit": false
   }
 }
 ```
 
-**Server-berechnete Flags (Defense in Depth, nicht nur UX):**
-- `participant_count`, `free_spots = max_participants − participant_count`
-- `effective_status` (§4)
-- `is_creator = (current_user.id == creator_user_id)`
-- `is_participant` = existiert Zeile in `meetup_participants`
-- `can_edit = is_creator || is_admin`
-- `can_join = !is_participant && effective_status == 'open'`
-- `conversation_id` = ID der `conversations`-Zeile (`type='meetup'`, `context_id=id`), Bindeglied zum Treffen-Chat (ADR-005). Zugriff/Teilnahme am Chat ist Sache der Chat-Domäne (i. d. R. an Teilnahme gekoppelt).
+**Server-berechnete Felder/Flags (Defense in Depth, nicht nur UX):**
+- `participant_count` (inkl. Organisator), `free_spots = max_participants − participant_count` (`null` wenn unbegrenzt)
+- `derived_status` (§4)
+- `is_participant` = existiert Zeile in `meetup_participants` für `current_user` (`false` für Gäste)
+- `can_edit = is_creator || is_admin` (`false` für Gäste)
+- `conversation_id` = ID der `conversations`-Zeile (`type='meetup'`), Bindeglied zum Treffen-Chat (ADR-005); **in M3 `null`** (Chat-Domäne ab M5).
+- Flache Geo-Felder (`spot_id`/`spot_name`/`region`/`lat`/`lng`) statt verschachteltem `spot`-Objekt; Ersteller über `creator_user_id` (kein `creator`-Objekt). `is_creator`, `can_join`, `created_at`/`updated_at` werden **nicht** geliefert (Frontend nutzt sie nicht).
 
-Teilnehmerliste sortiert: Ersteller zuerst (`is_creator desc`), dann `joined_at asc`.
+Teilnehmerliste als `PublicUserCard {id, display_name, handle, avatar_path}`, sortiert: Ersteller zuerst, dann `joined_at` aufsteigend.
 
 ---
 
@@ -268,13 +266,13 @@ Teilnehmerliste sortiert: Ersteller zuerst (`is_creator desc`), dann `joined_at 
 
 Body: leer (Nutzer = `current_user` aus Session). Ablauf **in einer DB-Transaktion**:
 
-1. Lock auf Treffen (`SELECT … FOR UPDATE` auf `meetups.id`), Existenz + nicht `deleted_at`.
-2. `effective_status` prüfen: `cancelled`/`finished` ⇒ Rollback, `409 meetup_not_joinable`.
+1. Lock auf Treffen (`SELECT … FOR UPDATE` auf `meetups.id`), Existenz prüfen.
+2. `derived_status` prüfen: `cancelled`/`finished` ⇒ Rollback, `409 meetup_not_joinable`.
 3. `participant_count = SELECT COUNT(*) … FOR UPDATE` (im Lock-Bereich).
 4. Bereits Teilnehmer? (`UNIQUE` greift ohnehin) ⇒ **idempotent** `200` mit aktuellem Stand (kein Fehler).
-5. `participant_count >= max_participants` ⇒ Rollback, `409 meetup_full`.
+5. `max_participants` gesetzt und `participant_count >= max_participants` ⇒ Rollback, `409 meetup_full` (unbegrenzt ⇒ nie voll).
 6. `INSERT INTO meetup_participants (meetup_id, user_id)`; bei `UNIQUE`-Verletzung durch Race ⇒ als „bereits Teilnehmer" behandeln (idempotent `200`).
-7. Commit. Response: aktualisierter `participant_count`, `free_spots`, `effective_status`, `is_participant=true`.
+7. Commit. **Response `200` mit voller `MeetupDetail`** (§7): aktualisierte `participant_count`/`free_spots`/`derived_status`, `is_participant=true`.
 
 **Antworten:**
 
@@ -282,25 +280,25 @@ Body: leer (Nutzer = `current_user` aus Session). Ablauf **in einer DB-Transakti
 |---|---|---|---|
 | `200` | – | beigetreten / bereits Teilnehmer | „Du bist jetzt dabei." |
 | `401` | `unauthenticated` | nicht eingeloggt | „Bitte einloggen, um teilzunehmen." |
-| `404` | `meetup_not_found` | Treffen weg/soft-deleted | „Treffen nicht gefunden." |
+| `404` | `not_found` | Treffen weg | „Treffen nicht gefunden." |
 | `409` | `meetup_full` | Kapazität erreicht | „Dieses Treffen ist leider ausgebucht." |
 | `409` | `meetup_not_joinable` | abgesagt/abgeschlossen | „Beitritt nicht mehr möglich." |
 
 ### 8.2 Absagen (austreten) — `DELETE /api/v1/meetups/{id}/participants/me`
 
 - Entfernt die eigene Zeile. **Idempotent:** war der Nutzer nicht angemeldet ⇒ `200` (kein `404`).
-- **Ersteller-Sonderfall:** Der Creator kann sich **nicht** über diesen Endpoint austragen, solange das Treffen `open` ist (er belegt den Organisator-Slot). ⇒ `409 creator_cannot_leave` mit Hinweis „Als Organisator kannst du nicht austreten — sage das Treffen ab oder lösche es." (Verhindert verwaiste Treffen ohne Organisator.)
-- Response: aktualisierter `participant_count`, `free_spots`, `effective_status` (z. B. `full` → `open`), `is_participant=false`.
+- **Ersteller-Sonderfall:** Der Creator kann sich **nicht** über diesen Endpoint austragen (er belegt den Organisator-Slot). ⇒ `409 creator_cannot_leave` mit Hinweis „Als Organisator kannst du nicht austreten — sage das Treffen ab oder lösche es." (Verhindert verwaiste Treffen ohne Organisator.)
+- **Response `200` mit voller `MeetupDetail`** (§7): aktualisierte `participant_count`/`free_spots`/`derived_status` (z. B. `full` → `open`), `is_participant=false`.
 
 ### 8.3 Admin-Entfernen — `DELETE /api/v1/meetups/{id}/participants/{userId}`
 
 - Nur Creator des Treffens oder Admin (BOLA-Check). Entfernt fremden Teilnehmer.
 - Creator kann sich selbst hierüber **nicht** entfernen (gleicher `creator_cannot_leave`-Guard).
-- `403 forbidden`, falls kein Recht.
+- **Response `200` mit voller `MeetupDetail`** (§7). **Fehler:** `403 forbidden` (kein Recht), `404 not_found`.
 
 ### 8.4 Frontend: Optimistic Update + Toast
 
-- **Optimistic Update** via TanStack Query `useMutation` mit `onMutate`: lokaler Cache (`['meetups', filters]` Liste + `['meetup', id]` Detail) wird sofort verändert (`participant_count ±1`, `is_participant` toggeln, `effective_status` neu ableiten), Button schaltet sofort um.
+- **Optimistic Update** via TanStack Query `useMutation` mit `onMutate`: lokaler Cache (`['meetups', filters]` Liste + `['meetup', id]` Detail) wird sofort verändert (`participant_count ±1`, `is_participant` toggeln, `derived_status` neu ableiten), Button schaltet sofort um.
 - **Rollback** in `onError` (Snapshot zurückspielen) + Fehler-Toast aus `error.code`-Mapping (Tabelle 8.1). Speziell `409 meetup_full`: Rollback + „ausgebucht"-Toast + Refetch (`invalidateQueries`), damit der reale Stand sichtbar wird.
 - `onSettled`: `invalidateQueries(['meetup', id])` für Server-Wahrheit.
 - Button-States (zustandsabhängig, Server validiert dennoch): „Teilnehmen" / „Absagen" / „Ausgebucht" (disabled) / „Abgesagt" (disabled) / „Abgeschlossen" (disabled) / „Einloggen zum Teilnehmen" (für Gäste).
@@ -327,20 +325,20 @@ Body: leer (Nutzer = `current_user` aus Session). Ablauf **in einer DB-Transakti
 | `spot_id` | `number` (positiv, int), Pflicht | „Bitte einen Startplatz wählen." |
 | `starts_at` | `string` datetime-ISO, **muss in der Zukunft** liegen (`> now`) | „Der Termin muss in der Zukunft liegen." |
 | `experience_level` | enum `beginner\|advanced\|expert\|all` | „Bitte ein Level wählen." |
-| `max_participants` | `number` int, **≥ 1**, ≤ 100 (Sanity-Cap) | „Mindestens 1 Teilnehmer." |
+| `max_participants` | `number` int, **≥ 1**, oder leer (= unbegrenzt) | „Mindestens 1 Teilnehmer." |
 
 `region`, `spot_name`, `lat`, `lng` werden **nicht** vom Client gesendet — der Server leitet sie aus `spot_id` ab (Vertrauensgrenze; verhindert manipulierte Koordinaten/Regionen).
 
 ### 9.3 Server-Verarbeitung (Transaktion)
 
-1. Validieren (CI4); `spot_id` existiert (sonst `422 invalid_spot`).
+1. Validieren (CI4); `spot_id` existiert (sonst `422 validation_error`, `fields.spot_id`).
 2. `spot_name/region/lat/lng` aus `spots` kopieren (Snapshot).
 3. `INSERT meetups` (`status='open'`, `creator_user_id=current_user`).
 4. Creator als ersten Teilnehmer eintragen (`INSERT meetup_participants`) — zählt zur Kapazität (ADR-015, §2.2).
-5. `conversations`-Zeile (`type='meetup'`, `context_id=meetup.id`) anlegen + Creator als `conversation_participant` (ADR-005).
+5. *(ab M5)* `conversations`-Zeile (`type='meetup'`, `context_id=meetup.id`) anlegen + Creator als `conversation_participant` (ADR-005). **In M3 entfällt dieser Schritt; `conversation_id` ist `null`.**
 6. Commit. `201` mit Detail-Objekt (wie §7).
 
-**Antworten:** `201` (erstellt), `401` (nicht eingeloggt), `422` (`validation_error` mit Feld-Map / `invalid_spot`).
+**Antworten:** `201` (erstellt), `401` (nicht eingeloggt), `422` (`validation_error` mit Feld-Map, inkl. ungültiger `spot_id`).
 
 ---
 
@@ -350,13 +348,13 @@ Body: leer (Nutzer = `current_user` aus Session). Ablauf **in einer DB-Transakti
 |---|---|---|---|
 | Bearbeiten | `PATCH /api/v1/meetups/{id}` | Creator oder Admin | erlaubte Felder: `title`, `description`, `experience_level`, `max_participants`, `starts_at`, `spot_id`. Bei `spot_id`-Änderung werden `spot_name/region/lat/lng` neu abgeleitet. |
 | Kapazität senken | `PATCH …` | Creator/Admin | `max_participants` **darf nicht unter** aktuellen `participant_count` gesetzt werden ⇒ `409 capacity_below_current` |
-| Absagen | `PATCH …` `{"status":"cancelled"}` | Creator/Admin | Soft-Statuswechsel, behält Historie/Teilnehmer/Chat; `effective_status` wird `cancelled` |
-| Löschen | `DELETE /api/v1/meetups/{id}` | Creator/Admin | **Soft-Delete** (`deleted_at`); kaskadiert logisch zu Teilnehmern/Chat-Aufräumung (ADR-005: zugehörige `conversations` bewusst aufräumen) |
+| Absagen | `PATCH …` `{"status":"cancelled"}` | Creator/Admin | Soft-Statuswechsel, behält Historie/Teilnehmer/Chat; `derived_status` wird `cancelled` |
+| Löschen | `DELETE /api/v1/meetups/{id}` | Creator/Admin | **Hard-Delete** (endgültig, kein `deleted_at`); kaskadiert via FK `ON DELETE CASCADE` zu `meetup_participants` (zugehörige `conversations` ab M5 mit aufräumen, ADR-005). Response `204`. |
 | Teilnehmer entfernen | `DELETE …/participants/{userId}` | Creator/Admin | §8.3 |
 
 **Autorisierung (BOLA, Querschnitt):** Jeder mutierende Endpoint prüft serverseitig `is_creator || is_admin` über `creator_user_id` bzw. Shield-Group `admin` — **zusätzlich** zum Auth-Filter. React-Gates sind nur UX. Kein Recht ⇒ `403 forbidden`.
 
-**Absagen vs. Löschen:** „Absagen" ist der bevorzugte Weg (Treffen bleibt mit Status „Abgesagt" sichtbar, Teilnehmer sehen es weiter). „Löschen" (Soft-Delete) blendet es aus den Listen aus.
+**Absagen vs. Löschen:** „Absagen" ist der bevorzugte Weg (Treffen bleibt mit Status „Abgesagt" sichtbar, Teilnehmer sehen es weiter). „Löschen" entfernt das Treffen **endgültig** (Hard-Delete; Teilnehmer via FK-Cascade).
 
 ---
 
@@ -368,12 +366,12 @@ Body: leer (Nutzer = `current_user` aus Session). Ablauf **in einer DB-Transakti
 | GET | `/meetups/{id}` | Detail + Teilnehmer + Flags (§7) | optional |
 | POST | `/meetups` | Erstellen (Wizard, §9) | erforderlich |
 | PATCH | `/meetups/{id}` | Bearbeiten / Absagen (§10) | Creator/Admin |
-| DELETE | `/meetups/{id}` | Soft-Delete (§10) | Creator/Admin |
+| DELETE | `/meetups/{id}` | Hard-Delete (§10) | Creator/Admin |
 | POST | `/meetups/{id}/participants` | Teilnehmen (§8.1) | erforderlich |
 | DELETE | `/meetups/{id}/participants/me` | Absagen (§8.2) | erforderlich |
 | DELETE | `/meetups/{id}/participants/{userId}` | Teilnehmer entfernen (§8.3) | Creator/Admin |
-| GET | `/spots` | Spot-Autocomplete + Geo-Quelle (`?q=`) | optional |
-| GET | `/regions` | Region-Filter-Optionen | optional |
+| GET | `/spots` | Spot-Autocomplete + Geo-Quelle (`?q=`); Region-Optionen abgeleitet | optional |
+| ~~GET~~ | ~~`/regions`~~ | Region-Filter-Optionen — **deferred** (aus `/spots` abgeleitet) | — |
 
 **Fehler-Hülle (Querschnitt, einheitlich):**
 ```json
@@ -397,8 +395,8 @@ Body: leer (Nutzer = `current_user` aus Session). Ablauf **in einer DB-Transakti
 7. `meta.total` ist korrekt; Pager blättert über `limit/offset`; `sort` ändert die Reihenfolge wie in §6.3.
 
 **Detail & Status**
-8. Detailansicht zeigt alle Felder, vollständige Teilnehmerliste (Ersteller zuerst markiert), `free_spots` und `effective_status`.
-9. `effective_status` folgt der Präzedenz `cancelled > finished > full > open`; ein abgesagtes vergangenes Treffen bleibt „Abgesagt".
+8. Detailansicht zeigt alle Felder, vollständige Teilnehmerliste (Ersteller zuerst markiert), `free_spots` und `derived_status`.
+9. `derived_status` folgt der Präzedenz `cancelled > finished > full > open`; ein abgesagtes vergangenes Treffen bleibt „Abgesagt".
 
 **Teilnahme**
 10. Zwei gleichzeitige Beitritte auf den letzten freien Platz: genau einer erhält `200`, der andere `409 meetup_full`; `participant_count` überschreitet nie `max_participants` (Transaktion + Lock + `UNIQUE`).
