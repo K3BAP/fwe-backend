@@ -2,8 +2,15 @@
 
 namespace App\Services;
 
+use App\Exceptions\ApiException;
+use App\Models\MeetupModel;
+use App\Models\MeetupParticipantModel;
+use App\Models\SpotModel;
 use CodeIgniter\Database\BaseBuilder;
 use CodeIgniter\Database\RawSql;
+use DateTimeImmutable;
+use DateTimeZone;
+use Throwable;
 
 /**
  * Datenzugriff + Geschäftslogik der Flugtreffen-Domäne (ADR-013: Controller bleibt dünn).
@@ -147,5 +154,184 @@ final class MeetupService
                 ->where(new RawSql('m.max_participants IS NULL'))
                 ->orWhere(new RawSql("{$count} < m.max_participants"))
             ->groupEnd();
+    }
+
+    // ───────────────────────── Schreiben (Slice 3) ─────────────────────────
+
+    /**
+     * Legt ein Treffen an (02-flugtreffen.md §9.3): Spot-Geo als Snapshot kopieren, `INSERT meetups`
+     * (`status=open`, `visibility=public`) und Ersteller als ersten Teilnehmer — in **einer**
+     * Transaktion. Server leitet `spot_name/region/lat/lng` aus `spot_id` ab (Client-Werte ignoriert).
+     *
+     * @param array<string, mixed> $input
+     * @throws ApiException validation_error (Zukunftsdatum/ungültiger Spot) | internal_error
+     */
+    public function create(int $creatorId, array $input): int
+    {
+        $startsAt = $this->normalizeStartsAt((string) ($input['starts_at'] ?? ''));
+        $snapshot = $this->spotSnapshot((int) ($input['spot_id'] ?? 0));
+
+        $db = db_connect();
+        $db->transBegin();
+        try {
+            $id = (int) model(MeetupModel::class)->insert(array_merge($snapshot, [
+                'creator_user_id'  => $creatorId,
+                'title'            => $input['title'],
+                'description'      => $this->emptyToNull($input['description'] ?? null),
+                'starts_at'        => $startsAt,
+                'experience_level' => $input['experience_level'],
+                'max_participants' => $this->normalizeMax($input['max_participants'] ?? null),
+                'status'           => 'open',
+                'visibility'       => 'public',
+            ]), true);
+
+            model(MeetupParticipantModel::class)->insert(['meetup_id' => $id, 'user_id' => $creatorId]);
+
+            $db->transCommit();
+
+            return $id;
+        } catch (Throwable $e) {
+            $db->transRollback();
+            if ($e instanceof ApiException) {
+                throw $e;
+            }
+            log_message('error', 'Meetup create failed: ' . $e->getMessage());
+            throw new ApiException('internal_error', 'Treffen konnte nicht erstellt werden.', 500);
+        }
+    }
+
+    /**
+     * Bearbeiten/Absagen (§10). BOLA: nur Creator oder Admin. Nur **vorhandene** Felder werden
+     * geändert; `spot_id`-Wechsel re-derived die Geo-Felder; `max_participants` darf nicht unter die
+     * aktuelle Teilnehmerzahl; Absagen via `status='cancelled'`.
+     *
+     * @param array<string, mixed> $input
+     * @throws ApiException not_found | forbidden | validation_error | capacity_below_current
+     */
+    public function update(int $id, int $userId, bool $isAdmin, array $input): void
+    {
+        $row = $this->findRow($id);
+        if ($row === null) {
+            throw ApiException::notFound('Flugtreffen nicht gefunden.');
+        }
+        $this->assertCanManage($row, $userId, $isAdmin, 'Nur der Organisator darf das Treffen bearbeiten.');
+
+        $data = [];
+        if (array_key_exists('title', $input)) {
+            $data['title'] = $input['title'];
+        }
+        if (array_key_exists('description', $input)) {
+            $data['description'] = $this->emptyToNull($input['description']);
+        }
+        if (array_key_exists('experience_level', $input)) {
+            $data['experience_level'] = $input['experience_level'];
+        }
+        if (isset($input['starts_at']) && $input['starts_at'] !== '') {
+            $data['starts_at'] = $this->normalizeStartsAt((string) $input['starts_at']);
+        }
+        if (isset($input['spot_id']) && $input['spot_id'] !== '') {
+            $data = array_merge($data, $this->spotSnapshot((int) $input['spot_id']));
+        }
+        if (array_key_exists('max_participants', $input)) {
+            $max = $this->normalizeMax($input['max_participants']);
+            if ($max !== null && $max < (int) $row['participant_count']) {
+                throw ApiException::conflict('capacity_below_current', 'Die Kapazität darf nicht unter die aktuelle Teilnehmerzahl gesenkt werden.');
+            }
+            $data['max_participants'] = $max;
+        }
+        if (array_key_exists('status', $input) && in_array($input['status'], ['open', 'cancelled'], true)) {
+            $data['status'] = $input['status'];
+        }
+
+        if ($data !== []) {
+            model(MeetupModel::class)->update($id, $data);
+        }
+    }
+
+    /**
+     * Hard-Delete (§10). BOLA: nur Creator oder Admin. Teilnehmer verschwinden via FK `ON DELETE CASCADE`.
+     *
+     * @throws ApiException not_found | forbidden
+     */
+    public function delete(int $id, int $userId, bool $isAdmin): void
+    {
+        $row = $this->findRow($id);
+        if ($row === null) {
+            throw ApiException::notFound('Flugtreffen nicht gefunden.');
+        }
+        $this->assertCanManage($row, $userId, $isAdmin, 'Nur der Organisator darf das Treffen löschen.');
+
+        model(MeetupModel::class)->delete($id);
+    }
+
+    /**
+     * BOLA-Check (Querschnitt): Creator oder Admin, sonst `403`.
+     *
+     * @param array<string, mixed> $row
+     */
+    private function assertCanManage(array $row, int $userId, bool $isAdmin, string $message): void
+    {
+        if ((int) $row['creator_user_id'] !== $userId && ! $isAdmin) {
+            throw ApiException::forbidden($message);
+        }
+    }
+
+    /** ISO-Eingabe → UTC-DATETIME (`Y-m-d H:i:s`); wirft bei ungültigem/vergangenem Datum `422`. */
+    private function normalizeStartsAt(string $iso): string
+    {
+        $iso = trim($iso);
+        try {
+            $dt = new DateTimeImmutable($iso);
+        } catch (Throwable) {
+            throw ApiException::validation(['starts_at' => 'Ungültiges Datum.']);
+        }
+        $utc = $dt->setTimezone(new DateTimeZone('UTC'));
+        if ($utc <= new DateTimeImmutable('now', new DateTimeZone('UTC'))) {
+            throw ApiException::validation(['starts_at' => 'Der Termin muss in der Zukunft liegen.']);
+        }
+
+        return $utc->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * Geo-Snapshot aus `spot_id` (Vertrauensgrenze: Client-Geo wird ignoriert).
+     *
+     * @return array{spot_id:int, spot_name:string, region:string, lat:mixed, lng:mixed}
+     * @throws ApiException validation_error (fields.spot_id)
+     */
+    private function spotSnapshot(int $spotId): array
+    {
+        $spot = model(SpotModel::class)->find($spotId);
+        if ($spot === null) {
+            throw ApiException::validation(['spot_id' => 'Bitte einen gültigen Startplatz wählen.']);
+        }
+
+        return [
+            'spot_id'   => (int) $spot['id'],
+            'spot_name' => $spot['name'],
+            'region'    => $spot['region'],
+            'lat'       => $spot['lat'],
+            'lng'       => $spot['lng'],
+        ];
+    }
+
+    /** Leeren String/`null` → `null` (= unbegrenzt), sonst Ganzzahl. */
+    private function normalizeMax(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (int) $value;
+    }
+
+    private function emptyToNull(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 }

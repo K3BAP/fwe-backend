@@ -41,6 +41,11 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->delete('me/avatar', 'ProfileController::deleteAvatar');
         $routes->get('users', 'ProfileController::index');
 
+        // Flugtreffen schreiben (Creator/Admin via BOLA im Service), §5.3/§5.4/§5.5.
+        $routes->post('meetups', 'MeetupController::store');
+        $routes->patch('meetups/(:num)', 'MeetupController::update/$1');
+        $routes->delete('meetups/(:num)', 'MeetupController::destroy/$1');
+
         $routes->get('health/secure', 'HealthController::secure');
     });
 });
