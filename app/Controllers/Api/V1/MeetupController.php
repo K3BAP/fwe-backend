@@ -117,6 +117,42 @@ final class MeetupController extends BaseApiController
         return $this->respondNoContent();
     }
 
+    /** POST /meetups/{id}/participants — Teilnehmen (§8.1). Idempotent; liefert volle Detail. */
+    public function join($id): ResponseInterface
+    {
+        try {
+            (new MeetupService())->join((int) $id, $this->currentUserId());
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondDetail((int) $id);
+    }
+
+    /** DELETE /meetups/{id}/participants/me — Selbst-Austritt (§8.2). Idempotent. */
+    public function leave($id): ResponseInterface
+    {
+        try {
+            (new MeetupService())->leave((int) $id, $this->currentUserId());
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondDetail((int) $id);
+    }
+
+    /** DELETE /meetups/{id}/participants/{userId} — Teilnehmer entfernen (§8.3, BOLA: Creator/Admin). */
+    public function removeParticipant($id, $userId): ResponseInterface
+    {
+        try {
+            (new MeetupService())->removeParticipant((int) $id, $this->currentUserId(), $this->isAdmin(), (int) $userId);
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondDetail((int) $id);
+    }
+
     /** Lädt das Treffen frisch und gibt die volle Detail-Projektion zurück (Create/Update/Teilnahme). */
     protected function respondDetail(int $id, int $status = 200): ResponseInterface
     {

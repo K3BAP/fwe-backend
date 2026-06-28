@@ -46,6 +46,11 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->patch('meetups/(:num)', 'MeetupController::update/$1');
         $routes->delete('meetups/(:num)', 'MeetupController::destroy/$1');
 
+        // Teilnahme (§8). `/me` vor `(:num)`, damit der Selbst-Austritt eindeutig matcht.
+        $routes->post('meetups/(:num)/participants', 'MeetupController::join/$1');
+        $routes->delete('meetups/(:num)/participants/me', 'MeetupController::leave/$1');
+        $routes->delete('meetups/(:num)/participants/(:num)', 'MeetupController::removeParticipant/$1/$2');
+
         $routes->get('health/secure', 'HealthController::secure');
     });
 });

@@ -264,6 +264,95 @@ final class MeetupService
         model(MeetupModel::class)->delete($id);
     }
 
+    // ─────────────────────── Teilnahme (Slice 4) ───────────────────────
+
+    /**
+     * Beitreten (§8.1) — nebenläufigkeitssicher in einer Transaktion. Die `FOR UPDATE`-Sperre auf der
+     * Meetup-Zeile serialisiert konkurrierende Beitritte auf den letzten Platz; `UNIQUE(meetup_id,
+     * user_id)` ist der Backstop. **Idempotent**: bereits Teilnehmer ⇒ kein Fehler.
+     *
+     * @throws ApiException not_found | meetup_not_joinable | meetup_full | internal_error
+     */
+    public function join(int $id, int $userId): void
+    {
+        $db = db_connect();
+        $db->transBegin();
+
+        $row = $db->query('SELECT status, starts_at, max_participants FROM meetups WHERE id = ? FOR UPDATE', [$id])->getRowArray();
+        if ($row === null) {
+            $db->transRollback();
+            throw ApiException::notFound('Flugtreffen nicht gefunden.');
+        }
+        if ($row['status'] === 'cancelled' || (string) $row['starts_at'] < gmdate('Y-m-d H:i:s')) {
+            $db->transRollback();
+            throw ApiException::conflict('meetup_not_joinable', 'Beitritt nicht mehr möglich.');
+        }
+
+        // Bereits Teilnehmer? ⇒ idempotent (innerhalb der Sperre geprüft).
+        if ($db->query('SELECT id FROM meetup_participants WHERE meetup_id = ? AND user_id = ?', [$id, $userId])->getRowArray() !== null) {
+            $db->transCommit();
+
+            return;
+        }
+
+        $count = (int) ($db->query('SELECT COUNT(*) AS c FROM meetup_participants WHERE meetup_id = ?', [$id])->getRowArray()['c'] ?? 0);
+        if ($row['max_participants'] !== null && $count >= (int) $row['max_participants']) {
+            $db->transRollback();
+            throw ApiException::conflict('meetup_full', 'Dieses Treffen ist leider ausgebucht.');
+        }
+
+        try {
+            $db->query('INSERT INTO meetup_participants (meetup_id, user_id) VALUES (?, ?)', [$id, $userId]);
+        } catch (Throwable $e) {
+            // UNIQUE-Race (zeitgleicher Beitritt): existiert die Zeile nun ⇒ idempotent, sonst echter Fehler.
+            if ($db->query('SELECT id FROM meetup_participants WHERE meetup_id = ? AND user_id = ?', [$id, $userId])->getRowArray() === null) {
+                $db->transRollback();
+                log_message('error', 'Meetup join insert failed: ' . $e->getMessage());
+                throw new ApiException('internal_error', 'Beitritt fehlgeschlagen.', 500);
+            }
+        }
+
+        $db->transCommit();
+    }
+
+    /**
+     * Selbst-Austritt (§8.2). **Idempotent** (kein Fehler, wenn nicht angemeldet). Der Ersteller kann
+     * nicht austreten (belegt den Organisator-Slot).
+     *
+     * @throws ApiException not_found | creator_cannot_leave
+     */
+    public function leave(int $id, int $userId): void
+    {
+        $row = $this->findRow($id);
+        if ($row === null) {
+            throw ApiException::notFound('Flugtreffen nicht gefunden.');
+        }
+        if ((int) $row['creator_user_id'] === $userId) {
+            throw ApiException::conflict('creator_cannot_leave', 'Als Organisator kannst du nicht austreten — sage das Treffen ab oder lösche es.');
+        }
+
+        model(MeetupParticipantModel::class)->where('meetup_id', $id)->where('user_id', $userId)->delete();
+    }
+
+    /**
+     * Teilnehmer entfernen (§8.3). BOLA: Creator oder Admin. Der Ersteller kann nicht entfernt werden.
+     *
+     * @throws ApiException not_found | forbidden | creator_cannot_leave
+     */
+    public function removeParticipant(int $id, int $actorId, bool $isAdmin, int $targetUserId): void
+    {
+        $row = $this->findRow($id);
+        if ($row === null) {
+            throw ApiException::notFound('Flugtreffen nicht gefunden.');
+        }
+        $this->assertCanManage($row, $actorId, $isAdmin, 'Nur der Organisator darf Teilnehmer entfernen.');
+        if ((int) $row['creator_user_id'] === $targetUserId) {
+            throw ApiException::conflict('creator_cannot_leave', 'Der Organisator kann nicht entfernt werden.');
+        }
+
+        model(MeetupParticipantModel::class)->where('meetup_id', $id)->where('user_id', $targetUserId)->delete();
+    }
+
     /**
      * BOLA-Check (Querschnitt): Creator oder Admin, sonst `403`.
      *
