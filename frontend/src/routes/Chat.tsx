@@ -40,7 +40,7 @@ export function Chat() {
       <aside className={cn('flex w-full min-h-0 flex-col border-base-300 md:w-[340px] md:border-r', convId != null && 'hidden md:flex')}>
         <div className="flex-shrink-0 space-y-3 px-4 pb-2 pt-5">
           <h1 className="font-display text-xl">Chat</h1>
-          <label className="flex items-center gap-2.5 rounded-xl bg-base-200 px-3.5 py-2.5">
+          <label className="flex items-center gap-2.5 rounded-[14px] border-[1.5px] border-base-300 bg-base-100 px-3.5 py-2.5 focus-within:border-primary">
             <svg className="size-[18px] shrink-0 text-base-content/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
               <circle cx="11" cy="11" r="7" />
               <path d="M21 21l-4-4" />
