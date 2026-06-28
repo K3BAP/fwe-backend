@@ -11,6 +11,7 @@ import {
 } from '@/api/chat'
 import type { Message } from '@/api/schemas'
 import { ChatMessage } from '@/components/chat/ChatMessage'
+import { ConversationAvatar } from '@/components/chat/ConversationAvatar'
 import { MessageComposer } from '@/components/chat/MessageComposer'
 import { Button, Modal, Skeleton } from '@/components/ui'
 import { useAuthStore } from '@/stores/authStore'
@@ -45,10 +46,11 @@ export function ChatThread({ conversationId, backTo }: { conversationId: number;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-center gap-2 border-b border-base-300 p-3">
+      <header className="flex items-center gap-2.5 border-b border-base-300 bg-base-100 p-3">
         <Link to={backTo} className="btn btn-circle btn-ghost btn-sm text-lg md:hidden" aria-label="Zurück">
           ←
         </Link>
+        {conv.data && <ConversationAvatar type={conv.data.type} peer={conv.data.peer} title={conv.data.title} size={38} />}
         <div className="min-w-0">
           <div className="truncate font-display text-lg leading-tight">{conv.data?.title ?? '…'}</div>
           {conv.data && (

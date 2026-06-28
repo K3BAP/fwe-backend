@@ -5,16 +5,18 @@ import { BottomNav } from './BottomNav'
 import { TopBar } from './TopBar'
 
 /** Routen, die das volle Fenster füllen (eigenes Scrolling je Spalte) statt im zentrierten Container zu laufen. */
-const FULL_BLEED = new Set(['/flugtreffen'])
+function isFullBleed(path: string): boolean {
+  return path === '/flugtreffen' || path === '/chat' || path.startsWith('/chat/')
+}
 
 /**
  * App-Rahmen: Top-Bar + Content (Outlet) + mobile Bottom-Nav + Toast-Host. Die meisten Seiten laufen im
- * zentrierten, scrollenden Container. **Full-bleed-Routen** (z.B. die Flugtreffen-Karte+Liste auf Desktop,
- * 02-flugtreffen.md §5) füllen stattdessen die volle Höhe — der Shell wird dann selbst nicht gescrollt,
- * die Spalten scrollen einzeln.
+ * zentrierten, scrollenden Container. **Full-bleed-Routen** (z.B. die Flugtreffen-Karte+Liste oder der
+ * Chat als Vollbild-2-Spalter) füllen stattdessen die volle Höhe — der Shell wird dann selbst nicht
+ * gescrollt, die Spalten scrollen einzeln.
  */
 export function AppShell() {
-  const fullBleed = FULL_BLEED.has(useLocation().pathname)
+  const fullBleed = isFullBleed(useLocation().pathname)
 
   return (
     <div className={cn('flex flex-col bg-base-200 text-base-content', fullBleed ? 'h-[100svh] overflow-hidden' : 'min-h-svh')}>

@@ -1,8 +1,9 @@
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useConversations } from '@/api/chat'
 import { ChatThread } from '@/components/chat/ChatThread'
 import { ConversationListItem } from '@/components/chat/ConversationListItem'
-import { Card, Skeleton } from '@/components/ui'
+import { Skeleton } from '@/components/ui'
 import { ChatIcon } from '@/components/layout/icons'
 import { cn } from '@/lib/cn'
 
@@ -20,33 +21,56 @@ function ChatEmpty() {
   )
 }
 
-/** Chat: Master-Detail (Konversationsliste + Verlauf). Eine Route, `:id` wählt den Thread. */
+/**
+ * Chat als Vollbild-2-Spalter (Prototyp): Konversationsliste links, Verlauf rechts. Eine Route, `:id`
+ * wählt den Thread. Auf Mobile zeigt die Seite jeweils nur eine Spalte (Liste **oder** Thread).
+ */
 export function Chat() {
   const { id } = useParams()
   const convId = id ? Number(id) : null
   const conversations = useConversations()
+  const [query, setQuery] = useState('')
+
+  const all = conversations.data ?? []
+  const q = query.trim().toLowerCase()
+  const filtered = q ? all.filter((c) => c.title.toLowerCase().includes(q)) : all
 
   return (
-    <Card className="flex h-[72vh] min-h-[500px] overflow-hidden">
-      <aside className={cn('flex w-full flex-col border-base-300 md:w-80 md:border-r', convId != null && 'hidden md:flex')}>
-        <div className="border-b border-base-300 px-4 py-3.5">
+    <div className="flex h-full min-h-0">
+      <aside className={cn('flex w-full min-h-0 flex-col border-base-300 md:w-[340px] md:border-r', convId != null && 'hidden md:flex')}>
+        <div className="flex-shrink-0 space-y-3 px-4 pb-2 pt-5">
           <h1 className="font-display text-xl">Chat</h1>
+          <label className="flex items-center gap-2.5 rounded-xl bg-base-200 px-3.5 py-2.5">
+            <svg className="size-[18px] shrink-0 text-base-content/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4-4" />
+            </svg>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Durchsuchen…"
+              className="w-full bg-transparent text-sm outline-none placeholder:text-base-content/45"
+            />
+          </label>
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-24 md:pb-3">
           {conversations.isLoading &&
-            Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="mb-1 h-16 w-full" />)}
-          {conversations.data?.map((c) => (
+            Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="mb-1 h-16 w-full" />)}
+          {filtered.map((c) => (
             <ConversationListItem key={c.id} conversation={c} active={c.id === convId} />
           ))}
-          {conversations.data && conversations.data.length === 0 && (
-            <p className="px-3 py-8 text-center text-sm text-base-content/55">Noch keine Konversationen.</p>
+          {!conversations.isLoading && filtered.length === 0 && (
+            <p className="px-3 py-8 text-center text-sm text-base-content/55">
+              {query ? 'Keine Treffer.' : 'Noch keine Konversationen.'}
+            </p>
           )}
         </div>
       </aside>
 
-      <main className={cn('min-w-0 flex-1', convId == null && 'hidden md:block')}>
+      <section className={cn('min-w-0 flex-1', convId == null && 'hidden md:block')}>
         {convId != null ? <ChatThread key={convId} conversationId={convId} backTo="/chat" /> : <ChatEmpty />}
-      </main>
-    </Card>
+      </section>
+    </div>
   )
 }
