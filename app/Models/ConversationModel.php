@@ -5,8 +5,9 @@ namespace App\Models;
 use CodeIgniter\Model;
 
 /**
- * `conversations` — polymorphe Chat-Engine (DATA_MODEL §7.1). In M4 nur `type='group_channel'`
- * (Gruppen-Channels); Messages/DM-Spalten kommen in M5. Soft-Delete via `deleted_at`.
+ * `conversations` — polymorphe Chat-Engine (DATA_MODEL §7.1): Gruppen-Channels (`group_channel`,
+ * M4), Treffen-Chats (`meetup`) und DMs (`direct`, `dm_key`, M5). Soft-Delete via `deleted_at`.
+ * `meetup_uniq` ist eine **generierte** Spalte (nicht beschreibbar → nicht in $allowedFields).
  */
 class ConversationModel extends Model
 {
@@ -19,6 +20,7 @@ class ConversationModel extends Model
         'type',
         'context_type',
         'context_id',
+        'dm_key',
         'title',
         'position',
         'is_default',

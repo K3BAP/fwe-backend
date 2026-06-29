@@ -188,6 +188,8 @@ class DatabaseSeeder extends Seeder
         $this->seedSpots();
         $this->seedMeetups($pilotIds);
         $this->seedGroups($pilotIds);
+        $this->seedChat($pilotIds);
+        $this->seedNotifications($pilotIds);
     }
 
     /**
@@ -409,6 +411,274 @@ class DatabaseSeeder extends Seeder
                     $this->db->table('feed_post_reactions')->insertBatch($reactionRows);
                 }
             }
+        }
+    }
+
+    /**
+     * Legt die Chat-Daten an (idempotent): Teilnehmer + Verlauf für Gruppen-Channels, je einen
+     * Treffen-Chat (setzt `meetups.conversation_id`) und DMs zwischen den Piloten — inkl. Reaktionen,
+     * einer Reply, einer bearbeiteten und einer gelöschten (Tombstone) Nachricht. Für den Demo-Login
+     * Lena (Pilot 0) bleiben die erste Default-Channel- und die erste DM-Konversation bewusst
+     * ungelesen (sichtbares Badge).
+     * @param list<int> $pilotIds
+     */
+    private function seedChat(array $pilotIds): void
+    {
+        if ($pilotIds === [] || $this->db->table('messages')->countAllResults() > 0) {
+            return;
+        }
+        $lena          = $pilotIds[0];
+        $unreadForLena = []; // conv-ID ⇒ last_read_message_id (Lena behält 1 ungelesen)
+
+        // 1) Gruppen-Channels: cp für aktive Mitglieder; Default-Channels bekommen einen Verlauf.
+        $firstDefaultDone = false;
+        $channels         = $this->db->table('conversations')->where('type', 'group_channel')->orderBy('id', 'ASC')->get()->getResultArray();
+        foreach ($channels as $ch) {
+            $convId  = (int) $ch['id'];
+            $members = $this->db->table('group_members')->where('group_id', $ch['context_id'])->where('status', 'active')->orderBy('id', 'ASC')->get()->getResultArray();
+            $memberIds = array_values(array_map(static fn (array $m): int => (int) $m['user_id'], $members));
+            if ($memberIds === []) {
+                continue;
+            }
+
+            $ids = [];
+            if ((int) $ch['is_default'] === 1) {
+                [, $lastAt, $ids] = $this->seedMessages($convId, $memberIds, $this->channelScript());
+                $this->db->table('conversations')->where('id', $convId)->update(['last_message_at' => $lastAt]);
+                if (! $firstDefaultDone && in_array($lena, $memberIds, true) && count($ids) >= 2) {
+                    $unreadForLena[$convId] = $ids[count($ids) - 2];
+                    $firstDefaultDone      = true;
+                }
+            }
+
+            $rows = array_map(static function (array $m): array {
+                $role = in_array($m['role'], ['owner', 'admin'], true) ? $m['role'] : 'member';
+
+                return ['user_id' => (int) $m['user_id'], 'role' => $role];
+            }, $members);
+            $this->seedParticipants($convId, $rows, $ids === [] ? null : $ids[count($ids) - 1], $unreadForLena, $lena);
+        }
+
+        // 2) Treffen-Chats: Konversation je Treffen anlegen, verknüpfen, cp + Verlauf (Ersteller zuerst).
+        foreach ($this->db->table('meetups')->orderBy('id', 'ASC')->get()->getResultArray() as $mt) {
+            $meetupId  = (int) $mt['id'];
+            $creatorId = (int) $mt['creator_user_id'];
+            $partIds   = array_values(array_map(static fn (array $p): int => (int) $p['user_id'], $this->db->table('meetup_participants')->where('meetup_id', $meetupId)->orderBy('id', 'ASC')->get()->getResultArray()));
+            if ($partIds === []) {
+                continue;
+            }
+            $partIds = array_values(array_unique(array_merge([$creatorId], $partIds))); // Ersteller zuerst (is_creator-Demo)
+
+            $this->db->table('conversations')->insert([
+                'type' => 'meetup', 'context_type' => 'meetup', 'context_id' => $meetupId,
+                'title' => $mt['title'], 'created_by' => $creatorId,
+            ]);
+            $convId = (int) $this->db->insertID();
+            $this->db->table('meetups')->where('id', $meetupId)->update(['conversation_id' => $convId]);
+
+            [, $lastAt, $ids] = $this->seedMessages($convId, $partIds, $this->meetupScript());
+            $this->db->table('conversations')->where('id', $convId)->update(['last_message_at' => $lastAt]);
+            $rows = array_map(static fn (int $uid): array => ['user_id' => $uid, 'role' => 'member'], $partIds);
+            $this->seedParticipants($convId, $rows, $ids === [] ? null : $ids[count($ids) - 1], [], $lena);
+        }
+
+        // 3) DMs zwischen allen Pilot-Paaren (deterministischer dm_key = min:max).
+        $firstDm = true;
+        for ($i = 0; $i < count($pilotIds); $i++) {
+            for ($j = $i + 1; $j < count($pilotIds); $j++) {
+                [$a, $b] = [$pilotIds[$i], $pilotIds[$j]];
+                $this->db->table('conversations')->insert([
+                    'type' => 'direct', 'dm_key' => min($a, $b) . ':' . max($a, $b), 'created_by' => $a,
+                ]);
+                $convId           = (int) $this->db->insertID();
+                [, $lastAt, $ids] = $this->seedMessages($convId, [$a, $b], $this->dmScript());
+                $this->db->table('conversations')->where('id', $convId)->update(['last_message_at' => $lastAt]);
+                if ($firstDm && ($a === $lena || $b === $lena) && count($ids) >= 2) {
+                    $unreadForLena[$convId] = $ids[count($ids) - 2];
+                    $firstDm               = false;
+                }
+                $this->seedParticipants($convId, [['user_id' => $a, 'role' => 'member'], ['user_id' => $b, 'role' => 'member']], $ids === [] ? null : $ids[count($ids) - 1], $unreadForLena, $lena);
+            }
+        }
+    }
+
+    /**
+     * Fügt einen Nachrichtenverlauf in eine Konversation ein (Autoren rotieren über $authorIds),
+     * zurückdatiert, mit optionalen Reaktionen/Reply/Edit/Tombstone laut $script.
+     * @param list<int>                                                                                                 $authorIds
+     * @param list<array{by:int,text:?string,react?:array<string,list<int>>,reply?:int,edited?:bool,deleted?:bool}>     $script
+     * @return array{0:?int,1:?string,2:list<int>} [letzteId, letzterZeitstempel, alleIds]
+     */
+    private function seedMessages(int $convId, array $authorIds, array $script): array
+    {
+        $count = count($authorIds);
+        $ids   = [];
+        $base  = time() - count($script) * 1800 - 3600;
+        $last  = null;
+
+        foreach ($script as $i => $s) {
+            $sender    = $authorIds[$s['by'] % $count];
+            $createdAt = gmdate('Y-m-d H:i:s', $base + $i * 1800);
+            $edited    = $s['edited'] ?? false;
+            $deleted   = $s['deleted'] ?? false;
+            $editStamp = gmdate('Y-m-d H:i:s', $base + $i * 1800 + 120);
+            $replyIdx  = $s['reply'] ?? null;
+
+            $this->db->table('messages')->insert([
+                'conversation_id' => $convId,
+                'sender_id'       => $sender,
+                'body'            => $deleted ? null : $s['text'],
+                'reply_to_id'     => ($replyIdx !== null && isset($ids[$replyIdx])) ? $ids[$replyIdx] : null,
+                'created_at'      => $createdAt,
+                'updated_at'      => $edited ? $editStamp : $createdAt,
+                'edited_at'       => $edited ? $editStamp : null,
+                'deleted_at'      => $deleted ? gmdate('Y-m-d H:i:s', $base + $i * 1800 + 60) : null,
+                'deleted_by'      => $deleted ? $sender : null,
+            ]);
+            $mid   = (int) $this->db->insertID();
+            $ids[] = $mid;
+            $last  = $createdAt;
+
+            foreach ($s['react'] ?? [] as $emoji => $idxs) {
+                $seen = [];
+                $rows = [];
+                foreach ($idxs as $idx) {
+                    $uid = $authorIds[$idx % $count];
+                    if (isset($seen[$uid])) {
+                        continue; // uq_reaction: ein Emoji pro Nutzer pro Nachricht
+                    }
+                    $seen[$uid] = true;
+                    $rows[]     = ['message_id' => $mid, 'user_id' => $uid, 'emoji' => $emoji];
+                }
+                if ($rows !== []) {
+                    $this->db->table('message_reactions')->insertBatch($rows);
+                }
+            }
+        }
+
+        return [$last === null ? null : $ids[count($ids) - 1], $last, $ids];
+    }
+
+    /**
+     * Legt die `conversation_participants`-Zeilen an. `last_read_message_id` = letzte Nachricht
+     * (gelesen), außer für Lena in den als ungelesen markierten Konversationen.
+     * @param list<array{user_id:int,role:string}> $rows
+     * @param array<int,int>                        $unreadForLena conv-ID ⇒ last_read_message_id
+     */
+    private function seedParticipants(int $convId, array $rows, ?int $lastId, array $unreadForLena, int $lenaId): void
+    {
+        $insert = [];
+        foreach ($rows as $r) {
+            $lastRead = ($r['user_id'] === $lenaId && array_key_exists($convId, $unreadForLena))
+                ? $unreadForLena[$convId]
+                : $lastId;
+            $insert[] = [
+                'conversation_id'      => $convId,
+                'user_id'              => $r['user_id'],
+                'role'                 => $r['role'],
+                'last_read_message_id' => $lastRead,
+                'last_read_at'         => $lastRead !== null ? gmdate('Y-m-d H:i:s') : null,
+                'muted'                => 0,
+            ];
+        }
+        if ($insert !== []) {
+            $this->db->table('conversation_participants')->insertBatch($insert);
+        }
+    }
+
+    /** @return list<array<string,mixed>> Verlauf eines Gruppen-Channels (Reply, Edit, Tombstone, Reaktionen). */
+    private function channelScript(): array
+    {
+        return [
+            ['by' => 0, 'text' => 'Servus zusammen! Wie sehen die Bedingungen am Wochenende aus?'],
+            ['by' => 1, 'text' => 'Sieht gut aus – Nordwest, mäßig. Vormittags fliegbar.', 'react' => ['👍' => [0, 2]]],
+            ['by' => 2, 'text' => 'Top, dann bin ich dabei! Treffpunkt wie immer am Parkplatz?', 'reply' => 1],
+            ['by' => 0, 'text' => 'Genau, 9 Uhr Talstation. Prognose hier: https://www.dwd.de'],
+            ['by' => 1, 'text' => 'Korrektur: 8:30 Uhr meinte ich. 🙂', 'edited' => true],
+            ['by' => 2, 'text' => null, 'deleted' => true],
+            ['by' => 0, 'text' => 'Bis Samstag dann! 🪂', 'react' => ['🔥' => [1, 2]]],
+        ];
+    }
+
+    /** @return list<array<string,mixed>> Verlauf eines Treffen-Chats (Ersteller = Autor-Index 0). */
+    private function meetupScript(): array
+    {
+        return [
+            ['by' => 0, 'text' => 'Hallo zusammen! Ich habe das Treffen erstellt – freue mich auf euch. 🪂', 'react' => ['🪂' => [1]]],
+            ['by' => 1, 'text' => 'Super, danke fürs Organisieren!'],
+            ['by' => 0, 'text' => 'Treffpunkt 17:00 am oberen Parkplatz. Bitte Schirm-Check machen.'],
+            ['by' => 1, 'text' => 'Alles klar, bin pünktlich da. 👍', 'reply' => 2],
+        ];
+    }
+
+    /** @return list<array<string,mixed>> Verlauf einer DM. */
+    private function dmScript(): array
+    {
+        return [
+            ['by' => 0, 'text' => 'Servus! Fliegst du am Wochenende mit?'],
+            ['by' => 1, 'text' => 'Klar, bin dabei! Wann am Parkplatz?', 'react' => ['👍' => [0]]],
+            ['by' => 0, 'text' => 'So gegen 8. Nehme noch jemanden mit.'],
+            ['by' => 1, 'text' => 'Perfekt, bis dann! ☀️'],
+        ];
+    }
+
+    /**
+     * Legt einen repräsentativen Satz Benachrichtigungen an (idempotent), verteilt über die acht
+     * Typen des Frontend-Enums, ~40 % ungelesen, mit `data`-Render-Payload und realen Kontext-IDs.
+     * @param list<int> $pilotIds
+     */
+    private function seedNotifications(array $pilotIds): void
+    {
+        if ($pilotIds === [] || $this->db->table('notifications')->countAllResults() > 0) {
+            return;
+        }
+        [$lena, $markus, $sophie] = [$pilotIds[0], $pilotIds[1], $pilotIds[2]];
+
+        $lenaMeetup      = $this->db->table('meetups')->where('creator_user_id', $lena)->where('status', 'open')->orderBy('id', 'ASC')->get()->getRowArray();
+        $cancelledMeetup = $this->db->table('meetups')->where('status', 'cancelled')->orderBy('id', 'ASC')->get()->getRowArray();
+        $lenaGroup       = $this->db->table('groups')->where('owner_user_id', $lena)->orderBy('id', 'ASC')->get()->getRowArray();
+        $markusGroup     = $this->db->table('groups')->where('owner_user_id', $markus)->orderBy('id', 'ASC')->get()->getRowArray();
+        $lenaDm          = $this->db->table('conversations')->where('type', 'direct')->orderBy('id', 'ASC')->get()->getRowArray();
+
+        $now  = time();
+        $rows = [];
+        $push = static function (int $userId, string $type, ?int $actor, ?string $ctxType, ?int $ctxId, array $data, bool $read, int $hoursAgo) use (&$rows, $now): void {
+            $when   = gmdate('Y-m-d H:i:s', $now - $hoursAgo * 3600);
+            $rows[] = [
+                'user_id'       => $userId,
+                'type'          => $type,
+                'actor_user_id' => $actor,
+                'context_type'  => $ctxType,
+                'context_id'    => $ctxId,
+                'data'          => json_encode($data, JSON_UNESCAPED_UNICODE),
+                'read_at'       => $read ? $when : null,
+                'created_at'    => $when,
+            ];
+        };
+
+        if ($lenaMeetup) {
+            $push($lena, 'meetup_join', $markus, 'meetup', (int) $lenaMeetup['id'], ['meetup_title' => $lenaMeetup['title']], false, 1);
+            $push($lena, 'meetup_join', $sophie, 'meetup', (int) $lenaMeetup['id'], ['meetup_title' => $lenaMeetup['title']], true, 20);
+        }
+        if ($cancelledMeetup) {
+            $push($lena, 'meetup_cancelled', (int) $cancelledMeetup['creator_user_id'], 'meetup', (int) $cancelledMeetup['id'], ['meetup_title' => $cancelledMeetup['title']], false, 5);
+        }
+        if ($lenaGroup) {
+            $push($lena, 'group_join_request', $sophie, 'group', (int) $lenaGroup['id'], ['group_name' => $lenaGroup['name']], false, 2);
+            $push($lena, 'group_feed_post', $markus, 'group', (int) $lenaGroup['id'], ['group_name' => $lenaGroup['name']], true, 30);
+            $push($markus, 'group_request_approved', $lena, 'group', (int) $lenaGroup['id'], ['group_name' => $lenaGroup['name']], false, 4);
+        }
+        if ($lenaDm) {
+            $convId = (int) $lenaDm['id'];
+            $push($lena, 'new_message', $markus, 'conversation', $convId, ['title' => 'Markus Thaler'], false, 1);
+            $push($lena, 'message_reaction', $sophie, 'conversation', $convId, ['emoji' => '👍', 'title' => 'Sophie Berg'], true, 26);
+        }
+        if ($markusGroup) {
+            $push($sophie, 'group_invite', $markus, 'group', (int) $markusGroup['id'], ['group_name' => $markusGroup['name']], false, 3);
+        }
+
+        if ($rows !== []) {
+            $this->db->table('notifications')->insertBatch($rows);
         }
     }
 

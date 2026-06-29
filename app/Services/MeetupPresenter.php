@@ -7,7 +7,7 @@ namespace App\Services;
  * angereicherten) Tabellenzeilen. **Eine** Stelle für die Projektionen + den abgeleiteten Status, von
  * Read- **und** Write-/Teilnahme-Controllern genutzt. Feldnamen entsprechen exakt dem Wire-Vertrag
  * (Zod-Schemas im Frontend): flach (`spot_id`/`creator_user_id`/`derived_status`), Teilnehmer als
- * `PublicUserCard`, `conversation_id` nullable (in M3 immer `null` — Chat-Domäne ab M5).
+ * `PublicUserCard`, `conversation_id` = Treffen-Chat (ab M5 gesetzt; `null`, falls noch kein Chat).
  */
 final class MeetupPresenter
 {
@@ -77,7 +77,7 @@ final class MeetupPresenter
             'free_spots'        => $max !== null ? max(0, $max - $count) : null,
             'derived_status'    => $this->deriveStatus($row['status'], (string) $row['starts_at'], $max, $count),
             'creator_user_id'   => $creatorId,
-            'conversation_id'   => null, // Treffen-Chat erst in M5 (keine conversations-Tabelle in M3)
+            'conversation_id'   => isset($row['conversation_id']) && $row['conversation_id'] !== null ? (int) $row['conversation_id'] : null,
             'description'       => $row['description'],
             'participants'      => $participants,
             'is_participant'    => $viewerId > 0 && $isParticipant,

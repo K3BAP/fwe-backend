@@ -31,5 +31,6 @@ class MeetupModel extends Model
         'status',
         'visibility',
         'group_id',
+        'conversation_id',
     ];
 }
