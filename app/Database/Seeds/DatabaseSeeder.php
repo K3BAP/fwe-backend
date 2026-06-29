@@ -76,11 +76,118 @@ class DatabaseSeeder extends Seeder
         ['title' => 'Kössen Cross-Country',             'spot' => 'Kössen (Unterberghorn)',  'days' => 25,  'level' => 'expert',   'max' => 3,    'status' => 'open',      'creator' => 2, 'extra' => [0, 1], 'description' => 'Strecke Richtung Kaisergebirge. Erfahrung mit großen Talquerungen empfohlen.'],
     ];
 
+    /**
+     * 8 Gruppen, die jede `visibility`×`join_policy`-Kombination abdecken (SEED_DATA §2.2). `owner`/
+     * Rollen referenzieren den Pilot-Index in $pilots. Verschachtelt: Extra-Mitglieder (`members`),
+     * Extra-Channels (`channels` = [titel, min_role]), Beitrittsanträge (`requests`), Einladungen
+     * (`invites`) und Feed-Posts (`posts` inkl. Reaktionen).
+     * @var list<array<string,mixed>>
+     */
+    private array $groups = [
+        [
+            'name' => 'Gleitschirm Alpen Süd', 'visibility' => 'public', 'join_policy' => 'open',
+            'owner' => 0, 'region' => 'Kärnten', 'tags' => ['alpen', 'soaring'],
+            'description' => 'Die größte Community für Gleitschirmflieger in den Südalpen. Wir teilen Wetter, Strecken und gute Laune.',
+            'rules' => 'Respektvoller Umgang. Keine Werbung. Sicherheit geht vor.',
+            'members' => [[1, 'admin'], [2, 'member']],
+            'channels' => [['Wetter', 'member']],
+            'posts' => [
+                ['title' => 'Saisonstart 2026', 'body' => 'Die Bedingungen werden besser – wer ist diese Woche am Start? 🪂', 'pinned' => true, 'author' => 0, 'reactions' => ['🪂' => [1, 2], '🔥' => [1]]],
+                ['title' => null, 'body' => 'Kurzer Hinweis: Am Wochenende ist der Startplatz wegen einer Veranstaltung gesperrt.', 'pinned' => false, 'author' => 1, 'reactions' => []],
+                ['title' => 'Veralteter Beitrag', 'body' => 'Dieser Beitrag wurde entfernt.', 'pinned' => false, 'author' => 0, 'deleted' => true, 'reactions' => []],
+            ],
+        ],
+        [
+            'name' => 'Mosel & Eifel Flieger', 'visibility' => 'public', 'join_policy' => 'request',
+            'owner' => 1, 'region' => 'Mosel/Eifel', 'tags' => ['mosel', 'eifel', 'anfaenger'],
+            'description' => 'Lokale Crew rund um Calmont, Nürburg und Hunsrück. Beitritt auf Anfrage.',
+            'rules' => 'Bitte beim Beitrittsantrag kurz vorstellen.',
+            'members' => [[0, 'moderator']],
+            'channels' => [['Streckenmeldungen', 'member']],
+            'requests' => [
+                [2, 'Hallo! Ich fliege oft an der Mosel und würde gern beitreten.', 'pending'],
+            ],
+            'posts' => [
+                ['title' => 'Willkommen', 'body' => 'Schön, dass ihr da seid. Stellt euch gern im Channel vor.', 'pinned' => true, 'author' => 1, 'reactions' => ['❤️' => [0]]],
+            ],
+        ],
+        [
+            'name' => 'Streckenflug-Profis DACH', 'visibility' => 'public', 'join_policy' => 'invite_only',
+            'owner' => 2, 'region' => 'Tirol (Stubai)', 'tags' => ['streckenflug', 'xc', 'profi'],
+            'description' => 'Geschlossene Runde für ambitionierte XC-Piloten. Beitritt nur per Einladung.',
+            'rules' => 'Mindestens 100 Flugstunden. Live-Tracking bei Gruppenflügen Pflicht.',
+            'members' => [[0, 'member']],
+            'channels' => [['Orga-intern', 'admin']],
+            'invites' => [
+                ['mode' => 'directed', 'user' => 1, 'status' => 'pending'],
+                ['mode' => 'token', 'status' => 'pending', 'max_uses' => 5, 'expires_in_days' => 30],
+            ],
+            'posts' => [],
+        ],
+        [
+            'name' => 'Stubai Locals', 'visibility' => 'unlisted', 'join_policy' => 'open',
+            'owner' => 0, 'region' => 'Tirol (Stubai)', 'tags' => ['stubai', 'locals'],
+            'description' => 'Treffpunkt der Stubaital-Locals. Nur per Link auffindbar, Feed öffentlich.',
+            'rules' => 'Jeder ist willkommen, der den Link hat.',
+            'members' => [[2, 'member']],
+            'posts' => [
+                ['title' => null, 'body' => 'Elfer heute in Top-Form! 🔥', 'pinned' => false, 'author' => 0, 'reactions' => ['🔥' => [2]]],
+            ],
+        ],
+        [
+            'name' => 'Tegernsee Crew', 'visibility' => 'unlisted', 'join_policy' => 'request',
+            'owner' => 1, 'region' => 'Tegernsee', 'tags' => ['tegernsee', 'voralpen'],
+            'description' => 'Unlisted Gruppe für die Tegernsee-Region. Beitritt auf Anfrage.',
+            'rules' => 'Anfrage bitte mit kurzer Vorstellung.',
+            'members' => [[0, 'admin']],
+            'requests' => [
+                [2, 'Bin neu am Tegernsee und freue mich auf Kontakte.', 'pending'],
+            ],
+            'posts' => [],
+        ],
+        [
+            'name' => 'FSR-Trier Akaflieg (privat)', 'visibility' => 'private', 'join_policy' => 'invite_only',
+            'owner' => 2, 'region' => 'Hunsrück', 'tags' => ['uni', 'trier', 'akaflieg'],
+            'description' => 'Private Hochschulgruppe. Feed und Channels nur für Mitglieder.',
+            'rules' => 'Nur für Studierende und Alumni der Uni Trier.',
+            'members' => [[1, 'admin'], [0, 'member', 'banned']],
+            'invites' => [
+                ['mode' => 'token', 'status' => 'pending', 'max_uses' => null, 'expires_in_days' => 14],
+                ['mode' => 'token', 'status' => 'revoked', 'max_uses' => 1, 'expires_in_days' => 7],
+            ],
+            'posts' => [
+                ['title' => 'Interne Info', 'body' => 'Nächstes Treffen im Hörsaal B. Nur für Mitglieder sichtbar.', 'pinned' => true, 'author' => 2, 'reactions' => []],
+            ],
+        ],
+        [
+            'name' => 'Anfänger-Treff Schwäbische Alb', 'visibility' => 'public', 'join_policy' => 'open',
+            'owner' => 0, 'region' => 'Schwäbische Alb', 'tags' => ['anfaenger', 'alb', 'uebungshang'],
+            'description' => 'Für frische A-Scheine: Übungshänge, Groundhandling und entspanntes Fliegen.',
+            'rules' => 'Keine dummen Fragen. Sicherheit und Spaß stehen im Vordergrund.',
+            'members' => [[1, 'member'], [2, 'member']],
+            'posts' => [
+                ['title' => 'Übungstag am Wochenende', 'body' => 'Samstag treffen wir uns am Übungshang Beuren. Anfänger willkommen!', 'pinned' => false, 'author' => 0, 'reactions' => ['👍' => [1, 2], '🪂' => [2]]],
+            ],
+        ],
+        [
+            'name' => 'Kärnten Soaring (privat)', 'visibility' => 'private', 'join_policy' => 'request',
+            'owner' => 1, 'region' => 'Kärnten', 'tags' => ['kaernten', 'soaring'],
+            'description' => 'Private Gruppe für Soaring-Sessions in Kärnten. Beitritt auf Anfrage.',
+            'rules' => 'Anfrage bitte mit Erfahrungslevel.',
+            'members' => [[2, 'admin']],
+            'requests' => [
+                [0, 'Würde gern bei den Soaring-Sessions mitmachen.', 'pending'],
+            ],
+            'posts' => [],
+        ],
+    ];
+
     public function run(): void
     {
         $pilotIds = $this->seedPilots();
         $this->seedSpots();
         $this->seedMeetups($pilotIds);
+        $this->seedGroups($pilotIds);
     }
 
     /**
@@ -181,5 +288,134 @@ class DatabaseSeeder extends Seeder
             );
             $this->db->table('meetup_participants')->insertBatch($rows);
         }
+    }
+
+    /**
+     * Legt die 8 Demo-Gruppen samt Mitgliedern, Channels (Default + Extra), Beitrittsanträgen,
+     * Einladungen und Feed-Posts (inkl. Reaktionen) an (idempotent). `members_count` wird konsistent zur
+     * Zahl **aktiver** Mitglieder gesetzt; jede Gruppe erhält automatisch den Default-Channel „Allgemein".
+     * @param list<int> $pilotIds
+     */
+    private function seedGroups(array $pilotIds): void
+    {
+        if ($pilotIds === [] || $this->db->table('groups')->countAllResults() > 0) {
+            return;
+        }
+
+        foreach ($this->groups as $g) {
+            $ownerId = $pilotIds[$g['owner']];
+
+            // Aktive Mitglieder zählen (Owner + nicht-gebannte Extra-Mitglieder) für members_count.
+            $activeCount = 1;
+            foreach ($g['members'] ?? [] as $m) {
+                if (($m[2] ?? 'active') !== 'banned') {
+                    $activeCount++;
+                }
+            }
+
+            $this->db->table('groups')->insert([
+                'slug'          => $this->slugify($g['name']),
+                'name'          => $g['name'],
+                'description'   => $g['description'],
+                'region'        => $g['region'],
+                'tags'          => json_encode($g['tags'], JSON_UNESCAPED_UNICODE),
+                'rules_text'    => $g['rules'],
+                'visibility'    => $g['visibility'],
+                'join_policy'   => $g['join_policy'],
+                'owner_user_id' => $ownerId,
+                'members_count' => $activeCount,
+            ]);
+            $groupId = (int) $this->db->insertID();
+
+            // Mitglieder: Owner zuerst, dann Extra-Mitglieder ([pilotIdx, rolle, status?]).
+            $memberRows = [['group_id' => $groupId, 'user_id' => $ownerId, 'role' => 'owner', 'status' => 'active']];
+            foreach ($g['members'] ?? [] as $m) {
+                $memberRows[] = [
+                    'group_id' => $groupId,
+                    'user_id'  => $pilotIds[$m[0]],
+                    'role'     => $m[1],
+                    'status'   => $m[2] ?? 'active',
+                ];
+            }
+            $this->db->table('group_members')->insertBatch($memberRows);
+
+            // Channels: Default „Allgemein" (position 0, nicht löschbar) + Extra-Channels ([titel, min_role]).
+            $channelRows = [[
+                'type' => 'group_channel', 'context_type' => 'group', 'context_id' => $groupId,
+                'title' => 'Allgemein', 'position' => 0, 'is_default' => 1, 'min_role' => 'member', 'created_by' => $ownerId,
+            ]];
+            $pos = 1;
+            foreach ($g['channels'] ?? [] as $ch) {
+                $channelRows[] = [
+                    'type' => 'group_channel', 'context_type' => 'group', 'context_id' => $groupId,
+                    'title' => $ch[0], 'position' => $pos++, 'is_default' => 0, 'min_role' => $ch[1], 'created_by' => $ownerId,
+                ];
+            }
+            $this->db->table('conversations')->insertBatch($channelRows);
+
+            // Beitrittsanträge ([pilotIdx, message, status]).
+            foreach ($g['requests'] ?? [] as $r) {
+                $decided = in_array($r[2], ['approved', 'rejected'], true);
+                $this->db->table('group_join_requests')->insert([
+                    'group_id'   => $groupId,
+                    'user_id'    => $pilotIds[$r[0]],
+                    'message'    => $r[1],
+                    'status'     => $r[2],
+                    'decided_by' => $decided ? $ownerId : null,
+                    'decided_at' => $decided ? gmdate('Y-m-d H:i:s') : null,
+                ]);
+            }
+
+            // Einladungen: gerichtet (invited_user_id) ODER Token-Link (token).
+            foreach ($g['invites'] ?? [] as $inv) {
+                $this->db->table('group_invites')->insert([
+                    'group_id'        => $groupId,
+                    'invited_by'      => $ownerId,
+                    'invited_user_id' => $inv['mode'] === 'directed' ? $pilotIds[$inv['user']] : null,
+                    'token'           => $inv['mode'] === 'token' ? bin2hex(random_bytes(16)) : null,
+                    'status'          => $inv['status'],
+                    'expires_at'      => isset($inv['expires_in_days']) ? gmdate('Y-m-d H:i:s', time() + $inv['expires_in_days'] * 86400) : null,
+                    'max_uses'        => $inv['max_uses'] ?? null,
+                    'uses_count'      => 0,
+                ]);
+            }
+
+            // Feed-Posts (+ Reaktionen). created_at gestaffelt ⇒ Array-Reihenfolge = chronologisch aufsteigend.
+            $posts = $g['posts'] ?? [];
+            $total = count($posts);
+            foreach ($posts as $i => $p) {
+                $deleted = $p['deleted'] ?? false;
+                $this->db->table('feed_posts')->insert([
+                    'group_id'       => $groupId,
+                    'author_user_id' => $pilotIds[$p['author']],
+                    'title'          => $p['title'],
+                    'body'           => $p['body'],
+                    'is_pinned'      => empty($p['pinned']) ? 0 : 1,
+                    'created_at'     => gmdate('Y-m-d H:i:s', time() - ($total - $i) * 3600),
+                    'deleted_at'     => $deleted ? gmdate('Y-m-d H:i:s') : null,
+                    'deleted_by'     => $deleted ? $ownerId : null,
+                ]);
+                $postId = (int) $this->db->insertID();
+
+                $reactionRows = [];
+                foreach ($p['reactions'] ?? [] as $emoji => $userIdxs) {
+                    foreach ($userIdxs as $idx) {
+                        $reactionRows[] = ['feed_post_id' => $postId, 'user_id' => $pilotIds[$idx], 'emoji' => $emoji];
+                    }
+                }
+                if ($reactionRows !== []) {
+                    $this->db->table('feed_post_reactions')->insertBatch($reactionRows);
+                }
+            }
+        }
+    }
+
+    /** Erzeugt einen URL-tauglichen Slug aus dem Gruppennamen (Umlaute → ASCII). */
+    private function slugify(string $name): string
+    {
+        $s = strtr($name, ['ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss', 'Ä' => 'ae', 'Ö' => 'oe', 'Ü' => 'ue']);
+        $s = preg_replace('/[^a-z0-9]+/', '-', strtolower($s)) ?? '';
+
+        return trim($s, '-');
     }
 }
