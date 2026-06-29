@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { Toaster } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { BottomNav } from './BottomNav'
+import { PageTransition } from './PageTransition'
 import { TopBar } from './TopBar'
 
 /** Routen, die das volle Fenster füllen (eigenes Scrolling je Spalte) statt im zentrierten Container zu laufen. */
@@ -27,7 +28,9 @@ export function AppShell() {
         </main>
       ) : (
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 pb-28 sm:px-5 sm:py-8 md:pb-10">
-          <Outlet />
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
         </main>
       )}
       <BottomNav />

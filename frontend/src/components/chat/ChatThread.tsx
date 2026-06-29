@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, useReducedMotion } from 'motion/react'
 import {
   useConversation,
   useDeleteMessage,
@@ -29,6 +30,7 @@ export function ChatThread({ conversationId, backTo }: { conversationId: number;
   const del = useDeleteMessage(conversationId)
   const { mutate: markRead } = useMarkRead()
   const currentUserId = useAuthStore((s) => s.user?.id ?? 0)
+  const reduce = useReducedMotion()
   const [replyTo, setReplyTo] = useState<Message | null>(null)
   const [editing, setEditing] = useState<Message | null>(null)
   const [deleting, setDeleting] = useState<Message | null>(null)
@@ -94,22 +96,30 @@ export function ChatThread({ conversationId, backTo }: { conversationId: number;
         )}
         <div className="flex flex-col gap-3">
           {messages.data?.map((m) => (
-            <ChatMessage
+            // Eingangsanimation gilt nur für neu gemountete Nachrichten (Reconciliation per m.id) —
+            // beim Polling animiert also nur die neu eingetroffene Bubble, nicht der ganze Verlauf.
+            <motion.div
               key={m.id}
-              message={m}
-              currentUserId={currentUserId}
-              showSender={showSender}
-              onReact={(emoji) => react.mutate({ messageId: m.id, emoji })}
-              onReply={(msg) => {
-                setEditing(null)
-                setReplyTo(msg)
-              }}
-              onEdit={(msg) => {
-                setReplyTo(null)
-                setEditing(msg)
-              }}
-              onDelete={setDeleting}
-            />
+              initial={reduce ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+            >
+              <ChatMessage
+                message={m}
+                currentUserId={currentUserId}
+                showSender={showSender}
+                onReact={(emoji) => react.mutate({ messageId: m.id, emoji })}
+                onReply={(msg) => {
+                  setEditing(null)
+                  setReplyTo(msg)
+                }}
+                onEdit={(msg) => {
+                  setReplyTo(null)
+                  setEditing(msg)
+                }}
+                onDelete={setDeleting}
+              />
+            </motion.div>
           ))}
         </div>
         <div ref={endRef} />

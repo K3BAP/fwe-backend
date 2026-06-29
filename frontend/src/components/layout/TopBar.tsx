@@ -1,4 +1,5 @@
 import { Link, NavLink } from 'react-router-dom'
+import { motion, useReducedMotion } from 'motion/react'
 import { useChatUnread } from '@/api/chat'
 import { useNotificationUnread } from '@/api/notifications'
 import { Avatar, Logo, Pill } from '@/components/ui'
@@ -14,6 +15,9 @@ export function TopBar() {
   const user = useAuthStore((s) => s.user)
   const chatUnread = useChatUnread().data ?? 0
   const notifUnread = useNotificationUnread().data ?? 0
+  const reduce = useReducedMotion()
+  // Badge poppt beim Hochzählen (Key = Wert ⇒ Remount ⇒ erneute Scale-Animation).
+  const pop = reduce ? false : { scale: 0.5 }
 
   return (
     <header className="sticky top-0 z-30 border-b border-base-300 bg-base-100/90 backdrop-blur">
@@ -44,9 +48,15 @@ export function TopBar() {
               >
                 {item.label}
                 {badge > 0 && (
-                  <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-coral-500 px-1 text-[10px] font-bold text-white">
+                  <motion.span
+                    key={badge}
+                    initial={pop}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 600, damping: 18 }}
+                    className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-coral-500 px-1 text-[10px] font-bold text-white"
+                  >
                     {badge}
-                  </span>
+                  </motion.span>
                 )}
               </NavLink>
             )
@@ -59,9 +69,15 @@ export function TopBar() {
           <Link to="/benachrichtigungen" className="relative btn btn-circle btn-ghost btn-sm" aria-label="Benachrichtigungen">
             <BellIcon size={18} />
             {notifUnread > 0 && (
-              <span className="absolute right-1 top-1 grid h-[16px] min-w-[16px] place-items-center rounded-full bg-coral-500 px-1 text-[9px] font-bold text-white">
+              <motion.span
+                key={notifUnread}
+                initial={pop}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 600, damping: 18 }}
+                className="absolute right-1 top-1 grid h-[16px] min-w-[16px] place-items-center rounded-full bg-coral-500 px-1 text-[9px] font-bold text-white"
+              >
                 {notifUnread}
-              </span>
+              </motion.span>
             )}
           </Link>
           <ThemeToggle />
