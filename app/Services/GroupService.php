@@ -2,17 +2,21 @@
 
 namespace App\Services;
 
+use App\Exceptions\ApiException;
+use App\Models\ConversationModel;
 use App\Models\GroupJoinRequestModel;
 use App\Models\GroupMemberModel;
+use App\Models\GroupModel;
 use CodeIgniter\Database\RawSql;
+use Throwable;
 
 /**
- * Datenzugriff + Geschäftslogik der Gruppen-Domäne (ADR-013: Controller bleibt dünn). In M4-Slice 2
- * nur lesend (Verzeichnis/Detail/Mitglieder/Feed/Anträge/Invites/Channels). Schreiben (CRUD,
- * Mitgliedschaft, Verwaltung, Channels, Feed) folgt in Slice 3–5.
+ * Datenzugriff + Geschäftslogik der Gruppen-Domäne (ADR-013: Controller bleibt dünn). Lesen
+ * (Verzeichnis/Detail/Mitglieder/Feed/Anträge/Invites/Channels), CRUD und Mitgliedschaft
+ * (join/leave/request/withdraw). Verwaltung/Channels/Feed-Writes folgen in Slice 4–5.
  *
- * `members_count` wird als **denormalisierte Spalte** geführt und in den Mitgliedschafts-Transaktionen
- * konsequent per {@see recountMembers()} aus der Wahrheit neu berechnet (driftfrei). Sichtbarkeit
+ * `members_count` wird als **denormalisierte Spalte** geführt und nach jeder Mitgliedschaftsänderung
+ * per {@see recountMembers()} aus der Wahrheit neu berechnet (driftfrei). Sichtbarkeit
  * (public/unlisted/private) wird zentral im Listen-Filter durchgesetzt.
  */
 final class GroupService
@@ -203,5 +207,327 @@ final class GroupService
         }
 
         return $b->orderBy('position', 'ASC')->orderBy('id', 'ASC')->get()->getResultArray();
+    }
+
+    // ──────────────────────────── Gruppen-CRUD ────────────────────────────
+
+    /**
+     * Gründet eine Gruppe (§6.3) in einer Transaktion: eindeutigen Slug erzeugen, Gruppe anlegen,
+     * Ersteller als `owner`-Mitglied, Default-Channel „Allgemein". Server ignoriert ein client-seitiges
+     * `slug` (wird immer aus `name` generiert).
+     *
+     * @param array<string, mixed> $input
+     * @throws ApiException internal_error
+     */
+    public function create(int $ownerId, array $input): int
+    {
+        $db = db_connect();
+        $db->transBegin();
+        try {
+            $id = (int) model(GroupModel::class)->insert([
+                'slug'          => $this->generateSlug((string) ($input['name'] ?? '')),
+                'name'          => trim((string) $input['name']),
+                'description'   => $this->emptyToNull($input['description'] ?? null),
+                'region'        => $this->emptyToNull($input['region'] ?? null),
+                'tags'          => $this->encodeTags($input['tags'] ?? null),
+                'rules_text'    => $this->emptyToNull($input['rules_text'] ?? null),
+                'visibility'    => $input['visibility'],
+                'join_policy'   => $input['join_policy'],
+                'owner_user_id' => $ownerId,
+                'members_count' => 1,
+            ], true);
+
+            model(GroupMemberModel::class)->insert(['group_id' => $id, 'user_id' => $ownerId, 'role' => 'owner', 'status' => 'active']);
+            $this->createDefaultChannel($id, $ownerId);
+
+            $db->transCommit();
+
+            return $id;
+        } catch (Throwable $e) {
+            $db->transRollback();
+            if ($e instanceof ApiException) {
+                throw $e;
+            }
+            log_message('error', 'Group create failed: ' . $e->getMessage());
+            throw new ApiException('internal_error', 'Gruppe konnte nicht erstellt werden.', 500);
+        }
+    }
+
+    /**
+     * Metadaten bearbeiten (§6.5). BOLA: owner/admin oder Site-Admin. `slug` bleibt unverändert; nur
+     * vorhandene Felder werden geschrieben.
+     *
+     * @param array<string, mixed> $input
+     * @throws ApiException group_not_found | forbidden_role
+     */
+    public function update(int $id, int $userId, bool $isAdmin, array $input): void
+    {
+        $this->requireGroup($id);
+        $this->assertCanManage($id, $userId, $isAdmin, 'Nur Owner/Admins dürfen die Gruppe bearbeiten.');
+
+        $data = [];
+        if (array_key_exists('name', $input)) {
+            $data['name'] = trim((string) $input['name']);
+        }
+        if (array_key_exists('description', $input)) {
+            $data['description'] = $this->emptyToNull($input['description']);
+        }
+        if (array_key_exists('region', $input)) {
+            $data['region'] = $this->emptyToNull($input['region']);
+        }
+        if (array_key_exists('tags', $input)) {
+            $data['tags'] = $this->encodeTags($input['tags']);
+        }
+        if (array_key_exists('rules_text', $input)) {
+            $data['rules_text'] = $this->emptyToNull($input['rules_text']);
+        }
+        if (in_array($input['visibility'] ?? null, ['public', 'private', 'unlisted'], true)) {
+            $data['visibility'] = $input['visibility'];
+        }
+        if (in_array($input['join_policy'] ?? null, ['open', 'request', 'invite_only'], true)) {
+            $data['join_policy'] = $input['join_policy'];
+        }
+
+        if ($data !== []) {
+            model(GroupModel::class)->update($id, $data);
+        }
+    }
+
+    /**
+     * Gruppe soft-löschen (§6.6). Nur Owner (oder Site-Admin). Channels werden via
+     * `conversations.deleted_at` mit-archiviert; Mitglieder/Anträge etc. bleiben (Read filtert über
+     * die Gruppe).
+     *
+     * @throws ApiException group_not_found | forbidden_role
+     */
+    public function delete(int $id, int $userId, bool $isAdmin): void
+    {
+        $this->requireGroup($id);
+        $this->assertOwner($id, $userId, $isAdmin, 'Nur der Owner darf die Gruppe löschen.');
+
+        $now = gmdate('Y-m-d H:i:s');
+        $db  = db_connect();
+        $db->transBegin();
+        try {
+            model(GroupModel::class)->update($id, ['deleted_at' => $now]);
+            $db->table('conversations')
+                ->where('context_type', 'group')->where('context_id', $id)->where('deleted_at', null)
+                ->update(['deleted_at' => $now]);
+            $db->transCommit();
+        } catch (Throwable $e) {
+            $db->transRollback();
+            log_message('error', 'Group delete failed: ' . $e->getMessage());
+            throw new ApiException('internal_error', 'Gruppe konnte nicht gelöscht werden.', 500);
+        }
+    }
+
+    // ──────────────────────────── Mitgliedschaft ────────────────────────────
+
+    /**
+     * Direkter Beitritt (§6.8) — nur bei `join_policy='open'`. Ban-Check vor allem; idempotent gegen
+     * Doppelklick (`uq_group_user`).
+     *
+     * @throws ApiException group_not_found | group_member_banned | join_policy_mismatch | already_member
+     */
+    public function join(int $id, int $userId): void
+    {
+        $group = $this->requireGroup($id);
+        $existing = $this->membershipOf($id, $userId);
+        if ($existing !== null) {
+            if ($existing['status'] === 'banned') {
+                throw new ApiException('group_member_banned', 'Du wurdest aus dieser Gruppe ausgeschlossen.', 403);
+            }
+            throw ApiException::conflict('already_member', 'Du bist bereits Mitglied dieser Gruppe.');
+        }
+        if ($group['join_policy'] !== 'open') {
+            throw ApiException::conflict('join_policy_mismatch', 'Diese Gruppe erfordert eine Anfrage oder Einladung.');
+        }
+
+        try {
+            model(GroupMemberModel::class)->insert(['group_id' => $id, 'user_id' => $userId, 'role' => 'member', 'status' => 'active']);
+        } catch (Throwable $e) {
+            // UNIQUE-Race (zeitgleicher Beitritt): existiert die Zeile nun ⇒ idempotent, sonst Fehler.
+            if ($this->membershipOf($id, $userId) === null) {
+                throw $e;
+            }
+        }
+        $this->recountMembers($id);
+    }
+
+    /**
+     * Selbst-Austritt (§6.8b). Owner muss zuerst übertragen. Idempotent (kein Mitglied ⇒ no-op).
+     *
+     * @throws ApiException group_not_found | owner_must_transfer
+     */
+    public function leave(int $id, int $userId): void
+    {
+        $this->requireGroup($id);
+        $membership = $this->membershipOf($id, $userId);
+        if ($membership === null) {
+            return;
+        }
+        if ($membership['role'] === 'owner') {
+            throw ApiException::conflict('owner_must_transfer', 'Übertrage erst das Eigentum, bevor du die Gruppe verlässt.');
+        }
+
+        model(GroupMemberModel::class)->where('group_id', $id)->where('user_id', $userId)->delete();
+        $this->recountMembers($id);
+    }
+
+    /**
+     * Beitrittsantrag stellen (§6.11) — nur bei `join_policy='request'`. Offener `pending`-Antrag wird
+     * wiederverwendet (kein Duplikat).
+     *
+     * @throws ApiException group_not_found | group_member_banned | already_member | join_policy_mismatch
+     */
+    public function requestJoin(int $id, int $userId, ?string $message): void
+    {
+        $group    = $this->requireGroup($id);
+        $existing = $this->membershipOf($id, $userId);
+        if ($existing !== null) {
+            if ($existing['status'] === 'banned') {
+                throw new ApiException('group_member_banned', 'Du wurdest aus dieser Gruppe ausgeschlossen.', 403);
+            }
+            throw ApiException::conflict('already_member', 'Du bist bereits Mitglied dieser Gruppe.');
+        }
+        if ($group['join_policy'] !== 'request') {
+            throw ApiException::conflict('join_policy_mismatch', 'Diese Gruppe nimmt keine Beitrittsanträge entgegen.');
+        }
+
+        $requests = model(GroupJoinRequestModel::class);
+        if ($requests->where('group_id', $id)->where('user_id', $userId)->where('status', 'pending')->countAllResults() > 0) {
+            return; // bereits offen → idempotent
+        }
+        $requests->insert([
+            'group_id' => $id,
+            'user_id'  => $userId,
+            'message'  => $this->emptyToNull($message),
+            'status'   => 'pending',
+        ]);
+    }
+
+    /**
+     * Eigenen offenen Antrag zurückziehen (§6.11b): `pending` → `cancelled`. Idempotent.
+     *
+     * @throws ApiException group_not_found
+     */
+    public function withdrawRequest(int $id, int $userId): void
+    {
+        $this->requireGroup($id);
+        model(GroupJoinRequestModel::class)
+            ->where('group_id', $id)->where('user_id', $userId)->where('status', 'pending')
+            ->set('status', 'cancelled')->update();
+    }
+
+    // ──────────────────────────── Helfer ────────────────────────────
+
+    /**
+     * Lädt die Gruppe oder wirft `group_not_found`.
+     *
+     * @return array<string, mixed>
+     * @throws ApiException group_not_found
+     */
+    private function requireGroup(int $id): array
+    {
+        $row = $this->findRow($id);
+        if ($row === null) {
+            throw new ApiException('group_not_found', 'Gruppe nicht gefunden.', 404);
+        }
+
+        return $row;
+    }
+
+    /**
+     * Verwaltungsrecht (owner/admin der Gruppe oder Site-Admin), sonst `403 forbidden_role`.
+     *
+     * @throws ApiException forbidden_role
+     */
+    private function assertCanManage(int $groupId, int $userId, bool $isAdmin, string $message): void
+    {
+        if ($isAdmin) {
+            return;
+        }
+        $m = $this->membershipOf($groupId, $userId);
+        if ($m === null || ! in_array($m['role'], ['owner', 'admin'], true)) {
+            throw new ApiException('forbidden_role', $message, 403);
+        }
+    }
+
+    /**
+     * Owner-Recht (oder Site-Admin), sonst `403 forbidden_role`.
+     *
+     * @throws ApiException forbidden_role
+     */
+    private function assertOwner(int $groupId, int $userId, bool $isAdmin, string $message): void
+    {
+        if ($isAdmin) {
+            return;
+        }
+        $m = $this->membershipOf($groupId, $userId);
+        if ($m === null || $m['role'] !== 'owner') {
+            throw new ApiException('forbidden_role', $message, 403);
+        }
+    }
+
+    /** Default-Channel „Allgemein" einer frisch gegründeten Gruppe. */
+    private function createDefaultChannel(int $groupId, int $ownerId): void
+    {
+        model(ConversationModel::class)->insert([
+            'type' => 'group_channel', 'context_type' => 'group', 'context_id' => $groupId,
+            'title' => 'Allgemein', 'position' => 0, 'is_default' => 1, 'min_role' => 'member', 'created_by' => $ownerId,
+        ]);
+    }
+
+    /** `members_count` aus der Wahrheit neu berechnen (aktive Mitglieder). */
+    private function recountMembers(int $groupId): void
+    {
+        db_connect()->query(
+            'UPDATE `groups` SET members_count = (SELECT COUNT(*) FROM group_members WHERE group_id = ? AND status = "active") WHERE id = ?',
+            [$groupId, $groupId],
+        );
+    }
+
+    /** Eindeutigen Slug aus dem Namen erzeugen (Umlaute → ASCII, bei Kollision Suffix `-n`). */
+    private function generateSlug(string $name): string
+    {
+        $base = $this->slugify($name);
+        if ($base === '') {
+            $base = 'gruppe';
+        }
+        $slug  = $base;
+        $n     = 2;
+        $model = model(GroupModel::class);
+        while ($model->where('slug', $slug)->countAllResults() > 0) {
+            $slug = $base . '-' . $n++;
+        }
+
+        return $slug;
+    }
+
+    private function slugify(string $name): string
+    {
+        $s = strtr($name, ['ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss', 'Ä' => 'ae', 'Ö' => 'oe', 'Ü' => 'ue']);
+        $s = preg_replace('/[^a-z0-9]+/', '-', strtolower($s)) ?? '';
+
+        return trim($s, '-');
+    }
+
+    private function encodeTags(mixed $tags): ?string
+    {
+        if (! is_array($tags) || $tags === []) {
+            return null;
+        }
+
+        return json_encode(array_values(array_map('strval', $tags)), JSON_UNESCAPED_UNICODE) ?: null;
+    }
+
+    private function emptyToNull(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 }

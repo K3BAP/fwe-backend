@@ -60,6 +60,17 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->delete('meetups/(:num)/participants/me', 'MeetupController::leave/$1');
         $routes->delete('meetups/(:num)/participants/(:num)', 'MeetupController::removeParticipant/$1/$2');
 
+        // Gruppen schreiben (owner/admin via BOLA im Service), §6.3/§6.5/§6.6.
+        $routes->post('groups', 'GroupController::store');
+        $routes->patch('groups/(:num)', 'GroupController::update/$1');
+        $routes->delete('groups/(:num)', 'GroupController::destroy/$1');
+
+        // Mitgliedschaft (§6.8/§6.8b/§6.11/§6.11b). Spezifische Segmente vor `(:num)`.
+        $routes->post('groups/(:num)/members', 'GroupController::join/$1');
+        $routes->delete('groups/(:num)/members', 'GroupController::leave/$1');
+        $routes->post('groups/(:num)/join-requests', 'GroupController::requestJoin/$1');
+        $routes->delete('groups/(:num)/join-requests/mine', 'GroupController::withdrawRequest/$1');
+
         $routes->get('health/secure', 'HealthController::secure');
     });
 });
