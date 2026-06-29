@@ -38,6 +38,7 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->get('groups/(:num)/join-requests', 'GroupController::joinRequests/$1');
     $routes->get('groups/(:num)/invites', 'GroupController::invites/$1');
     $routes->get('groups/(:num)/channels', 'GroupController::channels/$1');
+    $routes->get('invites/(:segment)', 'GroupController::invitePreview/$1'); // öffentliche Token-Vorschau
 
     // --- auth-pflichtig (Shield-Session); csrf zusätzlich für schreibende Methoden ---
     $routes->group('', ['filter' => ['csrf', 'auth']], static function (RouteCollection $routes): void {
@@ -70,6 +71,17 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->delete('groups/(:num)/members', 'GroupController::leave/$1');
         $routes->post('groups/(:num)/join-requests', 'GroupController::requestJoin/$1');
         $routes->delete('groups/(:num)/join-requests/mine', 'GroupController::withdrawRequest/$1');
+
+        // Verwaltung: Rollen/Ban/Kick/Transfer (§6.9*), Antrags-Entscheid (§6.13*), Invites (§6.14/§6.16/§6.18).
+        $routes->patch('groups/(:num)/members/(:num)', 'GroupController::setMemberRole/$1/$2');
+        $routes->post('groups/(:num)/members/(:num)/ban', 'GroupController::toggleBan/$1/$2');
+        $routes->delete('groups/(:num)/members/(:num)', 'GroupController::removeMember/$1/$2');
+        $routes->post('groups/(:num)/transfer', 'GroupController::transfer/$1');
+        $routes->post('groups/(:num)/join-requests/(:num)/approve', 'GroupController::approveRequest/$1/$2');
+        $routes->post('groups/(:num)/join-requests/(:num)/reject', 'GroupController::rejectRequest/$1/$2');
+        $routes->post('groups/(:num)/invites', 'GroupController::createInvite/$1');
+        $routes->delete('groups/(:num)/invites/(:num)', 'GroupController::revokeInvite/$1/$2');
+        $routes->post('invites/(:segment)/accept', 'GroupController::acceptInvite/$1');
 
         $routes->get('health/secure', 'HealthController::secure');
     });

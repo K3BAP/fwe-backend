@@ -243,6 +243,174 @@ final class GroupController extends BaseApiController
         return $this->respondDetail((int) $id);
     }
 
+    // ──────────────────── Mitglieder-Verwaltung (→ GroupMember[]) ────────────────────
+
+    /** PATCH /groups/{id}/members/{userId} — Rolle ändern (§6.9). */
+    public function setMemberRole($id, $userId): ResponseInterface
+    {
+        $input = $this->request->getJSON(true) ?? [];
+        if (! $this->validateData($input, ['role' => 'required|in_list[admin,moderator,member]'], $this->validationMessages())) {
+            return $this->respondError('validation_error', 'Bitte prüfe deine Eingaben.', 422, $this->validator->getErrors());
+        }
+
+        try {
+            (new GroupService())->setMemberRole((int) $id, $this->currentUserId(), $this->isAdmin(), (int) $userId, $input['role']);
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondMembers((int) $id);
+    }
+
+    /** POST /groups/{id}/members/{userId}/ban — Ban umschalten (§6.9b). */
+    public function toggleBan($id, $userId): ResponseInterface
+    {
+        try {
+            (new GroupService())->toggleBan((int) $id, $this->currentUserId(), $this->isAdmin(), (int) $userId);
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondMembers((int) $id);
+    }
+
+    /** DELETE /groups/{id}/members/{userId} — Mitglied kicken (§6.10). */
+    public function removeMember($id, $userId): ResponseInterface
+    {
+        try {
+            (new GroupService())->removeMember((int) $id, $this->currentUserId(), $this->isAdmin(), (int) $userId);
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondMembers((int) $id);
+    }
+
+    /** POST /groups/{id}/transfer — Eigentum übertragen (§6.9c). */
+    public function transfer($id): ResponseInterface
+    {
+        $input = $this->request->getJSON(true) ?? [];
+        if (! $this->validateData($input, ['user_id' => 'required|is_natural_no_zero'], $this->validationMessages())) {
+            return $this->respondError('validation_error', 'Bitte prüfe deine Eingaben.', 422, $this->validator->getErrors());
+        }
+
+        try {
+            (new GroupService())->transferOwnership((int) $id, $this->currentUserId(), $this->isAdmin(), (int) $input['user_id']);
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondMembers((int) $id);
+    }
+
+    // ──────────────────── Antrags-Entscheid (→ JoinRequest[]) ────────────────────
+
+    /** POST /groups/{id}/join-requests/{requestId}/approve — genehmigen (§6.13). */
+    public function approveRequest($id, $requestId): ResponseInterface
+    {
+        try {
+            (new GroupService())->approveRequest((int) $id, $this->currentUserId(), $this->isAdmin(), (int) $requestId);
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondJoinRequests((int) $id);
+    }
+
+    /** POST /groups/{id}/join-requests/{requestId}/reject — ablehnen (§6.13b). */
+    public function rejectRequest($id, $requestId): ResponseInterface
+    {
+        try {
+            (new GroupService())->rejectRequest((int) $id, $this->currentUserId(), $this->isAdmin(), (int) $requestId);
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondJoinRequests((int) $id);
+    }
+
+    // ──────────────────── Einladungen (→ GroupInvite[]) ────────────────────
+
+    /** POST /groups/{id}/invites — Token-Link oder gerichtete Einladung (§6.14). */
+    public function createInvite($id): ResponseInterface
+    {
+        $input         = $this->request->getJSON(true) ?? [];
+        $invitedUserId = isset($input['user_id']) ? (int) $input['user_id'] : null;
+
+        try {
+            (new GroupService())->createInvite((int) $id, $this->currentUserId(), $this->isAdmin(), $invitedUserId);
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondInvites((int) $id);
+    }
+
+    /** DELETE /groups/{id}/invites/{inviteId} — widerrufen (§6.16). */
+    public function revokeInvite($id, $inviteId): ResponseInterface
+    {
+        try {
+            (new GroupService())->revokeInvite((int) $id, $this->currentUserId(), $this->isAdmin(), (int) $inviteId);
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondInvites((int) $id);
+    }
+
+    /** GET /invites/{token} — öffentliche Vorschau (§6.17). */
+    public function invitePreview($token): ResponseInterface
+    {
+        try {
+            $p = (new GroupService())->invitePreview((string) $token);
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondData([
+            'group'     => (new GroupPresenter())->listItem($p['group']),
+            'valid'     => $p['valid'],
+            'expired'   => $p['expired'],
+            'uses_left' => $p['uses_left'],
+        ]);
+    }
+
+    /** POST /invites/{token}/accept — Token einlösen (§6.18). */
+    public function acceptInvite($token): ResponseInterface
+    {
+        try {
+            $groupId = (new GroupService())->acceptInvite((string) $token, $this->currentUserId());
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondData(['group_id' => $groupId, 'joined' => true], 201);
+    }
+
+    /** Aktualisierte Mitgliederliste (Antwort der Verwaltungs-Endpunkte). */
+    private function respondMembers(int $id): ResponseInterface
+    {
+        $present = new GroupPresenter();
+
+        return $this->respondData(array_map(fn (array $r): array => $present->member($r), (new GroupService())->members($id)));
+    }
+
+    /** Aktualisierte offene Anträge (Antwort der Entscheid-Endpunkte). */
+    private function respondJoinRequests(int $id): ResponseInterface
+    {
+        $present = new GroupPresenter();
+
+        return $this->respondData(array_map(fn (array $r): array => $present->joinRequest($r), (new GroupService())->joinRequests($id)));
+    }
+
+    /** Aktualisierte Einladungsliste (Antwort der Invite-Endpunkte). */
+    private function respondInvites(int $id): ResponseInterface
+    {
+        $present = new GroupPresenter();
+
+        return $this->respondData(array_map(fn (array $r): array => $present->invite($r), (new GroupService())->invites($id)));
+    }
+
     /** Lädt die Gruppe frisch und gibt die volle Detail-Projektion zurück (Read + Write-Slices). */
     protected function respondDetail(int $id, int $status = 200): ResponseInterface
     {
@@ -306,6 +474,8 @@ final class GroupController extends BaseApiController
             'visibility'  => ['required' => 'Bitte eine Sichtbarkeit wählen.', 'in_list' => 'Ungültige Sichtbarkeit.'],
             'join_policy' => ['required' => 'Bitte eine Beitrittsregel wählen.', 'in_list' => 'Ungültige Beitrittsregel.'],
             'message'     => ['max_length' => 'Nachricht ist zu lang (max. 500 Zeichen).'],
+            'role'        => ['required' => 'Bitte eine Rolle angeben.', 'in_list' => 'Ungültige Rolle.'],
+            'user_id'     => ['required' => 'Bitte einen Nutzer angeben.', 'is_natural_no_zero' => 'Ungültiger Nutzer.'],
         ];
     }
 }
