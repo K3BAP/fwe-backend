@@ -411,6 +411,12 @@ final class GroupService
             'message'  => $this->emptyToNull($message),
             'status'   => 'pending',
         ]);
+
+        // Owner + Admins über den neuen Antrag informieren (best-effort).
+        $notifier = new NotificationService();
+        foreach ($this->managerIds($id) as $managerId) {
+            $notifier->create($managerId, 'group_join_request', $userId, 'group', $id, ['group_name' => $group['name']]);
+        }
     }
 
     /**
@@ -544,7 +550,7 @@ final class GroupService
      */
     public function approveRequest(int $groupId, int $actorId, bool $isAdmin, int $requestId): void
     {
-        $this->requireGroup($groupId);
+        $group = $this->requireGroup($groupId);
         $this->assertCanManage($groupId, $actorId, $isAdmin, 'Nur Owner/Admins dürfen Anträge entscheiden.');
         $request = $this->pendingRequest($groupId, $requestId);
 
@@ -562,6 +568,9 @@ final class GroupService
             log_message('error', 'Group approve failed: ' . $e->getMessage());
             throw new ApiException('internal_error', 'Genehmigung fehlgeschlagen.', 500);
         }
+
+        // Antragsteller über die Annahme informieren (best-effort, nach dem Commit).
+        (new NotificationService())->create((int) $request['user_id'], 'group_request_approved', $actorId, 'group', $groupId, ['group_name' => $group['name']]);
     }
 
     /**
@@ -588,7 +597,7 @@ final class GroupService
      */
     public function createInvite(int $groupId, int $actorId, bool $isAdmin, ?int $invitedUserId): void
     {
-        $this->requireGroup($groupId);
+        $group = $this->requireGroup($groupId);
         $this->assertCanManage($groupId, $actorId, $isAdmin, 'Nur Owner/Admins dürfen einladen.');
 
         $row = ['group_id' => $groupId, 'invited_by' => $actorId, 'status' => 'pending', 'uses_count' => 0];
@@ -602,6 +611,11 @@ final class GroupService
         }
 
         model(GroupInviteModel::class)->insert($row);
+
+        // Gerichtete Einladung → den Eingeladenen benachrichtigen (best-effort).
+        if ($invitedUserId !== null) {
+            (new NotificationService())->create($invitedUserId, 'group_invite', $actorId, 'group', $groupId, ['group_name' => $group['name']]);
+        }
     }
 
     /**
@@ -776,16 +790,24 @@ final class GroupService
      */
     public function createFeedPost(int $groupId, int $authorId, bool $isAdmin, array $input): int
     {
-        $this->requireGroup($groupId);
+        $group = $this->requireGroup($groupId);
         $this->assertCanManage($groupId, $authorId, $isAdmin, 'Nur Owner/Admins dürfen im Feed posten.');
 
-        return (int) model(FeedPostModel::class)->insert([
+        $postId = (int) model(FeedPostModel::class)->insert([
             'group_id'       => $groupId,
             'author_user_id' => $authorId,
             'title'          => $this->emptyToNull($input['title'] ?? null),
             'body'           => trim((string) ($input['body'] ?? '')),
             'is_pinned'      => 0,
         ], true);
+
+        // Aktive Mitglieder (außer dem Autor) über den neuen Beitrag informieren (best-effort).
+        $notifier = new NotificationService();
+        foreach ($this->memberIds($groupId, $authorId) as $memberId) {
+            $notifier->create($memberId, 'group_feed_post', $authorId, 'group', $groupId, ['group_name' => $group['name']]);
+        }
+
+        return $postId;
     }
 
     /**
@@ -1043,6 +1065,37 @@ final class GroupService
             'UPDATE `groups` SET members_count = (SELECT COUNT(*) FROM group_members WHERE group_id = ? AND status = "active") WHERE id = ?',
             [$groupId, $groupId],
         );
+    }
+
+    /**
+     * Aktive Owner/Admins einer Gruppe (Empfänger für Antrags-Benachrichtigungen).
+     *
+     * @return list<int>
+     */
+    private function managerIds(int $groupId): array
+    {
+        return array_map(
+            static fn (array $r): int => (int) $r['user_id'],
+            db_connect()->table('group_members')
+                ->select('user_id')->where('group_id', $groupId)->where('status', 'active')->whereIn('role', ['owner', 'admin'])
+                ->get()->getResultArray(),
+        );
+    }
+
+    /**
+     * Aktive Mitglieder einer Gruppe ohne `$exceptId` (Empfänger für Feed-Benachrichtigungen).
+     *
+     * @return list<int>
+     */
+    private function memberIds(int $groupId, int $exceptId): array
+    {
+        return array_values(array_filter(
+            array_map(
+                static fn (array $r): int => (int) $r['user_id'],
+                db_connect()->table('group_members')->select('user_id')->where('group_id', $groupId)->where('status', 'active')->get()->getResultArray(),
+            ),
+            static fn (int $id): bool => $id !== $exceptId,
+        ));
     }
 
     /** Eindeutigen Slug aus dem Namen erzeugen (Umlaute → ASCII, bei Kollision Suffix `-n`). */

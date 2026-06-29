@@ -373,7 +373,7 @@ final class ChatService
      */
     public function sendMessage(int $viewerId, int $convId, string $body, ?int $replyToId): int
     {
-        $this->assertAccess($convId, $viewerId);
+        $conv = $this->assertAccess($convId, $viewerId);
 
         if ($replyToId !== null
             && db_connect()->table('messages')->where('id', $replyToId)->where('conversation_id', $convId)->countAllResults() === 0) {
@@ -389,6 +389,9 @@ final class ChatService
 
         db_connect()->table('conversations')->where('id', $convId)->update(['last_message_at' => gmdate('Y-m-d H:i:s')]);
         $this->upsertParticipant($convId, $viewerId, $id);
+
+        // Benachrichtigung an die übrigen (nicht stummgeschalteten) Teilnehmer — aggregiert je Konversation.
+        (new NotificationService())->notifyNewMessage($this->recipientsFor($conv, $viewerId), $convId, $viewerId);
 
         return $id;
     }
@@ -463,6 +466,11 @@ final class ChatService
             $db->table('message_reactions')->where('id', $existing['id'])->delete();
         } else {
             model(MessageReactionModel::class)->insert(['message_id' => $messageId, 'user_id' => $viewerId, 'emoji' => $emoji]);
+            // Nur beim Hinzufügen den Autor benachrichtigen (nicht bei eigener Reaktion).
+            $authorId = (int) $msg['sender_id'];
+            if ($authorId !== $viewerId) {
+                (new NotificationService())->create($authorId, 'message_reaction', $viewerId, 'conversation', $convId, ['emoji' => $emoji]);
+            }
         }
         // Reaktionen ändern die messages-Zeile nicht ⇒ updated_at explizit anstoßen (Polling-Delta).
         $db->table('messages')->where('id', $messageId)->set('updated_at', 'CURRENT_TIMESTAMP(3)', false)->update();
@@ -481,6 +489,9 @@ final class ChatService
         $row    = db_connect()->table('messages')->selectMax('id')->where('conversation_id', $convId)->get()->getRowArray();
         $lastId = ($row !== null && $row['id'] !== null) ? (int) $row['id'] : null;
         $this->upsertParticipant($convId, $viewerId, $lastId);
+
+        // Aggregierte „neue Nachricht"-Benachrichtigung dieser Konversation auflösen (ADR-012/C7).
+        (new NotificationService())->resolveConversation($viewerId, $convId);
     }
 
     /**
@@ -686,5 +697,32 @@ final class ChatService
         $row = db_connect()->table('meetups')->select('creator_user_id')->where('id', $meetupId)->get()->getRowArray();
 
         return $row === null ? null : (int) $row['creator_user_id'];
+    }
+
+    /**
+     * Empfänger für Benachrichtigungen: Teilnehmer der Konversation ohne `$exceptId` und ohne
+     * stummgeschaltete (`conversation_participants.muted`).
+     *
+     * @param array<string, mixed> $conv
+     * @return list<int>
+     */
+    private function recipientsFor(array $conv, int $exceptId): array
+    {
+        $ids = array_values(array_filter(
+            array_map(static fn (array $p): int => (int) $p['user_id'], $this->participants($conv)),
+            static fn (int $id): bool => $id !== $exceptId,
+        ));
+        if ($ids === []) {
+            return [];
+        }
+
+        $muted = array_map(
+            static fn (array $r): int => (int) $r['user_id'],
+            db_connect()->table('conversation_participants')
+                ->select('user_id')->where('conversation_id', $conv['id'])->where('muted', 1)->whereIn('user_id', $ids)
+                ->get()->getResultArray(),
+        );
+
+        return array_values(array_diff($ids, $muted));
     }
 }

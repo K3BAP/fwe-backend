@@ -246,6 +246,16 @@ final class MeetupService
         if ($data !== []) {
             model(MeetupModel::class)->update($id, $data);
         }
+
+        // Absage → alle Teilnehmer (außer dem Auslöser) benachrichtigen (best-effort).
+        if (($data['status'] ?? null) === 'cancelled' && $row['status'] !== 'cancelled') {
+            $notifier = new NotificationService();
+            foreach ($this->participantIds($id) as $participantId) {
+                if ($participantId !== $userId) {
+                    $notifier->create($participantId, 'meetup_cancelled', $userId, 'meetup', $id, ['meetup_title' => $row['title']]);
+                }
+            }
+        }
     }
 
     /**
@@ -313,6 +323,12 @@ final class MeetupService
         }
 
         $db->transCommit();
+
+        // Organisator über neuen Teilnehmer informieren (best-effort, nach dem Commit).
+        $meetup = model(MeetupModel::class)->find($id);
+        if ($meetup !== null && (int) $meetup['creator_user_id'] !== $userId) {
+            (new NotificationService())->create((int) $meetup['creator_user_id'], 'meetup_join', $userId, 'meetup', $id, ['meetup_title' => $meetup['title']]);
+        }
     }
 
     /**
@@ -363,6 +379,19 @@ final class MeetupService
         if ((int) $row['creator_user_id'] !== $userId && ! $isAdmin) {
             throw ApiException::forbidden($message);
         }
+    }
+
+    /**
+     * Teilnehmer-IDs eines Treffens (für Benachrichtigungen).
+     *
+     * @return list<int>
+     */
+    private function participantIds(int $meetupId): array
+    {
+        return array_map(
+            static fn (array $r): int => (int) $r['user_id'],
+            db_connect()->table('meetup_participants')->select('user_id')->where('meetup_id', $meetupId)->get()->getResultArray(),
+        );
     }
 
     /** ISO-Eingabe → UTC-DATETIME (`Y-m-d H:i:s`); wirft bei ungültigem/vergangenem Datum `422`. */

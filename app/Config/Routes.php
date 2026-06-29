@@ -105,6 +105,12 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->delete('conversations/(:num)/messages/(:num)', 'ConversationController::deleteMessage/$1/$2');
         $routes->post('conversations/(:num)/messages/(:num)/reactions', 'ConversationController::reactToMessage/$1/$2');
 
+        // Benachrichtigungen (§11) — self. Spezifische Segmente vor `(:num)`.
+        $routes->get('notifications', 'NotificationController::index');
+        $routes->get('notifications/unread-count', 'NotificationController::unreadCount');
+        $routes->post('notifications/read-all', 'NotificationController::markAllRead');
+        $routes->post('notifications/(:num)/read', 'NotificationController::markRead/$1');
+
         $routes->get('health/secure', 'HealthController::secure');
     });
 });
