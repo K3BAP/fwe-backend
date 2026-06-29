@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import { useGroups } from '@/api/groups'
@@ -7,6 +7,7 @@ import type { GroupListItem } from '@/api/schemas'
 import { JoinPolicyBadge, VisibilityBadge } from '@/components/groups/GroupBadges'
 import { ChatIcon, ChevronRightIcon, MapPinIcon, UsersIcon, WingIcon } from '@/components/layout/icons'
 import { Logo, Skeleton } from '@/components/ui'
+import { cn } from '@/lib/cn'
 
 /**
  * Gast-Landing (Marketing, ohne App-Chrome): Sticky-Nav, Hero, Feature-Werbung, **echte öffentliche
@@ -17,6 +18,7 @@ import { Logo, Skeleton } from '@/components/ui'
 export function Landing() {
   return (
     <div className="min-h-svh bg-base-100 text-base-content">
+      <LandingNav />
       <Hero />
       <Features />
       <PublicGroups />
@@ -43,10 +45,76 @@ function Reveal({ children, delay = 0, className }: { children: ReactNode; delay
   )
 }
 
+const NAV_LINKS = [
+  { id: 'features', label: 'Funktionen' },
+  { id: 'gruppen', label: 'Gruppen' },
+  { id: 'spots', label: 'Spots' },
+]
+
 /**
- * Vollflächiger Himmel-Hero (immersiv) mit überlagerter Nav. Verlauf + Sonne + Gleitschirm + Bergkamm
- * als feste Markenoptik; Copy in Weiß. Die Nav ist Teil des Heros (nicht sticky) — Anker-Links springen
- * zu den Sektionen darunter.
+ * Sticky-Nav für die Landing: liegt zuoberst (fixed) und ist über dem Himmel-Hero **transparent**
+ * (weiße Schrift); sobald gescrollt wird, blendet sie weich in eine feste Leiste (base-100 + Blur,
+ * dunkle Schrift) — sonst wäre die weiße Schrift über den hellen Sektionen unlesbar. Anker-Links
+ * scrollen sanft zur Sektion (respektiert `prefers-reduced-motion`).
+ */
+function LandingNav() {
+  const reduce = useReducedMotion()
+  const [scrolled, setScrolled] = useState(() => typeof window !== 'undefined' && window.scrollY > 24)
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  const scrollTo = (e: MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault()
+    document.getElementById(id)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+  }
+
+  return (
+    <header
+      className={cn(
+        'fixed inset-x-0 top-0 z-50 border-b transition-colors duration-300',
+        scrolled ? 'border-base-300 bg-base-100/85 backdrop-blur' : 'border-transparent',
+      )}
+    >
+      <div className="mx-auto flex w-full max-w-6xl items-center gap-6 px-5 py-4 sm:px-8">
+        <Logo onDark={!scrolled} />
+        <nav className="ml-2 hidden items-center gap-1 md:flex">
+          {NAV_LINKS.map(({ id, label }) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              onClick={(e) => scrollTo(e, id)}
+              className={cn(
+                'rounded-full px-3 py-2 text-sm font-medium transition-colors',
+                scrolled ? 'text-base-content/60 hover:bg-base-200 hover:text-base-content' : 'text-white/80 hover:bg-white/10 hover:text-white',
+              )}
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
+        <div className="ml-auto flex items-center gap-2">
+          <Link to="/login" className={cn('btn btn-ghost rounded-full text-sm', !scrolled && 'text-white hover:bg-white/10')}>
+            Anmelden
+          </Link>
+          <Link
+            to="/register"
+            className={cn('btn rounded-full border-0 text-sm shadow-card', scrolled ? 'btn-primary' : 'bg-white text-sky-700 hover:bg-white/90')}
+          >
+            Registrieren
+          </Link>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+/**
+ * Vollflächiger Himmel-Hero (immersiv): Verlauf + Sonne + Gleitschirm + Bergkamm als feste Markenoptik,
+ * Copy in Weiß. Die Nav liegt als {@link LandingNav} darüber (fixed/sticky), daher hier kein Header.
  */
 function Hero() {
   const reduce = useReducedMotion()
@@ -64,23 +132,9 @@ function Hero() {
         <path d="M0 140 L300 116 L620 142 L940 112 L1200 142 L1440 126 L1440 180 L0 180 Z" fill="#0A4F57" />
       </svg>
 
-      {/* Nav (überlagert, nicht sticky) */}
-      <header className="mx-auto flex w-full max-w-6xl items-center gap-6 px-5 py-5 sm:px-8">
-        <Logo onDark />
-        <nav className="ml-2 hidden items-center gap-1 md:flex">
-          <a href="#features" className="rounded-full px-3 py-2 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white">Funktionen</a>
-          <a href="#gruppen" className="rounded-full px-3 py-2 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white">Gruppen</a>
-          <a href="#spots" className="rounded-full px-3 py-2 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white">Spots</a>
-        </nav>
-        <div className="ml-auto flex items-center gap-2">
-          <Link to="/login" className="btn btn-ghost rounded-full text-sm text-white hover:bg-white/10">Anmelden</Link>
-          <Link to="/register" className="btn rounded-full border-0 bg-white text-sm text-sky-700 shadow-card hover:bg-white/90">Registrieren</Link>
-        </div>
-      </header>
-
       {/* Copy */}
       <motion.div
-        className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-5 pb-36 pt-6 sm:px-8"
+        className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-5 pb-36 pt-24 sm:px-8"
         initial={reduce ? false : { opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
