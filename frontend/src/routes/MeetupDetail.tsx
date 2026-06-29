@@ -210,8 +210,9 @@ export function MeetupDetail() {
             />
           </Card>
 
-          {/* Treffen-Chat folgt in M5: solange keine conversation_id existiert, keine Verlinkung. */}
-          {m.conversation_id != null && (
+          {/* Treffen-Chat nur für Teilnehmende: Zugriff auf die Konversation ist serverseitig auf
+              `meetup_participants` beschränkt — ohne Teilnahme führte der Link in ein 403/Lade-Fenster. */}
+          {m.conversation_id != null && m.is_participant && (
             <Link to={`/chat/${m.conversation_id}`} className="block">
               <Card className="flex items-center justify-between gap-3 p-5 transition hover:border-primary/40 hover:bg-base-200/40">
                 <div className="flex items-center gap-3">
