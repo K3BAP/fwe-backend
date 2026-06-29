@@ -290,4 +290,15 @@ final class MeetupWriteTest extends CIUnitTestCase
         $user = $this->createPilot('a@flightmeet.test');
         $this->actingAs($user)->delete('api/v1/meetups/9999')->assertStatus(404);
     }
+
+    public function testDeleteAllowedForAdmin(): void
+    {
+        $owner = $this->createPilot('owner@flightmeet.test');
+        $admin = $this->createPilot('admin@flightmeet.test');
+        $admin->addGroup('admin'); // Plattform-Admin umgeht die Creator-Schranke (ADR-012/D4)
+        $id = $this->createMeetup($owner->id);
+
+        $this->actingAs($admin)->delete("api/v1/meetups/{$id}")->assertStatus(204);
+        $this->assertNull(model(MeetupModel::class)->find($id));
+    }
 }
