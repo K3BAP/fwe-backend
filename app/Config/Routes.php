@@ -96,8 +96,14 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         // Chat (§9–10) — privat (komplett im Auth-Filter). Spezifische Segmente vor `(:num)`.
         $routes->get('conversations', 'ConversationController::index');
         $routes->get('conversations/unread-count', 'ConversationController::unreadCount');
+        $routes->post('conversations/direct', 'ConversationController::openDm');
         $routes->get('conversations/(:num)', 'ConversationController::show/$1');
+        $routes->post('conversations/(:num)/read', 'ConversationController::markRead/$1');
         $routes->get('conversations/(:num)/messages', 'ConversationController::messages/$1');
+        $routes->post('conversations/(:num)/messages', 'ConversationController::sendMessage/$1');
+        $routes->patch('conversations/(:num)/messages/(:num)', 'ConversationController::editMessage/$1/$2');
+        $routes->delete('conversations/(:num)/messages/(:num)', 'ConversationController::deleteMessage/$1/$2');
+        $routes->post('conversations/(:num)/messages/(:num)/reactions', 'ConversationController::reactToMessage/$1/$2');
 
         $routes->get('health/secure', 'HealthController::secure');
     });
