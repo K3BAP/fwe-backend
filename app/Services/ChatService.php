@@ -146,8 +146,11 @@ final class ChatService
     }
 
     /**
-     * Die sichtbaren Konversationen des Betrachters (DMs ∪ Channels eigener aktiver Gruppen∩`min_role`
-     * ∪ eigene Treffen-Chats), je mit `title`, `last_message_at`, `my_last_read` und (DM) Peer-Feldern.
+     * Die im **globalen Chat** sichtbaren Konversationen des Betrachters: **DMs ∪ eigene Treffen-Chats**,
+     * je mit `title`, `last_message_at` und (DM) Peer-Feldern. **Gruppen-Channels werden bewusst
+     * ausgelassen** — dafür gibt es die dedizierte Channel-Oberfläche je Gruppe (`/gruppen/:id/channels`);
+     * sie würden den Chat-Posteingang sonst zumüllen. Channel-Konversationen bleiben über
+     * `GET /conversations/{id}` + `…/messages` voll erreichbar (die Gruppen-UI nutzt denselben Thread).
      *
      * @return list<array<string, mixed>>
      */
@@ -167,18 +170,6 @@ final class ChatService
             [$viewerId, $viewerId],
         )->getResultArray();
 
-        $channels = $db->query(
-            "SELECT c.id, c.type, c.context_id, c.last_message_at,
-                    NULL AS peer_id, NULL AS peer_display_name, NULL AS peer_handle, NULL AS peer_avatar,
-                    CONCAT(g.name, ' · ', c.title) AS title
-             FROM conversations c
-             JOIN group_members gm ON gm.group_id = c.context_id AND gm.user_id = ? AND gm.status = 'active'
-             JOIN `groups` g ON g.id = c.context_id
-             WHERE c.type = 'group_channel' AND c.deleted_at IS NULL
-               AND (c.min_role = 'member' OR gm.role IN ('owner','admin'))",
-            [$viewerId],
-        )->getResultArray();
-
         $meetups = $db->query(
             "SELECT c.id, c.type, c.context_id, c.last_message_at,
                     NULL AS peer_id, NULL AS peer_display_name, NULL AS peer_handle, NULL AS peer_avatar,
@@ -190,7 +181,7 @@ final class ChatService
             [$viewerId],
         )->getResultArray();
 
-        return array_merge($dms, $channels, $meetups);
+        return array_merge($dms, $meetups);
     }
 
     /**

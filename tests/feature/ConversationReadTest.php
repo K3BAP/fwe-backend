@@ -157,22 +157,35 @@ final class ConversationReadTest extends CIUnitTestCase
         return array_map('intval', array_column($data, 'id'));
     }
 
-    public function testListReturnsOnlyParticipantConversations(): void
+    public function testListReturnsOnlyMyDirectAndMeetupConversations(): void
     {
         $a = $this->createPilot('a@flightmeet.test');
         $b = $this->createPilot('b@flightmeet.test');
-        [, $convA] = $this->createGroupChannel((int) $a->id);
-        $dm        = $this->createDm((int) $a->id, (int) $b->id);
-        [, $convB] = $this->createGroupChannel((int) $b->id); // a ist kein Mitglied
-        $this->addMessage($convA, (int) $a->id, 'x');
-        $this->addMessage($dm, (int) $b->id, 'y');
-        $this->addMessage($convB, (int) $b->id, 'z');
+        $c = $this->createPilot('c@flightmeet.test');
+        $dmAB = $this->createDm((int) $a->id, (int) $b->id);
+        $dmBC = $this->createDm((int) $b->id, (int) $c->id); // a ist nicht beteiligt
+        $this->addMessage($dmAB, (int) $b->id, 'y');
+        $this->addMessage($dmBC, (int) $c->id, 'z');
 
-        $ids = $this->listIds($a);
-        sort($ids);
-        $expected = [$convA, $dm];
-        sort($expected);
-        $this->assertSame($expected, $ids);
+        $this->assertSame([$dmAB], $this->listIds($a));
+    }
+
+    public function testGlobalListExcludesGroupChannels(): void
+    {
+        // Gruppen-Channels haben eine eigene UI (/gruppen/:id/channels) und erscheinen NICHT im
+        // globalen Chat — wohl aber DMs/Treffen-Chats. Zugriff auf die Channel-Konversation bleibt.
+        $owner = $this->createPilot('o@flightmeet.test');
+        $peer  = $this->createPilot('p@flightmeet.test');
+        [, $channelConv] = $this->createGroupChannel((int) $owner->id);
+        $dm = $this->createDm((int) $owner->id, (int) $peer->id);
+        $this->addMessage($channelConv, (int) $owner->id, 'im Channel');
+        $this->addMessage($dm, (int) $peer->id, 'als DM');
+
+        $ids = $this->listIds($owner);
+        $this->assertContains($dm, $ids);
+        $this->assertNotContains($channelConv, $ids);
+        // Channel bleibt direkt erreichbar (für die dedizierte Gruppen-UI).
+        $this->actingAs($owner)->get("api/v1/conversations/{$channelConv}")->assertStatus(200);
     }
 
     public function testListSortedByLastActivityDesc(): void
@@ -292,8 +305,10 @@ final class ConversationReadTest extends CIUnitTestCase
         $this->actingAs($strn)->get("api/v1/conversations/{$dm}/messages")->assertStatus(403);
     }
 
-    public function testAdminChannelHiddenFromMember(): void
+    public function testAdminChannelAccessRespectsMinRole(): void
     {
+        // Channels erscheinen nicht im globalen Chat (eigene UI). Der min_role-Zugriffsschutz auf die
+        // Channel-Konversation bleibt davon unberührt: member kommt nicht an einen admin-Channel.
         $owner  = $this->createPilot('o@flightmeet.test');
         $member = $this->createPilot('m@flightmeet.test');
         [$groupId, $defaultConv] = $this->createGroupChannel((int) $owner->id, [[(int) $member->id, 'member']]);
@@ -301,16 +316,14 @@ final class ConversationReadTest extends CIUnitTestCase
             'type' => 'group_channel', 'context_type' => 'group', 'context_id' => $groupId,
             'title' => 'Orga', 'position' => 1, 'is_default' => 0, 'min_role' => 'admin', 'created_by' => $owner->id,
         ], true);
-        $this->addMessage($defaultConv, (int) $owner->id, 'hi');
         $this->addMessage($adminConv, (int) $owner->id, 'geheim');
 
-        $memberIds = $this->listIds($member);
-        $this->assertContains($defaultConv, $memberIds);
-        $this->assertNotContains($adminConv, $memberIds);
+        // member: admin-Channel verboten, Default-Channel (eigene UI) erreichbar.
         $this->actingAs($member)->get("api/v1/conversations/{$adminConv}")->assertStatus(403);
         $this->actingAs($member)->get("api/v1/conversations/{$adminConv}/messages")->assertStatus(403);
-
-        $this->assertContains($adminConv, $this->listIds($owner));
+        $this->actingAs($member)->get("api/v1/conversations/{$defaultConv}")->assertStatus(200);
+        // owner: admin-Channel erreichbar.
+        $this->actingAs($owner)->get("api/v1/conversations/{$adminConv}")->assertStatus(200);
     }
 
     public function testMessagesEtagReturns304(): void
