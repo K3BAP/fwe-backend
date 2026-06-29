@@ -90,7 +90,11 @@ final class GroupPresenter
             'image_path' => $row['image_path'] ?? null,
             'is_pinned'  => (bool) $row['is_pinned'],
             'created_at' => (string) $this->toIso($row['created_at']),
-            'updated_at' => $this->toIso($row['updated_at'] ?? null),
+            // `updated_at` nur, wenn tatsächlich bearbeitet (≠ created_at) — das FE rendert sonst
+            // fälschlich „· bearbeitet" für jeden Post (Spalte hat ON UPDATE CURRENT_TIMESTAMP).
+            'updated_at' => (isset($row['updated_at']) && $row['updated_at'] !== null && $row['updated_at'] !== $row['created_at'])
+                ? $this->toIso($row['updated_at'])
+                : null,
             'reactions'  => $reactions,
         ];
     }

@@ -7,7 +7,7 @@ export const USE_MOCKS = {
   auth: false, // M2 Slice 2 — echtes Shield-Backend
   profile: false, // M2 Slice 3 — echtes Profile-Backend
   meetups: false, // M3 — echtes Flugtreffen-/Spots-Backend
-  groups: true, // M4
+  groups: false, // M4 — echtes Gruppen-Backend
   chat: true, // M5
   notifications: true, // M5
 } as const

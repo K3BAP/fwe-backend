@@ -385,13 +385,15 @@ class DatabaseSeeder extends Seeder
             $total = count($posts);
             foreach ($posts as $i => $p) {
                 $deleted = $p['deleted'] ?? false;
+                $createdAt = gmdate('Y-m-d H:i:s', time() - ($total - $i) * 3600);
                 $this->db->table('feed_posts')->insert([
                     'group_id'       => $groupId,
                     'author_user_id' => $pilotIds[$p['author']],
                     'title'          => $p['title'],
                     'body'           => $p['body'],
                     'is_pinned'      => empty($p['pinned']) ? 0 : 1,
-                    'created_at'     => gmdate('Y-m-d H:i:s', time() - ($total - $i) * 3600),
+                    'created_at'     => $createdAt,
+                    'updated_at'     => $createdAt, // = created ⇒ nicht „bearbeitet" (außer echten Edits)
                     'deleted_at'     => $deleted ? gmdate('Y-m-d H:i:s') : null,
                     'deleted_by'     => $deleted ? $ownerId : null,
                 ]);

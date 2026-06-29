@@ -76,9 +76,15 @@ final class GroupFeedTest extends CIUnitTestCase
 
     private function createPost(int $groupId, int $authorId): int
     {
-        return (int) model(FeedPostModel::class)->insert([
-            'group_id' => $groupId, 'author_user_id' => $authorId, 'title' => 'T', 'body' => 'Inhalt', 'is_pinned' => 0,
-        ], true);
+        // created_at/updated_at bewusst zurückdatiert (gleich), damit ein späterer PATCH `updated_at`
+        // messbar über `created_at` hebt (sonst kollidieren beide in derselben Sekunde).
+        $past = gmdate('Y-m-d H:i:s', time() - 86400);
+        db_connect()->table('feed_posts')->insert([
+            'group_id' => $groupId, 'author_user_id' => $authorId, 'title' => 'T', 'body' => 'Inhalt',
+            'is_pinned' => 0, 'created_at' => $past, 'updated_at' => $past,
+        ]);
+
+        return (int) db_connect()->insertID();
     }
 
     public function testCreateFeedPost(): void
@@ -96,6 +102,7 @@ final class GroupFeedTest extends CIUnitTestCase
         $this->assertSame((int) $owner->id, $d['author']['id']);
         $this->assertSame([], $d['reactions']);
         $this->assertFalse($d['is_pinned']);
+        $this->assertNull($d['updated_at']); // frisch ⇒ nicht „bearbeitet"
     }
 
     public function testCreateFeedPostForbiddenForMember(): void
@@ -128,6 +135,7 @@ final class GroupFeedTest extends CIUnitTestCase
             ->patch("api/v1/groups/{$id}/feed/{$post}", ['body' => 'Geändert'])->getJSON(), true)['data'];
 
         $this->assertSame('Geändert', $d['body']);
+        $this->assertNotNull($d['updated_at']); // bearbeitet ⇒ updated_at gesetzt
     }
 
     public function testDeleteFeedPostByModerator(): void
