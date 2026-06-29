@@ -114,7 +114,9 @@ Status, **join/leave-Transaktion** + `409`, Ersteller zählt mit), `GET /spots` 
 ## M4 – Gruppen verkabeln
 
 **Backend:** `groups` (visibility×join_policy), `group_members`, `group_join_requests`, `group_invites`,
-`feed_posts` + `feed_post_reactions`; Beitritt/Antrag/Invite, Feed, Default-Channel-Anlage.
+`feed_posts` + `feed_post_reactions`, **`conversations` (group_channel-Teil)**; Beitritt/Antrag/Invite,
+Feed + Reaktionen, **Channels (Default-Anlage + CRUD)**, Rollen/Ban/Owner-Transfer. (Chat-spezifische
+`conversations`-Spalten `dm_key`/`meetup_uniq` sowie Messages erst M5.)
 **Frontend:** Gruppen-Hooks Mock→Real; Beitritts-/Antrags-/Invite-UI echt; Feed + Reaktionen echt.
 **Abhängigkeiten:** M2. **ADR:** 005, 006, 008, 012 (B2/B3/B4/C3/C4).
 **Akzeptanz:** Matrix-Verhalten (Kap. 03) stimmt; Antrag genehmigen; Invite-Token tritt bei; Owner-Transfer-Invariante.

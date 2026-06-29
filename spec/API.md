@@ -69,7 +69,7 @@ Moderierbare Inhalte werden soft-gelöscht (`deleted_at`, ggf. `deleted_by`) und
 | `meetups.derived_status` (berechnet, nur im Read) | `open`, `full`, `finished`, `cancelled` |
 | `groups.visibility` | `public`, `private`, `unlisted` |
 | `groups.join_policy` | `open`, `request`, `invite_only` |
-| `group_members.role` | `owner`, `admin`, `member` |
+| `group_members.role` | `owner`, `admin`, `moderator`, `member` |
 | `group_members.status` | `active`, `banned` |
 | `group_join_requests.status` | `pending`, `approved`, `rejected`, `cancelled` |
 | `group_invites.status` | `pending`, `accepted`, `declined`, `revoked`, `expired` |
@@ -309,32 +309,39 @@ Admin/Creator entfernt Teilnehmer. **Auth: Creator oder `admin`.** Der Creator k
 
 | # | Methode | Pfad | Auth |
 |---|---|---|---|
-| 6.1 | GET | `/groups` | öffentlich (public/unlisted-via-Link) |
-| 6.2 | GET | `/groups/suggestions` | eingeloggt |
+| 6.1 | GET | `/groups` | öffentlich — **unpaginiert**, nur sichtbare (`public` + eigene Mitgliedschaften) |
+| 6.2 | GET | `/groups/suggestions` | eingeloggt — **deferred** (kein Frontend-Hook in M4) |
 | 6.3 | POST | `/groups` | eingeloggt |
-| 6.4 | GET | `/groups/{slug}` | Sichtbarkeit |
+| 6.4 | GET | `/groups/{id}` | Sichtbarkeit |
 | 6.5 | PATCH | `/groups/{id}` | `owner`/`admin` |
 | 6.6 | DELETE | `/groups/{id}` | `owner` |
-| 6.7 | GET | `/groups/{id}/members` | Policy |
-| 6.8 | POST | `/groups/{id}/members` | eingeloggt (join_policy=open) |
-| 6.9 | PATCH | `/groups/{id}/members/{userId}` | `owner`/`admin` |
-| 6.10 | DELETE | `/groups/{id}/members/{userId}` | self (leave) / `owner`/`admin` (kick) |
-| 6.11 | POST | `/groups/{id}/join-requests` | eingeloggt (join_policy=request) |
+| 6.7 | GET | `/groups/{id}/members` | Sichtbarkeit — **unpaginiert** |
+| 6.8 | POST | `/groups/{id}/members` | eingeloggt (`join_policy=open`) — **Beitritt** |
+| 6.8b | DELETE | `/groups/{id}/members` | Mitglied — **Selbst-Austritt** (kein `/me`-Suffix) |
+| 6.9 | PATCH | `/groups/{id}/members/{userId}` | `owner`/`admin` — nur Rolle (`{role}`) |
+| 6.9b | POST | `/groups/{id}/members/{userId}/ban` | `moderator`+ — Ban toggeln |
+| 6.9c | POST | `/groups/{id}/transfer` | `owner` — Eigentum übertragen (`{user_id}`) |
+| 6.10 | DELETE | `/groups/{id}/members/{userId}` | `owner`/`admin`/`moderator` — Kick |
+| 6.11 | POST | `/groups/{id}/join-requests` | eingeloggt (`join_policy=request`) |
+| 6.11b | DELETE | `/groups/{id}/join-requests/mine` | Antragsteller — eigenen Antrag zurückziehen |
 | 6.12 | GET | `/groups/{id}/join-requests` | `owner`/`admin` |
-| 6.13 | PATCH | `/groups/{id}/join-requests/{requestId}` | `owner`/`admin` |
+| 6.13 | POST | `/groups/{id}/join-requests/{requestId}/approve` | `owner`/`admin` |
+| 6.13b | POST | `/groups/{id}/join-requests/{requestId}/reject` | `owner`/`admin` |
 | 6.14 | POST | `/groups/{id}/invites` | `owner`/`admin` |
 | 6.15 | GET | `/groups/{id}/invites` | `owner`/`admin` |
 | 6.16 | DELETE | `/groups/{id}/invites/{inviteId}` | `owner`/`admin` |
-| 6.17 | GET | `/invites/{token}` | öffentlich (Preview) |
-| 6.18 | POST | `/invites/{token}/accept` | eingeloggt |
+| 6.17 | GET | `/invites/{token}` | öffentlich (Preview) — **UI deferred (Backend + Test vorhanden)** |
+| 6.18 | POST | `/invites/{token}/accept` | eingeloggt — **UI deferred (Backend + Test vorhanden)** |
 
 > **Zwei orthogonale Achsen** (ADR-006): `visibility` ∈ `public|private|unlisted`, `join_policy` ∈ `open|request|invite_only`. Default neuer Gruppen: `public` + `open`. Beitritt/Einladung sind **getrennte** Tabellen (`group_join_requests` vs. `group_invites`), nicht eine `join_requests`-Tabelle.
 
 ### 6.1 GET `/groups`
-Verzeichnis. Listet `public` + via-Link `unlisted`; **nie** `private`. Suche/Filter.
-
-**Query:** `q` (LIKE Name/Beschreibung), `region`, `tag`, `limit`, `offset`.
-**Response 200** → `{ data: GroupListItem[], meta }`:
+Verzeichnis. **Unpaginierte** Liste (Frontend nutzt `apiFetch` + `groupListSchema`, kein `meta`).
+Server filtert nur nach **Sichtbarkeit**: Gast → nur `public`; eingeloggt → `public` ∪ Gruppen, in
+denen man **aktives** Mitglied ist (so erscheinen eigene `private`/`unlisted`). `unlisted` nie im
+Verzeichnis für Nicht-Mitglieder; soft-deleted ausgeschlossen. **Such-/Region-Filter laufen
+client-seitig** (keine Query-Parameter).
+**Response 200** → `{ data: GroupListItem[] }`:
 ```json
 { "data": [ { "id": 3, "slug": "flieger-trier", "name": "Flieger Trier",
   "description": "…", "logo_path": null, "region": "Trier",
@@ -348,11 +355,10 @@ Dashboard-Heuristik: Region-Match + Popularität, ohne bereits beigetretene Grup
 ### 6.3 POST `/groups`
 Gründet Gruppe; Ersteller wird `owner`; legt automatisch Default-`conversations`-Channel „Allgemein" (`type='group_channel'`, `is_default`) an (ADR-005, Default-Channel-Regel).
 
-**Request**
+**Request** (Frontend sendet **kein** `slug` → immer auto aus `name`)
 | Feld | Typ | Regel |
 |---|---|---|
-| `name` | string | `min(3).max(100)`, UNIQUE |
-| `slug` | string\|auto | `^[a-z0-9-]{3,60}$`, UNIQUE (auto aus `name` falls leer) |
+| `name` | string | `min(3).max(80)` — **nicht** UNIQUE (nur `slug` ist eindeutig, DATA_MODEL §5.1) |
 | `description` | string\|null | `max(2000)` |
 | `region` | string\|null | `max(80)` |
 | `tags` | string[]\|null | je `max(30)`, max 8 |
@@ -360,49 +366,85 @@ Gründet Gruppe; Ersteller wird `owner`; legt automatisch Default-`conversations
 | `visibility` | enum | `public`(Default)\|`private`\|`unlisted` |
 | `join_policy` | enum | `open`(Default)\|`request`\|`invite_only` |
 
-**Response 201** → `{ data: GroupDetail }`. **Fehler:** `422 validation_error`; `409 name_taken`; `409 slug_taken`.
+`slug` wird serverseitig aus `name` generiert (`^[a-z0-9-]{3,60}$`, kollisionssicher eindeutig).
+**Response 201** → `{ data: GroupDetail }` (volles Detail, **nicht** ein gekürztes Objekt). **Fehler:** `422 validation_error`; `409 slug_taken`.
 
-### 6.4 GET `/groups/{slug}`
-Detail/Metadaten. Sichtbarkeit je `visibility`+Mitgliedschaft; **Feed immer öffentlich lesbar** bei `visibility != private` (ADR-006). **Response 200** → `{ data: GroupDetail }` (GroupListItem + `rules_text`, `owner_user_id`, `my_membership: { role, status } | null`, `can_manage: bool`). **Fehler:** `404 not_found` (für `private` ohne Mitgliedschaft).
+### 6.4 GET `/groups/{id}`
+Detail/Metadaten (Adressierung per numerischer **`id`**, nicht `slug`). Sichtbarkeit je
+`visibility`+Mitgliedschaft: `public`/`unlisted` → für alle sichtbar (unlisted per Link/ID); `private`
+→ Mitglieder voll, **Nicht-Mitglieder erhalten die „Existenz-Karte"** (Metadaten + Beitritts-CTA,
+`my_membership=null`) statt `404`. **Feed** ist bei `visibility != private` öffentlich lesbar (ADR-006).
+**Response 200** → `{ data: GroupDetail }` = `GroupListItem` + `rules_text`, `owner_user_id`,
+`my_membership: { role, status } | null`, `can_manage: bool`, `has_pending_request: bool`.
 
 ### 6.5 PATCH `/groups/{id}`
-Metadaten bearbeiten (Felder wie 6.3, alle optional). **Auth: `owner`/`admin`.** **Fehler:** `403 forbidden`; `409 name_taken`.
+Metadaten bearbeiten (Felder wie 6.3, alle optional; `slug` bleibt unverändert). **Auth: `owner`/`admin`.** **Fehler:** `403 forbidden_role`; `422 validation_error`.
 
 ### 6.6 DELETE `/groups/{id}`
 Soft-Delete (`deleted_at`). **Auth: nur `owner`.** Zugehörige `conversations` (Channels) bewusst aufräumen. **Response 204.** **Fehler:** `403 forbidden`.
 
 ### 6.7 GET `/groups/{id}/members`
-Mitgliederliste mit Rollen. Sichtbarkeit je Policy. **Query:** `limit`, `offset` (Offset-Pagination genügt). **Response 200** → `{ data: GroupMember[], meta }` (`{ user: PublicUserCard, role, status, joined_at }`).
+Mitgliederliste mit Rollen. Sichtbarkeit je `visibility` (private nur für Mitglieder). **Unpaginiert.**
+**Response 200** → `{ data: GroupMember[] }` (`{ user: PublicUserCard, role, status, joined_at }`).
 
 ### 6.8 POST `/groups/{id}/members`
-Direkter Beitritt **nur** bei `join_policy=open`. Erzeugt `group_members` (`role=member`, `status=active`).
+Direkter Beitritt **nur** bei `join_policy=open`. Erzeugt `group_members` (`role=member`, `status=active`),
+inkrementiert `members_count`. Idempotent gegen Doppelklick (`uq_group_user`).
 
-**Response 201** → `{ data: GroupMember }`.
-**Fehler:** `409 already_member`; `403 join_policy_request` (→ stattdessen 6.11); `403 join_policy_invite_only`; `403 banned`.
+**Response 200** → `{ data: GroupDetail }` (frisches Detail mit `my_membership`).
+**Fehler:** `409 already_member`; `409 join_policy_mismatch` (request/invite_only → stattdessen 6.11/Invite); `403 group_member_banned`.
+
+### 6.8b DELETE `/groups/{id}/members`
+Selbst-Austritt (kein `/me`-Suffix). Idempotent (kein Mitglied ⇒ aktueller Stand). Der **Owner** kann
+nicht austreten (`409 owner_must_transfer` → erst Eigentum übertragen). Dekrementiert `members_count`.
+**Response 200** → `{ data: GroupDetail }`.
 
 ### 6.9 PATCH `/groups/{id}/members/{userId}`
-Moderieren: Rolle ändern (`promote`/`demote`), bannen/entbannen (`status`), **Eigentumsübertragung** (`role=owner` → nur durch aktuellen `owner`). **Auth: `owner`/`admin`.**
+**Rolle ändern** (nur Rolle — Ban und Transfer haben eigene Endpunkte, s. 6.9b/6.9c). **Auth: `owner`/`admin`.**
+Hierarchie: `admin` befördert max. bis `moderator`; nur `owner` vergibt `admin`; keine Selbst-Beförderung;
+Owner-Rolle nur per Transfer; Moderation nie gegen ranghöhere Rolle.
 
-**Request:** `{ role?: 'owner'|'admin'|'member', status?: 'active'|'banned' }`
-**Response 200** → `{ data: GroupMember }`.
-**Fehler:** `403 forbidden`; `403 owner_transfer_requires_owner`; `409 already_in_state`.
+**Request:** `{ role: 'admin'|'moderator'|'member' }`
+**Response 200** → `{ data: GroupMember[] }` (aktualisierte Mitgliederliste).
+**Fehler:** `403 forbidden_role`; `404 not_found`.
+
+### 6.9b POST `/groups/{id}/members/{userId}/ban`
+Ban toggeln (`status` ↔ `active`/`banned`). **Auth: `moderator`+.** Nicht gegen Owner/ranghöhere Rolle.
+**Response 200** → `{ data: GroupMember[] }`. **Fehler:** `403 forbidden_role`.
+
+### 6.9c POST `/groups/{id}/transfer`
+**Eigentumsübertragung.** **Auth: nur `owner`.** Ziel muss aktives Mitglied sein; alter Owner → `admin`,
+Ziel → `owner` (transaktional, **genau ein Owner**).
+**Request:** `{ user_id: int }`
+**Response 200** → `{ data: GroupMember[] }`. **Fehler:** `403 forbidden_role`; `404 not_found`.
 
 ### 6.10 DELETE `/groups/{id}/members/{userId}`
-Selbst-Austritt (`{userId}=me` oder eigene id) **immer erlaubt außer letzter `owner`**; Kick durch `owner`/`admin`. **Response 204.** **Fehler:** `409 owner_must_transfer_first`; `403 forbidden`.
+**Kick** durch `owner`/`admin`/`moderator` (nicht gegen ranghöhere Rolle; nicht den Owner). Für den
+Selbst-Austritt s. 6.8b.
+**Response 200** → `{ data: GroupMember[] }`. **Fehler:** `403 forbidden_role`; `404 not_found`.
 
 ### 6.11 POST `/groups/{id}/join-requests`
-Beitrittsantrag (`join_policy=request`) mit optionaler Begründung.
+Beitrittsantrag (`join_policy=request`) mit optionaler Begründung. Offener `pending`-Antrag wird
+wiederverwendet (kein Duplikat). Ban wird geprüft.
 **Request:** `{ message?: string.max(500) }`
-**Response 201** → `{ data: JoinRequest }` (`status=pending`).
-**Fehler:** `409 request_pending`; `409 already_member`; `403 wrong_join_policy`.
+**Response 200** → `{ data: GroupDetail }` (mit `has_pending_request=true`).
+**Fehler:** `409 already_member`; `403 group_member_banned`; `409 join_policy_mismatch`.
+
+### 6.11b DELETE `/groups/{id}/join-requests/mine`
+Eigenen offenen Antrag zurückziehen (`pending` → `cancelled`). Idempotent.
+**Response 200** → `{ data: GroupDetail }` (mit `has_pending_request=false`).
 
 ### 6.12 GET `/groups/{id}/join-requests`
-Offene Anträge. **Auth: `owner`/`admin`.** **Query:** `status` (Default `pending`). **Response 200** → `{ data: JoinRequest[] }`.
+Offene Anträge (Default `pending`). **Auth: `owner`/`admin`.** **Response 200** → `{ data: JoinRequest[] }`.
 
-### 6.13 PATCH `/groups/{id}/join-requests/{requestId}`
-Genehmigen/Ablehnen. **Auth: `owner`/`admin`.** Genehmigung erzeugt `group_members`-Eintrag transaktional.
-**Request:** `{ decision: 'approved'|'rejected' }`
-**Response 200** → `{ data: JoinRequest }` (mit `decided_by`, `decided_at`). **Fehler:** `409 already_decided`; `403 forbidden`.
+### 6.13 POST `/groups/{id}/join-requests/{requestId}/approve`
+Genehmigen. **Auth: `owner`/`admin`.** Erzeugt `group_members`-Eintrag transaktional (+ `members_count++`,
+`decided_by`/`decided_at`).
+**Response 200** → `{ data: JoinRequest[] }` (verbleibende offene Anträge). **Fehler:** `403 forbidden_role`; `404 not_found`.
+
+### 6.13b POST `/groups/{id}/join-requests/{requestId}/reject`
+Ablehnen (`status=rejected`, `decided_by`/`decided_at`). **Auth: `owner`/`admin`.**
+**Response 200** → `{ data: JoinRequest[] }`. **Fehler:** `403 forbidden_role`; `404 not_found`.
 
 ### 6.14 POST `/groups/{id}/invites`
 Einladung: gerichtet an Nutzer **ODER** teilbarer Token-Link. **Auth: `owner`/`admin`.**
@@ -414,19 +456,19 @@ Einladung: gerichtet an Nutzer **ODER** teilbarer Token-Link. **Auth: `owner`/`a
 | `expires_at` | datetime\|null | nur Token-Link |
 | `max_uses` | int\|null | nur Token-Link, `>=1` |
 
-**Response 201** → `{ data: GroupInvite }` (bei Token-Modus inkl. `token`). **Fehler:** `422 validation_error`; `409 already_member`; `409 invite_pending`.
+**Response 200** → `{ data: GroupInvite[] }` (aktualisierte Liste; Token-Invite inkl. `token`). **Fehler:** `422 validation_error`; `409 already_member`.
 
 ### 6.15 GET `/groups/{id}/invites`
-Aktive Einladungen. **Auth: `owner`/`admin`.** **Response 200** → `{ data: GroupInvite[] }`.
+Einladungen der Gruppe. **Auth: `owner`/`admin`.** **Response 200** → `{ data: GroupInvite[] }`.
 
 ### 6.16 DELETE `/groups/{id}/invites/{inviteId}`
-Widerrufen (`status=revoked`). **Auth: `owner`/`admin`.** **Response 204.**
+Widerrufen (`status=revoked`). **Auth: `owner`/`admin`.** **Response 200** → `{ data: GroupInvite[] }`.
 
 ### 6.17 GET `/invites/{token}`
 Öffentliche Preview vor Annahme (Gruppenname/Info). **Response 200** → `{ data: { group: GroupListItem, valid: bool, expired: bool, uses_left: int|null } }`. **Fehler:** `404 invite_not_found`.
 
 ### 6.18 POST `/invites/{token}/accept`
-Token einlösen → `group_members`-Eintrag, falls gültig/nicht abgelaufen/`uses` verfügbar; inkrementiert `uses_count`. **Auth: eingeloggt.** **Response 201** → `{ data: GroupMember }`. **Fehler:** `409 invite_expired`; `409 invite_exhausted` (max_uses); `409 invite_revoked`; `409 already_member`.
+Token einlösen → `group_members`-Eintrag, falls gültig/nicht abgelaufen/`uses` verfügbar; inkrementiert `uses_count`; Ban wird geprüft. **Auth: eingeloggt.** **Response 201** → `{ data: GroupMember }`. **Fehler:** `410 invite_expired`; `409 invite_exhausted` (max_uses); `409 invite_revoked`; `403 group_member_banned`; `409 already_member`. *(UI-Verdrahtung deferred; Backend + PHPUnit in M4.)*
 
 ---
 
@@ -442,53 +484,70 @@ Gruppen-Channels sind **`conversations` mit `type='group_channel'`** (ADR-005, *
 | 7.4 | DELETE | `/groups/{id}/channels/{channelId}` | `owner`/`admin` |
 
 ### 7.1 GET `/groups/{id}/channels`
-Channels der Gruppe (gefiltert nach Mitgliedschaft; in v1 sehen alle Mitglieder alle Channels). **Response 200** → `{ data: Channel[] }`:
+Channels der Gruppe = `conversations(type='group_channel')`, gefiltert nach **Mitgliedschaft + `min_role`**
+(`member` sieht nur `min_role='member'`-Channels; `min_role='admin'`-Channels nur `owner`/`admin` — auch
+`moderator` **nicht**, ADR-012/B4). `{channelId}` ist die `conversation_id`. **Response 200** → `{ data: Channel[] }`:
 ```json
-{ "data": [ { "conversation_id": 88, "name": "Allgemein", "description": null,
-  "position": 0, "is_default": true, "unread_count": 4 } ] }
+{ "data": [ { "conversation_id": 88, "name": "Allgemein", "is_default": true, "unread_count": 0 } ] }
 ```
-**Fehler:** `403 not_a_member` / `404 not_found`.
+`unread_count` ist in M4 stets `0` (Messages erst M5). **Fehler:** `403 forbidden_role` / `404 group_not_found`.
 
 ### 7.2 POST `/groups/{id}/channels`
-Legt `conversations`-Channel an (alle Gruppenmitglieder werden Teilnehmer bzw. Mitgliedschaft wird über `group_members` abgeleitet). **Auth: `owner`/`admin`.**
-**Request:** `{ name: string.min(1).max(80), description?: string.max(300), position?: int }`
-**Response 201** → `{ data: Channel }`. **Fehler:** `403 forbidden`; `422 validation_error`.
+Legt einen `conversations`-Channel an (Mitgliedschaft über `group_members` abgeleitet; `position`=max+1). **Auth: `owner`/`admin`.**
+**Request:** `{ name: string.min(1).max(80) }`
+**Response 200** → `{ data: Channel[] }` (aktualisierte Liste). **Fehler:** `403 forbidden_role`; `422 validation_error`.
 
 ### 7.3 PATCH `/groups/{id}/channels/{channelId}`
-Umbenennen/umordnen. **Auth: `owner`/`admin`.** **Response 200** → `{ data: Channel }`.
+Umbenennen. **Auth: `owner`/`admin`.** **Request:** `{ name: string }` **Response 200** → `{ data: Channel[] }`.
 
 ### 7.4 DELETE `/groups/{id}/channels/{channelId}`
-Löschen — **nicht** den Default/letzten Channel. **Auth: `owner`/`admin`.** **Response 204.** **Fehler:** `409 cannot_delete_default_channel`; `409 cannot_delete_last_channel`; `403 forbidden`.
+Soft-Delete — **nicht** den Default- oder letzten Channel. **Auth: `owner`/`admin`.**
+**Response 200** → `{ data: Channel[] }`. **Fehler:** `409 default_channel_not_deletable`; `409 last_channel_not_deletable`; `403 forbidden_role`.
 
 ---
 
 ## 8. Feed (Gruppen-Feed)
 
-Read-only Admin-Broadcast (ADR-006/Gruppen-Empfehlung), **öffentlich lesbar** auch für Nicht-Mitglieder, sofern `group.visibility != private`. Keine Kommentare/Reaktionen im MVP. Eigene Tabelle `feed_posts` (kein `conversations`-Typ; `group_feed` deferred, ADR-Chat).
+Admin-Broadcast (ADR-006/Gruppen-Empfehlung), **öffentlich lesbar** auch für Nicht-Mitglieder, sofern
+`group.visibility != private`. **Emoji-Reaktionen** (eingeloggt) sind im MVP enthalten (DATA_MODEL §5.4.1,
+ADR-012); Kommentare nicht. Eigene Tabelle `feed_posts` (+ `feed_post_reactions`; kein `conversations`-Typ;
+`group_feed` deferred).
 
 | # | Methode | Pfad | Auth |
 |---|---|---|---|
 | 8.1 | GET | `/groups/{id}/feed` | öffentlich (sofern visibility≠private) |
 | 8.2 | POST | `/groups/{id}/feed` | `owner`/`admin` |
 | 8.3 | PATCH | `/groups/{id}/feed/{postId}` | `owner`/`admin` |
-| 8.4 | DELETE | `/groups/{id}/feed/{postId}` | `owner`/`admin` |
+| 8.4 | DELETE | `/groups/{id}/feed/{postId}` | `moderator`+ |
+| 8.5 | POST | `/groups/{id}/feed/{postId}/reactions` | eingeloggtes Mitglied — Emoji toggeln |
+| 8.6 | POST | `/groups/{id}/feed/{postId}/pin` | `owner`/`admin` — Pin toggeln |
 
 ### 8.1 GET `/groups/{id}/feed`
-Keyset-Pagination (`?before_id=`, `limit`). **Response 200** → `{ data: FeedPost[], meta: { next_cursor } }`:
+**Unpaginiert** (Frontend `apiFetch` + `feedPostListSchema`); Sortierung **pinned-first, dann
+`created_at DESC`**; soft-deleted ausgeschlossen. `author` ist eine `PublicUserCard`; `reactions` sind
+aggregiert (`{ emoji, count, me }`). **Response 200** → `{ data: FeedPost[] }`:
 ```json
-{ "data": [ { "id": 51, "group_id": 3, "author": { "user_id": 42, "display_name": "Lena" },
+{ "data": [ { "id": 51, "group_id": 3,
+  "author": { "id": 42, "display_name": "Lena", "handle": "lena", "avatar_path": null },
   "title": "Saisonstart", "body": "…", "image_path": null, "is_pinned": true,
-  "created_at": "2026-06-01T08:00:00Z", "updated_at": null } ] }
+  "created_at": "2026-06-01T08:00:00Z", "updated_at": null,
+  "reactions": [ { "emoji": "🪂", "count": 3, "me": true } ] } ] }
 ```
 
 ### 8.2 POST `/groups/{id}/feed`
-**Auth: `owner`/`admin`.** **Request:** `{ title?: string.max(150), body: string.min(1).max(10000), image_path?: string, is_pinned?: bool }`. **Response 201** → `{ data: FeedPost }`. **Fehler:** `403 forbidden`; `422 validation_error`.
+**Auth: `owner`/`admin`** (`author_user_id` serverseitig geprüft). **Request:** `{ title?: string.max(150), body: string.min(1).max(5000) }`. **Response 201** → `{ data: FeedPost }`. **Fehler:** `403 forbidden_role`; `422 validation_error`.
 
 ### 8.3 PATCH `/groups/{id}/feed/{postId}`
-Bearbeiten/Anpinnen. **Auth: `owner`/`admin`.** **Response 200** → `{ data: FeedPost }`.
+Bearbeiten. **Auth: `owner`/`admin`.** **Response 200** → `{ data: FeedPost }`.
 
 ### 8.4 DELETE `/groups/{id}/feed/{postId}`
-Soft-Delete (`deleted_at`, `deleted_by`). **Auth: `owner`/`admin`.** **Response 204.**
+Soft-Delete (`deleted_at`, `deleted_by`; kein Tombstone). **Auth: `moderator`+** (fremde Posts moderieren). **Response 204.**
+
+### 8.5 POST `/groups/{id}/feed/{postId}/reactions`
+Emoji-Reaktion toggeln (`uq_feed_reaction`). **Auth: eingeloggtes Mitglied.** **Request:** `{ emoji: string }`. **Response 200** → `{ data: FeedPost }` (mit aktualisierten `reactions`).
+
+### 8.6 POST `/groups/{id}/feed/{postId}/pin`
+`is_pinned` toggeln. **Auth: `owner`/`admin`.** **Response 200** → `{ data: FeedPost }`.
 
 ---
 
