@@ -60,5 +60,8 @@
         <env name="database.tests.DBDriver" value="MySQLi"/>
         <env name="database.tests.port" value="8889"/>
         <env name="database.tests.DBPrefix" value=""/>
+        <!-- utf8mb4 wie die Prod-/Dev-DB: 4-Byte-Emojis (Feed-Reaktionen) müssen speicherbar sein. -->
+        <env name="database.tests.charset" value="utf8mb4"/>
+        <env name="database.tests.DBCollat" value="utf8mb4_general_ci"/>
     </php>
 </phpunit>

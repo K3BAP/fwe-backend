@@ -30,6 +30,15 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->get('meetups', 'MeetupController::index');
     $routes->get('meetups/(:num)', 'MeetupController::show/$1');
 
+    // Gruppen: Lesen ist sichtbarkeits-/rollenabhängig (Controller autorisiert; Gäste sehen public).
+    $routes->get('groups', 'GroupController::index');
+    $routes->get('groups/(:num)', 'GroupController::show/$1');
+    $routes->get('groups/(:num)/members', 'GroupController::members/$1');
+    $routes->get('groups/(:num)/feed', 'GroupController::feed/$1');
+    $routes->get('groups/(:num)/join-requests', 'GroupController::joinRequests/$1');
+    $routes->get('groups/(:num)/invites', 'GroupController::invites/$1');
+    $routes->get('groups/(:num)/channels', 'GroupController::channels/$1');
+
     // --- auth-pflichtig (Shield-Session); csrf zusätzlich für schreibende Methoden ---
     $routes->group('', ['filter' => ['csrf', 'auth']], static function (RouteCollection $routes): void {
         $routes->post('auth/logout', 'AuthController::logout');
