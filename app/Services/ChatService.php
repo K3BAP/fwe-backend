@@ -700,16 +700,26 @@ final class ChatService
     }
 
     /**
-     * Empfänger für Benachrichtigungen: Teilnehmer der Konversation ohne `$exceptId` und ohne
-     * stummgeschaltete (`conversation_participants.muted`).
+     * Empfänger für Benachrichtigungen: zugriffsberechtigte Teilnehmer ohne `$exceptId` und ohne
+     * stummgeschaltete (`conversation_participants.muted`). **Wichtig:** für `min_role='admin'`-Channels
+     * dieselbe Rollen-Schranke wie {@see canAccessChannel}/{@see visibleConversations} anwenden — sonst
+     * bekämen member/moderator eine Benachrichtigung über einen Channel, den sie gar nicht lesen dürfen
+     * (BOLA-Leak: Existenz + Actor-Identität + toter `/chat/{id}`-Link).
      *
      * @param array<string, mixed> $conv
      * @return list<int>
      */
     private function recipientsFor(array $conv, int $exceptId): array
     {
+        $rows = ($conv['type'] === 'group_channel' && $conv['min_role'] === 'admin')
+            ? db_connect()->table('group_members')
+                ->select('user_id')
+                ->where('group_id', $conv['context_id'])->where('status', 'active')->whereIn('role', ['owner', 'admin'])
+                ->get()->getResultArray()
+            : $this->participants($conv);
+
         $ids = array_values(array_filter(
-            array_map(static fn (array $p): int => (int) $p['user_id'], $this->participants($conv)),
+            array_map(static fn (array $p): int => (int) $p['user_id'], $rows),
             static fn (int $id): bool => $id !== $exceptId,
         ));
         if ($ids === []) {

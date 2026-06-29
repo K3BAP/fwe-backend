@@ -214,6 +214,25 @@ final class ConversationWriteTest extends CIUnitTestCase
         $this->assertSame('edit_window_expired', json_decode($res->getJSON(), true)['error']['code']);
     }
 
+    public function testEditWindowExpiredOnDbDefaultTimestamp(): void
+    {
+        // Regression (M5-Review HIGH): die LIVE-Nachricht bekommt `created_at` aus dem DB-Default
+        // (CURRENT_TIMESTAMP). Nur wenn die DB-Session auf UTC steht, rechnet das 15-min-Fenster korrekt
+        // (sonst ist es um den Server-UTC-Offset zu großzügig). Dieser Test geht bewusst über den
+        // Endpoint (kein explizites created_at) und datiert in der DB-eigenen Uhr zurück.
+        $owner = $this->createPilot('o@flightmeet.test');
+        [, $conv] = $this->createGroupChannel((int) $owner->id);
+        $mid = (int) json_decode($this->actingAs($owner)->withBodyFormat('json')
+            ->post("api/v1/conversations/{$conv}/messages", ['body' => 'frisch'])->getJSON(), true)['data']['id'];
+
+        db_connect()->query('UPDATE messages SET created_at = DATE_SUB(created_at, INTERVAL 30 MINUTE) WHERE id = ?', [$mid]);
+
+        $res = $this->actingAs($owner)->withBodyFormat('json')
+            ->patch("api/v1/conversations/{$conv}/messages/{$mid}", ['body' => 'zu spät']);
+        $res->assertStatus(409);
+        $this->assertSame('edit_window_expired', json_decode($res->getJSON(), true)['error']['code']);
+    }
+
     public function testEditDeletedMessageRejected(): void
     {
         $owner = $this->createPilot('o@flightmeet.test');

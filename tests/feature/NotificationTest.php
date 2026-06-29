@@ -207,6 +207,28 @@ final class NotificationTest extends CIUnitTestCase
         $this->assertCount(0, $stillUnread);
     }
 
+    public function testNewMessageInAdminChannelDoesNotNotifyPlainMembers(): void
+    {
+        // Regression (M5-Review BOLA): die new_message-Benachrichtigung eines min_role='admin'-Channels
+        // darf NUR an owner/admins gehen — member/moderator dürfen den Channel nicht lesen (403) und
+        // bekämen sonst eine Benachrichtigung mit totem /chat/{id}-Link (Existenz-/Actor-Leak).
+        $owner  = $this->createPilot('o@flightmeet.test');
+        $admin  = $this->createPilot('a@flightmeet.test');
+        $member = $this->createPilot('m@flightmeet.test');
+        $groupId = $this->createGroup((int) $owner->id, 'open', [[(int) $admin->id, 'admin'], [(int) $member->id, 'member']]);
+        $adminConv = (int) model(ConversationModel::class)->insert([
+            'type' => 'group_channel', 'context_type' => 'group', 'context_id' => $groupId,
+            'title' => 'Orga-intern', 'position' => 1, 'is_default' => 0, 'min_role' => 'admin', 'created_by' => $owner->id,
+        ], true);
+
+        $this->actingAs($owner)->withBodyFormat('json')
+            ->post("api/v1/conversations/{$adminConv}/messages", ['body' => 'nur für Admins'])->assertStatus(201);
+
+        $isNewMsg = static fn (array $n): bool => $n['type'] === 'new_message';
+        $this->assertCount(0, array_filter($this->notifs($member), $isNewMsg), 'plain member must not be notified');
+        $this->assertCount(1, array_filter($this->notifs($admin), $isNewMsg), 'admin must be notified');
+    }
+
     public function testMessageReactionNotifiesAuthor(): void
     {
         $a  = $this->createPilot('a@flightmeet.test');
