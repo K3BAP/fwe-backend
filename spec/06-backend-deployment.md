@@ -370,6 +370,68 @@ Verbindliche Reihenfolge (Dossier §Build/Deploy, ADR-002). Reale `composer.json
 
 `deploy:local` (rsync nach MAMP) ist nur der lokale Spiegel-Workflow zum Testen.
 
+### 13.1 M6-Runbook (konkrete Schritte)
+
+Stand M6: Schema (M1–M5) und Demo-Seed sind vollständig; das Deploy-Tooling existiert seit M2.
+**Lokale Artefakt-Vorbereitung** (in diesem Repo, vor jedem Deploy auszuführen):
+
+```bash
+# 1) Dev-DB frisch aufsetzen (NIE migrate:refresh — bricht über Shield-Namespaces)
+mysql -h127.0.0.1 -P8889 -uroot -proot -e "DROP DATABASE IF EXISTS db_team15; \
+  CREATE DATABASE db_team15 CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+php spark migrate --all
+php spark db:seed DatabaseSeeder
+
+# 2) Deterministischen Dump erzeugen (Schema + Demo-Daten) → deploy/db_team15.sql
+mysqldump --no-tablespaces --skip-comments --single-transaction \
+  --default-character-set=utf8mb4 -h127.0.0.1 -P8889 -uroot -proot db_team15 > deploy/db_team15.sql
+
+# 3) Frontend prod-bauen (base=/public/). Erst public/assets/ leeren → keine veralteten Chunks
+#    (emptyOutDir:false bewahrt index.php + media/uploads/, sammelt aber alte Hashes an).
+rm -rf public/assets
+composer build:frontend
+```
+
+> Hinweis: `mysql`/`mysqldump` liegen unter MAMP nicht im PATH — voller Pfad
+> `/Applications/MAMP/Library/bin/mysql80/bin/`. `deploy/` und `public/` sind gitignored
+> (regenerierbare Artefakte); committet wird nur Quelltext + Doku.
+
+**Live-Push auf den Webspace** (manuelle Out-of-band-Schritte, außerhalb dieses Repos):
+
+```
+4. (einmalig) env.prod-Inhalt per SFTP als Server-.env ablegen   (§12; nie aus dem Repo deployen)
+5. composer deploy:remote     # lftp mirror -R --delete --exclude-glob-from=.deployignore → /web/
+6. deploy/db_team15.sql in phpMyAdmin importieren                (Ziel-DB leeren/anlegen, dann Import)
+```
+
+### 13.2 TODO D3 — Webspace-Praxistests (ADR-012/D3, am echten Server)
+
+Direkt nach dem ersten Live-Deploy auf `hosting.wi1cm.uni-trier.de` prüfen:
+
+- [ ] **Upload-Schreibrechte/Quota:** Avatar hochladen → liegt in `public/media/uploads/avatars/`, wird ausgeliefert; `.htaccess`-No-Execute greift; Quota nicht sofort erschöpft.
+- [ ] **FileCache:** `writable/cache` ist beschreibbar (sonst auf `null`-Handler zurückfallen, §8).
+- [ ] **ETag/`304`:** ein gepollter GET (z. B. `/conversations`, `/notifications`) liefert beim zweiten Abruf mit `If-None-Match` ein **`304`** durch (Apache reicht den Header durch; der CI4-Helper überspringt `304` nur unter dem PHP-Dev-Server).
+- [ ] **SMTP:** ob der Webspace ausgehende Mails zulässt (für später; E-Mail-Flows sind im MVP aus, ADR-008).
+
+### 13.3 TODO D4 — Abnahme-Login (ADR-012/D4)
+
+**Entschieden:** Abnahme über den geseedeten Admin **`admin@flightmeet.test` / `FlightMeet!2026`** (Shield-Gruppe
+`admin`) plus die Demo-Pilotin **`lena@flightmeet.test` / `passwort123`** (gefüllte Oberflächen: Treffen,
+Gruppen, ungelesene Chats + Benachrichtigungen). **Demo-/Local-Only** — vor echtem Publikumsbetrieb ersetzen
+(ADR-008-Caveat). Bei Bedarf separate Prüfer-Kennung anlegen.
+
+### 13.4 Abnahme-Präsentation (Demo-Skript)
+
+1. **Login** als Admin bzw. Lena → Dashboard ist gefüllt (Stat-Karten, „Aktuelle Flugtreffen").
+2. **Flugtreffen:** Liste/Karte; alle abgeleiteten Status sichtbar (`Offen`/`Ausgebucht`/`Beendet`/`Abgesagt`);
+   Detail → Beitreten/Verlassen; Organisator-Aktionen (Bearbeiten/Absagen/Löschen).
+3. **Gruppen:** Verzeichnis (Sichtbarkeitsfilter); alle drei Join-Policies (offen/Antrag/Invite); Feed mit
+   Pin + Reaktionen; Channels.
+4. **Chat:** Sidebar (DMs/Channels/Treffen, ungelesen-Badges); Senden (~2–3 s Polling); Reaktion; Bearbeiten;
+   Löschen (Tombstone); Ersteller-Hervorhebung im Treffen-Chat.
+5. **Benachrichtigungen:** gemischtes Center, „Alle als gelesen", Badge sinkt.
+6. **Quer:** Dark-Mode-Toggle; mobile Ansicht (Bottom-Nav); Tastatur-Fokus im Modal (a11y).
+
 ---
 
 ## 14. Performance- & Last-Budget (geteilter Host)
