@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
-import { USE_MOCKS } from '@/config'
+import { POLL, USE_MOCKS } from '@/config'
 import { notificationsTable } from '@/mocks/notifications'
 import { mockRead, mockWrite } from '@/mocks/runtime'
 import { apiFetch } from './http'
@@ -16,13 +16,14 @@ async function fetchNotifications(): Promise<Notification[]> {
 }
 
 export function useNotifications() {
-  return useQuery({ queryKey: qk.notifications.list, queryFn: fetchNotifications })
+  return useQuery({ queryKey: qk.notifications.list, queryFn: fetchNotifications, refetchInterval: POLL.lists })
 }
 
 export function useNotificationUnread() {
   return useQuery({
     queryKey: qk.notifications.unread,
     queryFn: async () => (USE_MOCKS.notifications ? mockRead(() => notificationsTable.unreadCount()) : apiFetch('/notifications/unread-count', z.number())),
+    refetchInterval: POLL.lists,
   })
 }
 

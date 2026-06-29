@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
-import { USE_MOCKS } from '@/config'
+import { POLL, USE_MOCKS } from '@/config'
 import { chatTable } from '@/mocks/chat'
 import { mockRead, mockWrite } from '@/mocks/runtime'
 import { useAuthStore, type SessionUser } from '@/stores/authStore'
@@ -50,19 +50,21 @@ async function fetchMessages(id: number): Promise<Message[]> {
 }
 
 export function useConversations() {
-  return useQuery({ queryKey: qk.chat.conversations, queryFn: fetchConversations })
+  return useQuery({ queryKey: qk.chat.conversations, queryFn: fetchConversations, refetchInterval: POLL.lists })
 }
 export function useConversation(id: number) {
   return useQuery({ queryKey: qk.chat.detail(id), queryFn: () => fetchConversation(id), enabled: Number.isFinite(id) })
 }
 export function useMessages(id: number) {
-  return useQuery({ queryKey: qk.chat.messages(id), queryFn: () => fetchMessages(id), enabled: Number.isFinite(id) })
+  // Aktiver Thread: schnelles Polling (ETag/304 hält Leerlauf-Polls billig), pausiert bei document.hidden.
+  return useQuery({ queryKey: qk.chat.messages(id), queryFn: () => fetchMessages(id), enabled: Number.isFinite(id), refetchInterval: POLL.activeThread })
 }
 
 export function useChatUnread() {
   return useQuery({
     queryKey: qk.chat.unread,
     queryFn: async () => (USE_MOCKS.chat ? mockRead(() => chatTable.unreadTotal()) : apiFetch('/conversations/unread-count', z.number())),
+    refetchInterval: POLL.lists,
   })
 }
 

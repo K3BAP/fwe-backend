@@ -22,6 +22,14 @@ export class ApiError extends Error {
 
 let csrfToken: string | null = null
 
+/**
+ * ETag-Cache für Conditional-GET (ADR-001, M5): merkt sich je URL den letzten `ETag` + die bereits
+ * **validierten** Daten. Beim Pollen wird `If-None-Match` mitgeschickt; antwortet der Server mit `304`,
+ * geben wir die gecachten Daten zurück (kein Body, kein erneutes Parsen). Inhaltsbasierter ETag ⇒ bei
+ * Nutzerwechsel liefert der Server ohnehin `200` mit frischem Inhalt (kein Stale-Leak).
+ */
+const etagCache = new Map<string, { etag: string; data: unknown }>()
+
 /** Holt (und cached) das CSRF-Token für state-changing Requests (Shield, ADR-004). */
 async function ensureCsrf(): Promise<string> {
   if (csrfToken) return csrfToken
@@ -64,7 +72,18 @@ export async function apiFetch<T>(
   }
   if (method !== 'GET') headers['X-CSRF-TOKEN'] = await ensureCsrf()
 
+  const cacheKey = url.toString()
+  if (method === 'GET') {
+    const cached = etagCache.get(cacheKey)
+    if (cached) headers['If-None-Match'] = cached.etag
+  }
+
   const res = await fetch(url, init)
+  // Conditional-GET: nichts Neues ⇒ validierte Daten aus dem ETag-Cache (kein Body).
+  if (res.status === 304) {
+    const cached = etagCache.get(cacheKey)
+    if (cached) return cached.data as T
+  }
   if (res.status === 204) return undefined as T
 
   const json = (await res.json().catch(() => null)) as
@@ -83,7 +102,15 @@ export async function apiFetch<T>(
   }
   // Erfolg ohne Nutzlast: `204` (Prod) oder `200 { data: null }` (Dev-Server-Fallback) → void.
   if (json?.data == null) return undefined as T
-  return schema.parse(json.data)
+
+  const parsed = schema.parse(json.data)
+  // ETag merken (nur GET), damit der nächste Poll `If-None-Match` senden kann.
+  if (method === 'GET') {
+    const etag = res.headers.get('ETag')
+    if (etag) etagCache.set(cacheKey, { etag, data: parsed })
+  }
+
+  return parsed
 }
 
 /** Eine Seite eines Listen-Endpunkts: validierte Items + Pagination-`meta` (06-backend §3). */
