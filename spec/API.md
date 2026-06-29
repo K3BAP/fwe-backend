@@ -553,86 +553,82 @@ Emoji-Reaktion toggeln (`uq_feed_reaction`). **Auth: eingeloggtes Mitglied.** **
 
 ## 9. Chat – Conversations
 
-Generische polymorphe Engine (ADR-005): `conversations(type, context_type, context_id)` + `conversation_participants` + `messages` für **alle** Chat-Orte. `type` ∈ `group_channel|meetup|direct`. Autorisierung **immer** gegen `conversation_participants` (BOLA).
+Generische polymorphe Engine (ADR-005): `conversations(type, context_type, context_id)` + `conversation_participants` + `messages` für **alle** Chat-Orte. `type` ∈ `group_channel|meetup|direct`. Autorisierung pro Konversationstyp: DM → `conversation_participants`; `group_channel` → aktives `group_members` (+ `min_role`); `meetup` → `meetup_participants` (BOLA, ADR-004). `conversation_participants` trägt für Channels/Treffen nur Watermark/`muted`; die Sichtbarkeit ist mitgliedschaftsgetrieben.
+
+> **Vertrag = committetes Frontend** (`frontend/src/api/chat.ts`, `api/schemas/chat.ts`). Die früheren REST-„Aufräumungen" (eigenes `POST /conversations` mit `target_user_id`, top-level `/messages/{id}`, `PUT/DELETE …/reactions/{emoji}`) sind zugunsten der ausgelieferten, einfacheren Form **zurückgenommen** (Audit-Trail §13).
 
 | # | Methode | Pfad | Auth |
 |---|---|---|---|
 | 9.1 | GET | `/conversations` | eingeloggt |
-| 9.2 | POST | `/conversations` | eingeloggt |
-| 9.3 | GET | `/conversations/{id}` | Teilnehmer |
-| 9.4 | POST | `/conversations/{id}/read` | Teilnehmer |
+| 9.2 | GET | `/conversations/unread-count` | eingeloggt |
+| 9.3 | POST | `/conversations/direct` | eingeloggt |
+| 9.4 | GET | `/conversations/{id}` | Teilnehmer |
+| 9.5 | POST | `/conversations/{id}/read` | Teilnehmer |
+
+Alle Chat-Endpunkte liegen **im Auth-Filter** (privat, kein Gast-Zugriff).
 
 ### 9.1 GET `/conversations`
-Konversationen des Nutzers mit letzter Nachricht + Ungelesen-Zähler. Polling-fähig (`ETag`).
-**Query:** `type?` (Filter), `limit`, `offset` (sortiert nach `last_message_at`).
+Konversationen des Nutzers (DMs ∪ Channels eigener Gruppen∩`min_role` ∪ eigene Treffen-Chats) mit letzter Nachricht + Ungelesen-Zähler, sortiert nach `last_message_at DESC`. **Unpaginiert** (keine Query-Params). Polling-fähig (`ETag`/`304`).
 **Response 200** → `{ data: ConversationListItem[] }`:
 ```json
-{ "data": [ { "id": 88, "type": "direct", "title": "Tom", "context_type": null,
-  "context_id": null, "last_message": { "id": 9001, "body": "bis morgen!",
-  "sender_id": 7, "created_at": "2026-06-18T20:00:00Z" },
+{ "data": [ { "id": 88, "type": "direct", "title": "Tom Berg",
+  "peer": { "id": 7, "display_name": "Tom Berg", "handle": "tom", "avatar_path": null },
+  "last_message": { "body": "bis morgen!", "sender_name": "Tom Berg", "created_at": "2026-06-18T20:00:00Z" },
   "unread_count": 2, "last_message_at": "2026-06-18T20:00:00Z" } ] }
 ```
+`peer` ist nur bei `direct` gesetzt (DM-Gegenüber); bei Channel/Treffen `null`. `title`: DM = Peer-Name, `meetup` = Treffen-Titel, `group_channel` = `"{Gruppe} · {Channel}"`.
 
-### 9.2 POST `/conversations`
-**Find-or-create** für `type=direct` (deterministischer `dm_key = minId_maxId`, transaktional, ADR-005). Für `group_channel`/`meetup` werden Konversationen über die jeweilige Domäne erzeugt (Channel-Anlage §7.2, Meetup-Chat automatisch) — dieser Endpunkt dient primär DMs.
+### 9.2 GET `/conversations/unread-count`
+Schlanker Aggregat-Zähler (Summe ungelesener Nachrichten über alle Konversationen) für das Nav-Badge. Polling, `ETag`/`304`. **Response 200** → `{ data: 7 }` (bare Zahl).
 
-**Request:** `{ type: 'direct', target_user_id: int }`
-**Response 200** (existierte) **/ 201** (neu) → `{ data: ConversationDetail }`.
-**Fehler:** `422 validation_error`; `404 user_not_found`; `409 cannot_dm_self`.
+### 9.3 POST `/conversations/direct`
+**Find-or-create** einer DM (deterministischer `dm_key = min(a,b):max(a,b)`, transaktional, ADR-005). **Request:** `{ user_id: int }`. **Response 200** → `{ data: { id: int } }` (existierende oder neu angelegte Konversation; idempotent). **Fehler:** `422 validation_error`; `404 user_not_found`; `409 cannot_dm_self`.
 
-### 9.3 GET `/conversations/{id}`
-Metadaten + Teilnehmer (nach Mitgliedschaftsprüfung). **Response 200** → `{ data: ConversationDetail }` (`{ id, type, title, context_type, context_id, participants: PublicUserCard[], my_role, creator_user_id }`; `creator_user_id` für Ersteller-Hervorhebung bei `type=meetup`). **Fehler:** `403 not_a_participant` / `404 not_found`.
+### 9.4 GET `/conversations/{id}`
+Metadaten + Teilnehmer (nach Zugriffsprüfung). **Response 200** → `{ data: ConversationDetail }` = `{ id, type, title, peer: PublicUserCard|null, participants: PublicUserCard[], creator_user_id: int|null }` (`creator_user_id` nur bei `type=meetup`, für die Ersteller-Hervorhebung). **Fehler:** `403 not_a_participant` / `404 not_found`.
 
-### 9.4 POST `/conversations/{id}/read`
-Setzt `last_read_message_id` (Ungelesen-Zähler, ADR-005). **Request:** `{ last_read_message_id: int }`. **Response 204.** **Fehler:** `403 not_a_participant`.
+### 9.5 POST `/conversations/{id}/read`
+Markiert alles als gelesen: Server setzt `last_read_message_id` = letzte Nachricht der Konversation (kein Request-Body) und löst die aggregierte `new_message`-Notification dieser Konversation auf (ADR-012/C7). **Response 204.** **Fehler:** `403 not_a_participant`.
 
 ---
 
 ## 10. Messages
 
-Senden, Verlauf (Keyset), Soft-Edit/Delete, Reaktionen (ADR-009: Chat-MVP „Mittel"). Nachrichten sind **Plaintext + Auto-Linkify** (ADR-011, kein Markdown/HTML). Persistenz immer in MySQL (Source of Truth); Live via Polling (`?since_id=`).
+Senden, Verlauf, Soft-Edit/Delete, Reaktionen (ADR-009: Chat-MVP „Mittel"). Nachrichten sind **Plaintext + Auto-Linkify** (ADR-011, kein Markdown/HTML). Persistenz immer in MySQL (Source of Truth); Live via Polling. Alle Routen sind **unter `/conversations/{id}/messages`** verschachtelt (`id` = `conversation_id`); top-level `/messages/{id}` entfällt (Frontend-Vertrag).
 
 | # | Methode | Pfad | Auth |
 |---|---|---|---|
 | 10.1 | GET | `/conversations/{id}/messages` | Teilnehmer |
 | 10.2 | POST | `/conversations/{id}/messages` | Teilnehmer (Schreibrecht) |
-| 10.3 | PATCH | `/messages/{id}` | nur Sender |
-| 10.4 | DELETE | `/messages/{id}` | Sender oder Conversation-`owner`/`admin` |
-| 10.5 | PUT | `/messages/{id}/reactions/{emoji}` | Teilnehmer |
-| 10.6 | DELETE | `/messages/{id}/reactions/{emoji}` | Teilnehmer (self) |
-
-> Konsolidiert die widersprüchlichen Pfade `/api/channels/{channelId}/messages` (Gruppen-Dossier) und `/api/conversations/{id}/messages` (Chat-Dossier) auf **`/conversations/{id}/messages`**, da Channel = Conversation (ADR-005). `id` ist die `conversation_id`.
+| 10.3 | PATCH | `/conversations/{id}/messages/{messageId}` | nur Sender |
+| 10.4 | DELETE | `/conversations/{id}/messages/{messageId}` | Sender oder Conversation-`owner`/`admin` |
+| 10.5 | POST | `/conversations/{id}/messages/{messageId}/reactions` | Teilnehmer (Toggle) |
 
 ### 10.1 GET `/conversations/{id}/messages`
-Keyset-/Cursor-Pagination. Polling-Endpunkt.
-**Query:** `before_id` (ältere History), `since_id` (neue Nachrichten beim Polling), `limit` (≤100, Default 30). Unterstützt `If-None-Match` → `304`.
-**Response 200** → `{ data: Message[], meta: { next_cursor } }`:
+Liefert den **vollständigen** Verlauf (kein Cursor/Pagination im MVP — Threads sind seed-klein; Keyset `before_id`/`since_id`-Delta sind **deferred**, kein Frontend-Konsument). Polling-Endpunkt, unterstützt `If-None-Match` → `304`.
+**Response 200** → `{ data: Message[] }`:
 ```json
-{ "data": [ { "id": 9001, "conversation_id": 88, "sender": { "user_id": 7, "display_name": "Tom" },
-  "body": "bis morgen!", "reply_to_id": null, "is_creator": false,
+{ "data": [ { "id": 9001, "conversation_id": 88,
+  "sender": { "id": 7, "display_name": "Tom", "handle": "tom", "avatar_path": null },
+  "body": "bis morgen!", "reply_to": null, "is_creator": false,
   "created_at": "2026-06-18T20:00:00Z", "edited_at": null, "deleted_at": null,
   "reactions": [ { "emoji": "👍", "count": 2, "me": true } ] } ] }
 ```
-Gelöschte Nachrichten als Tombstone (`deleted_at` gesetzt, `body: null`). `is_creator` = abgeleitetes Flag (`sender_id == context.creator_id` bei `type=meetup`, ADR-005). **Fehler:** `403 not_a_participant`.
+`sender` ist eine `PublicUserCard` (`id`). `reply_to` ist eine eingebettete Vorschau `{ id, sender_name, body }|null`. Gelöschte Nachrichten als Tombstone (`deleted_at` gesetzt, `body: null`), bleiben für die Reply-Verankerung im Verlauf. `is_creator` = abgeleitetes Flag (`sender_id == meetup.creator_user_id` bei `type=meetup`, ADR-005). **Fehler:** `403 not_a_participant`.
 
 ### 10.2 POST `/conversations/{id}/messages`
-**Request:** `{ body: string.min(1).max(4000), reply_to_id?: int }`
+**Request:** `{ body: string.min(1).max(4000), reply_to_id?: int|null }`
 **Response 201** → `{ data: Message }`.
-**Fehler:** `422 validation_error`; `403 not_a_participant`; `403 insufficient_role` (z.B. read-only); `409 reply_target_not_found`.
+**Fehler:** `422 validation_error`; `403 not_a_participant`; `403 insufficient_role` (`min_role`); `409 reply_target_not_found`.
 
-### 10.3 PATCH `/messages/{id}`
-Soft-Edit (`edited_at`). **Auth: nur eigener Sender.** **Request:** `{ body: string.min(1).max(4000) }`. **Response 200** → `{ data: Message }`. **Fehler:** `403 forbidden`; `409 message_deleted`.
+### 10.3 PATCH `/conversations/{id}/messages/{messageId}`
+Soft-Edit (`edited_at`). **Auth: nur eigener Sender, innerhalb 15 min ab `created_at`** (ADR-012/C6). **Request:** `{ body: string.min(1).max(4000) }`. **Response 200** → `{ data: Message }`. **Fehler:** `403 forbidden`; `409 message_deleted`; `409 edit_window_expired`.
 
-### 10.4 DELETE `/messages/{id}`
-Soft-Delete (`deleted_at`; bei Moderation `deleted_by`). **Auth: Sender oder Conversation-`owner`/`admin`.** **Response 204.** **Fehler:** `403 forbidden`; `404 not_found`.
+### 10.4 DELETE `/conversations/{id}/messages/{messageId}`
+Soft-Delete (`deleted_at`; bei Moderation `deleted_by`; `body` bleibt in der DB für Audit, wird aber als `null` ausgeliefert). **Auth: Sender oder Conversation-`owner`/`admin`.** **Response 200** → `{ data: Message }` (Tombstone, **nicht** 204 — das Frontend ersetzt die Nachricht im Cache). **Fehler:** `403 forbidden`; `404 not_found`.
 
-### 10.5 PUT `/messages/{id}/reactions/{emoji}`
-Reaktion setzen (idempotent; UNIQUE `(message_id,user_id,emoji)`). `emoji` URL-encoded Unicode. **Response 200** → `{ data: { emoji, count, me: true } }`. **Fehler:** `403 not_a_participant`; `422 invalid_emoji`.
-
-### 10.6 DELETE `/messages/{id}/reactions/{emoji}`
-Eigene Reaktion entfernen. **Response 204.**
-
-> Konsolidiert den toggelnden `POST /messages/{id}/reactions` (Chat-Dossier) zu **idempotentem PUT/DELETE** je Emoji (REST-sauber, race-frei).
+### 10.5 POST `/conversations/{id}/messages/{messageId}/reactions`
+Emoji-Reaktion **togglen** (an/aus; UNIQUE `(message_id,user_id,emoji)`; stößt `messages.updated_at` an, damit Polling die Änderung sieht). **Request:** `{ emoji: string }` (Server-Allowlist). **Response 200** → `{ data: Message }` (ganze Nachricht mit aktualisierten `reactions`). **Fehler:** `403 not_a_participant`; `409 message_deleted`; `422 invalid_emoji`.
 
 ---
 
@@ -648,23 +644,25 @@ In-App-Benachrichtigungen (ADR-008, im Scope). Notification-Center + globaler Ba
 | 11.4 | POST | `/notifications/read-all` | self |
 
 ### 11.1 GET `/notifications`
-**Query:** `unread_only?` (bool), `limit`, `offset`. **Response 200** → `{ data: Notification[], meta }`:
+Alle Benachrichtigungen des Nutzers, neueste zuerst. **Unpaginiert.** Polling, `ETag`/`304`. **Response 200** → `{ data: Notification[] }`:
 ```json
-{ "data": [ { "id": 301, "type": "meetup_join", "actor": { "user_id": 7, "display_name": "Tom" },
-  "subject_type": "meetup", "subject_id": 12, "data": { "title": "Mosel-Soaring" },
-  "read_at": null, "created_at": "2026-06-18T19:00:00Z" } ] }
+{ "data": [ { "id": 301, "type": "meetup_join",
+  "actor": { "id": 7, "display_name": "Tom", "handle": "tom", "avatar_path": null },
+  "text": "Tom nimmt an deinem Treffen „Mosel-Soaring\" teil.",
+  "link": "/flugtreffen/12", "read_at": null, "created_at": "2026-06-18T19:00:00Z" } ] }
 ```
+`text` (deutsch) und `link` werden **serverseitig im Presenter** aus `type` + `actor` + `data`(JSON) erzeugt — das Frontend rendert nur. `actor` ist eine `PublicUserCard|null`.
 
 ### 11.2 GET `/notifications/unread-count`
-Schlanker Zähler-Endpunkt für die Badge (Polling, `ETag`/`304`, ADR-001). **Response 200** → `{ data: { count: 3 } }`.
+Schlanker Zähler-Endpunkt für die Badge (Polling, `ETag`/`304`, ADR-001). **Response 200** → `{ data: 3 }` (bare Zahl).
 
 ### 11.3 POST `/notifications/{id}/read`
-Einzelne als gelesen markieren (`read_at`). **Response 204.** **Fehler:** `403 forbidden` (fremde Notification); `404 not_found`.
+Einzelne als gelesen markieren (`read_at`). **Response 200** → `{ data: Notification[] }` (die **ganze** aktualisierte Liste — das Frontend ersetzt den Cache ohne Nachladen). **Fehler:** `403 forbidden` (fremde Notification); `404 not_found`.
 
 ### 11.4 POST `/notifications/read-all`
-Alle als gelesen markieren. **Response 204.**
+Alle als gelesen markieren. **Response 200** → `{ data: Notification[] }` (ganze Liste).
 
-> **✅ Entschieden (ADR-012/C8):** `notifications.type` ist `VARCHAR` (erweiterbar) mit festem MVP-Satz: `meetup_join`, `meetup_cancelled`, `meetup_updated`, `group_join_request`, `group_request_approved`, `group_invite`, `message_received`, `group_feed_post`, `group_role_changed`. Aggregation für `message_received`: **eine** Notification pro Konversation (ADR-012/C7).
+> **✅ Entschieden (ADR-012/C8 + Frontend-Vertrag):** `notifications.type` ist `VARCHAR` (erweiterbar). MVP-Satz = **das Frontend-Enum** (`api/schemas/notifications.ts`): `meetup_join`, `meetup_cancelled`, `group_join_request`, `group_request_approved`, `group_invite`, `new_message`, `message_reaction`, `group_feed_post`. `message_received` heißt im ausgelieferten Vertrag **`new_message`**; `meetup_updated`/`group_role_changed` sind **out of scope** (kein Frontend-Rendering → würden von Zod verworfen). Aggregation für `new_message`: **eine** ungelesene Notification pro Konversation, beim Lesen aufgelöst (ADR-012/C7).
 
 ---
 
@@ -705,12 +703,13 @@ Generischer Datei-Upload (Gruppen-Logo, Feed-Bild). Validiert MIME (`image/jpeg|
 | 14 | auth-profil | `auth/password/*`, `auth/verify-email` | **deferred**, nicht im MVP | ADR-008 (keine SMTP) |
 | 15 | chat | `conversations.type` enthält `group_feed` | `group_feed` **deferred**; Feed über eigene `feed_posts`-Tabelle | ADR-Chat offene Frage; ADR-006 |
 | 16 | auth-profil, backend-deploy | `/api/users/{id}` vs. `/api/v1/profiles/{id}` | **`/users/{userId}`** (Profil, öffentlich/reduziert — ADR-012/B1+C2) + `/users` (Suche, eingeloggt) | Kap. 01 / ADR-012 |
+| 17 | chat (M5) | REST-„Aufräumungen": `POST /conversations {target_user_id}`, top-level `/messages/{id}`, `PUT/DELETE …/reactions/{emoji}` (Trail #12), Keyset/`?since=`-Pagination | **committetes Frontend gewinnt** (M4-Prinzip): `POST /conversations/direct {user_id}→{id}`; verschachtelte `…/conversations/{id}/messages/{messageId}` (DELETE→Tombstone-Message); **POST-Toggle** `…/reactions {emoji}→Message`; volle `Message[]`-Liste (Keyset/Delta deferred); Notif-Read→`Notification[]`; Typ `new_message`. Realtime via **Polling + ETag/304** (kein Delta-Merge). | `frontend/src/api/chat.ts`+`notifications.ts`; M5-Plan |
 
 ---
 
 ### Offene Detail-Punkte (inline markiert, vor Migration zu klären)
 - **§4 Spots:** Nutzer-eigene Spots (`POST /spots`) vs. nur Admin-Pflege (ADR-007).
-- **§11 Notifications:** finaler `type`-Schlüsselsatz.
+- ~~**§11 Notifications:** finaler `type`-Schlüsselsatz.~~ → festgelegt = Frontend-Enum (§11, M5).
 - **§12 Uploads:** Webspace-Schreibrechte/Quota für `public/media/uploads/`.
 - **Querschnitt (DATA_MODEL):** `users.id`-Typ (Shield `INT UNSIGNED` vs. einheitliches `BIGINT`) betrifft jeden user-FK — blockierend für die Migrationsphase, aber außerhalb der API-Oberfläche.
 

@@ -126,12 +126,16 @@ Feed + Reaktionen, **Channels (Default-Anlage + CRUD)**, Rollen/Ban/Owner-Transf
 ## M5 – Chat & Benachrichtigungen verkabeln
 
 **Backend:** polymorphe Engine (`conversations`/`participants`/`messages`/`reactions`, `meetup_uniq`,
-`messages.updated_at`); DM find-or-create; Keyset + `?since=`/`updated_at`-Delta + ETag/304; Reaktion/
-Reply/Soft-Edit(15min)/Delete; BOLA pro Konversation; `notifications` + `unread-count`; Aufräum-Logik (Tests).
-**Frontend:** Chat-Hooks Mock→Real; **gestaffeltes Polling** (2–3 s aktiv, 15–30 s Listen, Pause bei
-`document.hidden`); `setQueryData`-Merge; „Direktchat öffnen" scharf; Notification-Center + Badge echt.
+`messages.updated_at` TIMESTAMP(3)); DM find-or-create (`dm_key`); Reaktion(POST-Toggle)/Reply/
+Soft-Edit(15min)/Delete(Tombstone); BOLA pro Konversation; `meetups.conversation_id` nachgezogen;
+`notifications` (domänenübergreifend, best-effort) + `unread-count`; **ETag/304** auf den gepollten GETs.
+Vertrag = committetes Frontend (API.md §9–11). *Volle `Message[]`-Responses; Keyset/`?since=`-Delta deferred.*
+**Frontend:** Chat-/Notif-Hooks Mock→Real (Seam-Flip `USE_MOCKS.chat`+`notifications`); **gestaffeltes
+Polling** via `refetchInterval` (2–3 s aktiver Thread, 15–30 s Listen, Pause bei `document.hidden`);
+transparenter `apiFetch`-Conditional-GET (ETag/304); voller Refetch dedupliziert (kein Merge nötig);
+„Direktchat öffnen" scharf; Notification-Center + Badge echt.
 **Abhängigkeiten:** M2 (User), M3 (Treffen-Chat), M4 (Channels). **ADR:** 001, 005, 008, 009, 012 (A2/A3/C5/C6/C7/C8), 014.
-**Akzeptanz:** Nachricht in ~2–3 s beim Gegenüber; Edit/Reaktion/Delete via `updated_at`-Delta; Ungelesen/Badge stimmen; DM idempotent; `403` ohne Mitgliedschaft.
+**Akzeptanz:** Nachricht in ~2–3 s beim Gegenüber (Polling); Edit/Reaktion/Delete sichtbar; Ungelesen/Badge stimmen; DM idempotent; `403` ohne Mitgliedschaft.
 
 ---
 

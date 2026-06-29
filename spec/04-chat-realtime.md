@@ -240,6 +240,16 @@ Fehlende Berechtigung → **`404 not_found`** (Existenz nicht preisgeben) bzw. `
 
 ## 13. API-Endpunkte
 
+> ⚠️ **Verbindlicher Vertrag = [`API.md §9–11`](API.md) + committetes Frontend** (`frontend/src/api/chat.ts`, `api/schemas/chat.ts`, `api/notifications.ts`). Dieses Dossier hält das Design-/Integritätsdenken fest; die **ausgelieferte** API ist bewusst einfacher (M5, Option B). Abweichungen dieses Abschnitts (für die Umsetzung gilt API.md):
+> - DM: **`POST /conversations/direct { user_id }` → `{ id }`** (nicht `POST /conversations { type, recipient_id }`; kein `dm_key`/`participants` in der Antwort).
+> - Nachrichten-Mutationen **verschachtelt** unter `/conversations/{id}/messages/{messageId}` (kein top-level `/messages/{id}`). **DELETE → 200 Tombstone-`Message`** (nicht 204).
+> - Reaktionen: **`POST …/messages/{messageId}/reactions { emoji }` (Toggle) → ganze `Message`** (nicht `PUT/DELETE …/reactions/{emoji}`).
+> - `GET …/messages` liefert die **volle `Message[]`-Liste** (kein `before=`/`since=`/`meta`); Keyset (§6) + `?since=`-Delta (§11.2) sind **deferred** (kein Frontend-Konsument). Realtime = **Polling + ETag/304** (kein Cache-Merge, voller Refetch).
+> - `POST /conversations/{id}/read` **ohne** Body (mark-all-read) → 204.
+> - `sender` = `PublicUserCard` (`id`); `reply_to` = eingebettete Vorschau `{ id, sender_name, body }`; kein `client_nonce` (optimistisches UI rein clientseitig).
+> - Unread-Zähler: getrennte Endpunkte `GET /conversations/unread-count` + `GET /notifications/unread-count` (je bare `number`); **kein** `GET /me/unread`. Keine `GET /users/search` (DM-Start via Profilseite).
+> - Notification-Typ **`new_message`** (statt `message_received`); Notif-Read-Endpunkte liefern die **ganze `Notification[]`**.
+>
 > Basis-Präfix `/api/v1`. Cookies via `credentials: 'include'` + CSRF-Header (ADR-004). Felder/`error.code` englisch, Labels deutsch. **Entfällt** gegenüber dem alten Dossier: `POST /api/realtime/auth` (kein externer Realtime-Dienst).
 
 | Methode | Pfad | Zweck |
