@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Exceptions\ApiException;
 use App\Models\ConversationModel;
+use App\Models\FeedPostModel;
+use App\Models\FeedPostReactionModel;
 use App\Models\GroupInviteModel;
 use App\Models\GroupJoinRequestModel;
 use App\Models\GroupMemberModel;
@@ -697,6 +699,184 @@ final class GroupService
         return ['group' => $group, 'valid' => $valid, 'expired' => $expired, 'uses_left' => $usesLeft];
     }
 
+    // ──────────────────────────── Channels ────────────────────────────
+
+    /**
+     * Channel anlegen (§7.2). BOLA owner/admin. `position` = max+1; neue Channels sind member-sichtbar.
+     *
+     * @throws ApiException group_not_found | forbidden_role
+     */
+    public function createChannel(int $groupId, int $actorId, bool $isAdmin, string $name): void
+    {
+        $this->requireGroup($groupId);
+        $this->assertCanManage($groupId, $actorId, $isAdmin, 'Nur Owner/Admins dürfen Channels anlegen.');
+
+        $max = (int) (db_connect()->table('conversations')
+            ->selectMax('position')
+            ->where('context_type', 'group')->where('context_id', $groupId)->where('type', 'group_channel')
+            ->get()->getRowArray()['position'] ?? 0);
+
+        model(ConversationModel::class)->insert([
+            'type' => 'group_channel', 'context_type' => 'group', 'context_id' => $groupId,
+            'title' => trim($name), 'position' => $max + 1, 'is_default' => 0, 'min_role' => 'member', 'created_by' => $actorId,
+        ]);
+    }
+
+    /**
+     * Channel umbenennen (§7.3). BOLA owner/admin.
+     *
+     * @throws ApiException group_not_found | forbidden_role | not_found
+     */
+    public function renameChannel(int $groupId, int $actorId, bool $isAdmin, int $conversationId, string $name): void
+    {
+        $this->requireGroup($groupId);
+        $this->assertCanManage($groupId, $actorId, $isAdmin, 'Nur Owner/Admins dürfen Channels umbenennen.');
+        $channel = $this->findChannel($groupId, $conversationId);
+        if ($channel === null) {
+            throw new ApiException('not_found', 'Channel nicht gefunden.', 404);
+        }
+
+        model(ConversationModel::class)->update($conversationId, ['title' => trim($name)]);
+    }
+
+    /**
+     * Channel soft-löschen (§7.4). BOLA owner/admin. Default- und letzter Channel sind nicht löschbar.
+     *
+     * @throws ApiException group_not_found | forbidden_role | not_found | default_channel_not_deletable | last_channel_not_deletable
+     */
+    public function deleteChannel(int $groupId, int $actorId, bool $isAdmin, int $conversationId): void
+    {
+        $this->requireGroup($groupId);
+        $this->assertCanManage($groupId, $actorId, $isAdmin, 'Nur Owner/Admins dürfen Channels löschen.');
+        $channel = $this->findChannel($groupId, $conversationId);
+        if ($channel === null) {
+            throw new ApiException('not_found', 'Channel nicht gefunden.', 404);
+        }
+        if ((int) $channel['is_default'] === 1) {
+            throw ApiException::conflict('default_channel_not_deletable', 'Der Standard-Channel kann nicht gelöscht werden.');
+        }
+        $active = db_connect()->table('conversations')
+            ->where('context_type', 'group')->where('context_id', $groupId)->where('type', 'group_channel')->where('deleted_at', null)
+            ->countAllResults();
+        if ($active <= 1) {
+            throw ApiException::conflict('last_channel_not_deletable', 'Der letzte Channel kann nicht gelöscht werden.');
+        }
+
+        model(ConversationModel::class)->update($conversationId, ['deleted_at' => gmdate('Y-m-d H:i:s')]);
+    }
+
+    // ──────────────────────────── Feed-Writes ────────────────────────────
+
+    /**
+     * Feed-Post anlegen (§8.2). BOLA owner/admin (`author_user_id` serverseitig).
+     *
+     * @param array<string, mixed> $input
+     * @return int neue Post-ID
+     * @throws ApiException group_not_found | forbidden_role
+     */
+    public function createFeedPost(int $groupId, int $authorId, bool $isAdmin, array $input): int
+    {
+        $this->requireGroup($groupId);
+        $this->assertCanManage($groupId, $authorId, $isAdmin, 'Nur Owner/Admins dürfen im Feed posten.');
+
+        return (int) model(FeedPostModel::class)->insert([
+            'group_id'       => $groupId,
+            'author_user_id' => $authorId,
+            'title'          => $this->emptyToNull($input['title'] ?? null),
+            'body'           => trim((string) ($input['body'] ?? '')),
+            'is_pinned'      => 0,
+        ], true);
+    }
+
+    /**
+     * Feed-Post bearbeiten (§8.3). BOLA owner/admin.
+     *
+     * @param array<string, mixed> $input
+     * @throws ApiException group_not_found | forbidden_role | not_found
+     */
+    public function updateFeedPost(int $groupId, int $actorId, bool $isAdmin, int $postId, array $input): void
+    {
+        $this->requireGroup($groupId);
+        $this->assertCanManage($groupId, $actorId, $isAdmin, 'Nur Owner/Admins dürfen Beiträge bearbeiten.');
+        $this->requireFeedPost($groupId, $postId);
+
+        $data = [];
+        if (array_key_exists('title', $input)) {
+            $data['title'] = $this->emptyToNull($input['title']);
+        }
+        if (array_key_exists('body', $input) && trim((string) $input['body']) !== '') {
+            $data['body'] = trim((string) $input['body']);
+        }
+        if ($data !== []) {
+            model(FeedPostModel::class)->update($postId, $data);
+        }
+    }
+
+    /**
+     * Feed-Post soft-löschen (§8.4). Ab `moderator` (fremde Posts moderieren).
+     *
+     * @throws ApiException group_not_found | forbidden_role | not_found
+     */
+    public function deleteFeedPost(int $groupId, int $actorId, bool $isAdmin, int $postId): void
+    {
+        $this->requireGroup($groupId);
+        $this->assertModeratorPlus($groupId, $actorId, $isAdmin, 'Dazu fehlt dir die Berechtigung.');
+        $this->requireFeedPost($groupId, $postId);
+
+        model(FeedPostModel::class)->update($postId, ['deleted_at' => gmdate('Y-m-d H:i:s'), 'deleted_by' => $actorId]);
+    }
+
+    /**
+     * Pin umschalten (§8.6). BOLA owner/admin.
+     *
+     * @throws ApiException group_not_found | forbidden_role | not_found
+     */
+    public function togglePin(int $groupId, int $actorId, bool $isAdmin, int $postId): void
+    {
+        $this->requireGroup($groupId);
+        $this->assertCanManage($groupId, $actorId, $isAdmin, 'Nur Owner/Admins dürfen anpinnen.');
+        $post = $this->requireFeedPost($groupId, $postId);
+
+        model(FeedPostModel::class)->update($postId, ['is_pinned' => (int) $post['is_pinned'] === 1 ? 0 : 1]);
+    }
+
+    /**
+     * Emoji-Reaktion umschalten (§8.5). Eingeloggtes aktives Mitglied (oder Site-Admin).
+     *
+     * @throws ApiException group_not_found | forbidden_role | not_found
+     */
+    public function reactToPost(int $groupId, int $actorId, bool $isAdmin, int $postId, string $emoji): void
+    {
+        $this->requireGroup($groupId);
+        $this->assertMember($groupId, $actorId, $isAdmin);
+        $this->requireFeedPost($groupId, $postId);
+
+        $emoji    = trim($emoji);
+        $reactions = model(FeedPostReactionModel::class);
+        $existing  = $reactions->where('feed_post_id', $postId)->where('user_id', $actorId)->where('emoji', $emoji)->first();
+        if ($existing !== null) {
+            $reactions->where('feed_post_id', $postId)->where('user_id', $actorId)->where('emoji', $emoji)->delete();
+
+            return;
+        }
+        $reactions->insert(['feed_post_id' => $postId, 'user_id' => $actorId, 'emoji' => $emoji]);
+    }
+
+    /**
+     * Einzelner Feed-Post (profiles-Join) oder `null` (für die Einzel-Antwort nach Create/Update/Pin/React).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findFeedPost(int $groupId, int $postId): ?array
+    {
+        return db_connect()->table('feed_posts fp')
+            ->select('fp.id, fp.group_id, fp.title, fp.body, fp.image_path, fp.is_pinned, fp.created_at, fp.updated_at', false)
+            ->select('p.user_id AS author_id, p.display_name AS author_display_name, p.handle AS author_handle, p.avatar_path AS author_avatar', false)
+            ->join('profiles p', 'p.user_id = fp.author_user_id')
+            ->where('fp.id', $postId)->where('fp.group_id', $groupId)->where('fp.deleted_at', null)
+            ->get()->getRowArray();
+    }
+
     // ──────────────────────────── Helfer ────────────────────────────
 
     /**
@@ -719,6 +899,67 @@ final class GroupService
         if ($actorRank < self::RANK['moderator'] || $actorRank <= self::RANK[$target['role']]) {
             throw new ApiException('forbidden_role', 'Dazu fehlt dir die Berechtigung.', 403);
         }
+    }
+
+    /**
+     * Mindestens `moderator` (oder Site-Admin) — für Feed-Moderation (fremde Posts löschen).
+     *
+     * @throws ApiException forbidden_role
+     */
+    private function assertModeratorPlus(int $groupId, int $actorId, bool $isAdmin, string $message): void
+    {
+        if ($isAdmin) {
+            return;
+        }
+        $m = $this->membershipOf($groupId, $actorId);
+        if ($m === null || (self::RANK[$m['role']] ?? 0) < self::RANK['moderator'] || $m['status'] !== 'active') {
+            throw new ApiException('forbidden_role', $message, 403);
+        }
+    }
+
+    /**
+     * Aktives Mitglied (oder Site-Admin) — z.B. für Reaktionen.
+     *
+     * @throws ApiException forbidden_role
+     */
+    private function assertMember(int $groupId, int $actorId, bool $isAdmin): void
+    {
+        if ($isAdmin) {
+            return;
+        }
+        $m = $this->membershipOf($groupId, $actorId);
+        if ($m === null || $m['status'] !== 'active') {
+            throw new ApiException('forbidden_role', 'Nur Mitglieder können reagieren.', 403);
+        }
+    }
+
+    /**
+     * Lädt einen nicht-gelöschten Gruppen-Channel oder `null`.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function findChannel(int $groupId, int $conversationId): ?array
+    {
+        return db_connect()->table('conversations')
+            ->where('id', $conversationId)->where('context_type', 'group')->where('context_id', $groupId)
+            ->where('type', 'group_channel')->where('deleted_at', null)
+            ->get()->getRowArray();
+    }
+
+    /**
+     * Lädt einen nicht-gelöschten Feed-Post der Gruppe oder wirft `not_found`.
+     *
+     * @return array<string, mixed>
+     * @throws ApiException not_found
+     */
+    private function requireFeedPost(int $groupId, int $postId): array
+    {
+        $post = model(FeedPostModel::class)->where('id', $postId)->where('group_id', $groupId)->where('deleted_at', null)->first();
+        if ($post === null) {
+            throw new ApiException('not_found', 'Beitrag nicht gefunden.', 404);
+        }
+
+        return $post;
     }
 
     /**

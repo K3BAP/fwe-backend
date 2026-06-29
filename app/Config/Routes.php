@@ -83,6 +83,16 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->delete('groups/(:num)/invites/(:num)', 'GroupController::revokeInvite/$1/$2');
         $routes->post('invites/(:segment)/accept', 'GroupController::acceptInvite/$1');
 
+        // Channels (§7.2–§7.4) + Feed-Writes (§8.2–§8.6).
+        $routes->post('groups/(:num)/channels', 'GroupController::createChannel/$1');
+        $routes->patch('groups/(:num)/channels/(:num)', 'GroupController::renameChannel/$1/$2');
+        $routes->delete('groups/(:num)/channels/(:num)', 'GroupController::deleteChannel/$1/$2');
+        $routes->post('groups/(:num)/feed', 'GroupController::createFeedPost/$1');
+        $routes->patch('groups/(:num)/feed/(:num)', 'GroupController::updateFeedPost/$1/$2');
+        $routes->delete('groups/(:num)/feed/(:num)', 'GroupController::deleteFeedPost/$1/$2');
+        $routes->post('groups/(:num)/feed/(:num)/pin', 'GroupController::togglePin/$1/$2');
+        $routes->post('groups/(:num)/feed/(:num)/reactions', 'GroupController::reactToPost/$1/$2');
+
         $routes->get('health/secure', 'HealthController::secure');
     });
 });
