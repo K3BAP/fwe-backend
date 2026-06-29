@@ -1,5 +1,9 @@
-/** Wortmarke + Wing-Icon (Gleitschirm-Canopy + Coral-Sonne auf Sky-Verlauf). */
-export function Logo({ size = 36, withWordmark = true }: { size?: number; withWordmark?: boolean }) {
+/**
+ * Wortmarke + Wing-Icon (Gleitschirm-Canopy + Coral-Sonne auf Sky-Verlauf). `onDark` schaltet die
+ * Wortmarke auf Weiß — für dunkle/bildhafte Flächen (Hero-Himmel, Footer), wo `text-base-content`
+ * im Light-Theme zu dunkel wäre.
+ */
+export function Logo({ size = 36, withWordmark = true, onDark = false }: { size?: number; withWordmark?: boolean; onDark?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2.5">
       <span
@@ -12,8 +16,8 @@ export function Logo({ size = 36, withWordmark = true }: { size?: number; withWo
         </svg>
       </span>
       {withWordmark && (
-        <span className="font-display text-[19px] font-extrabold tracking-tight text-base-content">
-          Flight<span className="text-primary">Meet</span>
+        <span className={`font-display text-[19px] font-extrabold tracking-tight ${onDark ? 'text-white' : 'text-base-content'}`}>
+          Flight<span className={onDark ? 'text-sky-300' : 'text-primary'}>Meet</span>
         </span>
       )}
     </span>
