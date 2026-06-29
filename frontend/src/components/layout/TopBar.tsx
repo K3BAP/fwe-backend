@@ -63,6 +63,14 @@ export function TopBar() {
           })}
         </nav>
         <div className="ml-auto flex items-center gap-1.5">
+          {user?.isAdmin && (
+            <span
+              className="inline-flex items-center rounded-full bg-secondary/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-secondary"
+              title="Plattform-Administrator"
+            >
+              Admin
+            </span>
+          )}
           <button type="button" className="btn btn-circle btn-ghost btn-sm" aria-label="Suchen">
             <SearchIcon size={18} />
           </button>

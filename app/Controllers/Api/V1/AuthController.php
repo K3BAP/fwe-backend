@@ -99,8 +99,9 @@ class AuthController extends BaseApiController
         $present = new ProfilePresenter();
 
         return $this->respondData([
-            'user'    => $present->publicUser($user, $profile),
-            'profile' => $present->ownProfile($user, $profile),
+            'user'     => $present->publicUser($user, $profile),
+            'profile'  => $present->ownProfile($user, $profile),
+            'is_admin' => $user->inGroup('admin'), // Plattform-Admin (Shield-Gruppe), nur Anzeige (ADR-012/D4)
             // Chat/Notifications existieren erst ab M5 → Platzhalter; UI-Badges bleiben bis dahin Mock.
             'unread'  => ['messages' => 0, 'notifications' => 0],
         ]);
@@ -112,8 +113,9 @@ class AuthController extends BaseApiController
         $present = new ProfilePresenter();
 
         return $this->respondData([
-            'user'    => $present->publicUser($user, $profile),
-            'profile' => $present->ownProfile($user, $profile),
+            'user'     => $present->publicUser($user, $profile),
+            'profile'  => $present->ownProfile($user, $profile),
+            'is_admin' => $user->inGroup('admin'),
         ], $status);
     }
 

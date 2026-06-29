@@ -6,6 +6,7 @@ export type SessionUser = {
   displayName: string
   email: string
   avatarUrl: string | null
+  isAdmin: boolean
 }
 
 type AuthState = {

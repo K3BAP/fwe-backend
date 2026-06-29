@@ -168,6 +168,20 @@ final class AuthTest extends CIUnitTestCase
         $this->assertSame(0, $body['data']['unread']['messages']);
     }
 
+    public function testMeExposesIsAdminFlag(): void
+    {
+        $pilot = $this->createPilot('pilot@flightmeet.test');
+        $admin = $this->createPilot('admin@flightmeet.test');
+        $admin->addGroup('admin');
+
+        $pilotBody = json_decode($this->actingAs($pilot)->get('api/v1/auth/me')->getJSON(), true);
+        $this->assertFalse($pilotBody['data']['is_admin']);
+
+        auth()->logout();
+        $adminBody = json_decode($this->actingAs($admin)->get('api/v1/auth/me')->getJSON(), true);
+        $this->assertTrue($adminBody['data']['is_admin']);
+    }
+
     public function testLogoutEndsSession(): void
     {
         $user = $this->createPilot('lena@flightmeet.test');
