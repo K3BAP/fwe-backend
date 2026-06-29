@@ -33,6 +33,8 @@ export function ChatThread({ conversationId, backTo }: { conversationId: number;
   const [editing, setEditing] = useState<Message | null>(null)
   const [deleting, setDeleting] = useState<Message | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
+  const liveRef = useRef<HTMLParagraphElement>(null)
+  const lastAnnouncedId = useRef<number | null>(null)
 
   useEffect(() => {
     markRead(conversationId)
@@ -41,6 +43,25 @@ export function ChatThread({ conversationId, backTo }: { conversationId: number;
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [messages.data?.length])
+
+  // ARIA-Live: neu eingetroffene Fremd-Nachrichten (Polling) für Screenreader ansagen. Beim
+  // ersten Laden nur die Wasserlinie merken, damit nicht der gesamte Verlauf vorgelesen wird.
+  useEffect(() => {
+    const list = messages.data
+    if (!list || list.length === 0) return
+    const last = list[list.length - 1]
+    if (lastAnnouncedId.current === null) {
+      lastAnnouncedId.current = last.id
+      return
+    }
+    if (last.id !== lastAnnouncedId.current) {
+      lastAnnouncedId.current = last.id
+      // Live-Region imperativ befüllen (kein React-State im Effekt) → Screenreader liest die Ansage vor.
+      if (liveRef.current && last.sender.id !== currentUserId && last.deleted_at == null && last.body) {
+        liveRef.current.textContent = `Neue Nachricht von ${last.sender.display_name}: ${last.body}`
+      }
+    }
+  }, [messages.data, currentUserId])
 
   const showSender = conv.data?.type !== 'direct'
 
@@ -93,6 +114,9 @@ export function ChatThread({ conversationId, backTo }: { conversationId: number;
         </div>
         <div ref={endRef} />
       </div>
+
+      {/* Screenreader-Ansage neuer Fremd-Nachrichten (visuell verborgen, imperativ befüllt). */}
+      <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
 
       <MessageComposer
         key={editing ? `edit-${editing.id}` : 'compose'}

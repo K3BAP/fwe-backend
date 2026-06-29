@@ -148,4 +148,11 @@
     font-weight: 700;
     letter-spacing: -0.02em;
   }
+  /* Sichtbarer Fokus-Ring nur bei Tastatur-Navigation (a11y, M6). Maus-/Touch-Klicks lösen
+     :focus-visible nicht aus → kein Ring. Nutzt das Primary-Token (in Light + Dark sichtbar);
+     moderne Browser runden den Outline an der Element-Radius. */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
 }

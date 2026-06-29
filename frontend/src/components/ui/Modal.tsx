@@ -1,6 +1,7 @@
-import { useEffect, type ReactNode } from 'react'
+import { useId, useRef, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { cn } from '@/lib/cn'
+import { useDialogA11y } from '@/lib/useDialogA11y'
 
 export type ModalProps = {
   open: boolean
@@ -12,18 +13,14 @@ export type ModalProps = {
   className?: string
 }
 
-/** Zentriertes, animiertes Dialogfenster mit Backdrop, Escape- und Scroll-Lock (Design-System §Sheet). */
+/**
+ * Zentriertes, animiertes Dialogfenster mit Backdrop. Escape/Scroll-Lock, Fokus-Falle und
+ * Fokus-Rückgabe kommen aus {@link useDialogA11y} (Design-System §Sheet, M6 a11y-Pass).
+ */
 export function Modal({ open, onClose, title, children, footer, className }: ModalProps) {
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
-    }
-  }, [open, onClose])
+  const panelRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
+  useDialogA11y(open, onClose, panelRef)
 
   return (
     <AnimatePresence>
@@ -37,10 +34,13 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
             exit={{ opacity: 0 }}
           />
           <motion.div
+            ref={panelRef}
+            tabIndex={-1}
             role="dialog"
             aria-modal="true"
+            aria-labelledby={title ? titleId : undefined}
             className={cn(
-              'relative w-full max-w-md rounded-[28px] border border-base-300 bg-base-100 p-6 shadow-popover',
+              'relative w-full max-w-md rounded-[28px] border border-base-300 bg-base-100 p-6 shadow-popover focus:outline-none',
               className,
             )}
             initial={{ opacity: 0, scale: 0.95, y: 12 }}
@@ -48,7 +48,7 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ type: 'spring', stiffness: 380, damping: 30 }}
           >
-            {title && <h2 className="mb-3 pr-8 font-display text-xl">{title}</h2>}
+            {title && <h2 id={titleId} className="mb-3 pr-8 font-display text-xl">{title}</h2>}
             <button
               type="button"
               onClick={onClose}

@@ -1,6 +1,7 @@
-import { useEffect, type ReactNode } from 'react'
+import { useId, useRef, type ReactNode } from 'react'
 import { AnimatePresence, motion, type TargetAndTransition } from 'motion/react'
 import { cn } from '@/lib/cn'
+import { useDialogA11y } from '@/lib/useDialogA11y'
 
 type Side = 'right' | 'bottom'
 
@@ -22,18 +23,14 @@ export type DrawerProps = {
   className?: string
 }
 
-/** Ein-/ausfahrendes Panel (rechts = Desktop, unten = mobiles Bottom-Sheet) mit Backdrop & Escape. */
+/**
+ * Ein-/ausfahrendes Panel (rechts = Desktop, unten = mobiles Bottom-Sheet) mit Backdrop.
+ * Escape/Scroll-Lock, Fokus-Falle und Fokus-Rückgabe kommen aus {@link useDialogA11y} (M6 a11y-Pass).
+ */
 export function Drawer({ open, onClose, side = 'right', title, children, className }: DrawerProps) {
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
-    }
-  }, [open, onClose])
+  const panelRef = useRef<HTMLElement>(null)
+  const titleId = useId()
+  useDialogA11y(open, onClose, panelRef)
 
   return (
     <AnimatePresence>
@@ -47,13 +44,18 @@ export function Drawer({ open, onClose, side = 'right', title, children, classNa
             exit={{ opacity: 0 }}
           />
           <motion.aside
-            className={cn('absolute border border-base-300 bg-base-100 p-6 shadow-popover', PANEL[side], className)}
+            ref={panelRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={title ? titleId : undefined}
+            className={cn('absolute border border-base-300 bg-base-100 p-6 shadow-popover focus:outline-none', PANEL[side], className)}
             initial={MOTION[side].initial}
             animate={MOTION[side].animate}
             exit={MOTION[side].exit}
             transition={{ type: 'spring', stiffness: 360, damping: 36 }}
           >
-            {title && <h2 className="mb-4 font-display text-xl">{title}</h2>}
+            {title && <h2 id={titleId} className="mb-4 font-display text-xl">{title}</h2>}
             {children}
           </motion.aside>
         </div>
