@@ -45,6 +45,29 @@ abstract class BaseApiController extends Controller
     }
 
     /**
+     * Erfolgs-Envelope mit schwachem ETag/`304` für gepollte Lese-Endpunkte (Chat/Notifications,
+     * ADR-001). Der ETag wird aus dem serialisierten `data` gebildet; stimmt `If-None-Match` überein,
+     * wird `304 Not Modified` (ohne Body) geliefert — sonst der normale `{ data }`-Envelope inkl.
+     * `ETag`-Header. So bleiben Leerlauf-Polls billig.
+     *
+     * **Ausnahme unter PHPs eingebautem Dev-Server** (`php spark serve`): wie bei {@see respondNoContent}
+     * verträgt der mit dem strikten Vite-/Node-Proxy keine body-losen Antworten (502). Dort wird das
+     * `304` übersprungen und stets der volle `200`-Envelope geliefert (Frontend behandelt beides gleich).
+     */
+    protected function respondMaybeCached(mixed $data): ResponseInterface
+    {
+        $etag        = '"' . md5((string) json_encode($data)) . '"';
+        $isDevServer = str_contains($_SERVER['SERVER_SOFTWARE'] ?? '', 'Development Server');
+        $ifNoneMatch = trim($this->request->getHeaderLine('If-None-Match'));
+
+        if (! $isDevServer && $ifNoneMatch !== '' && $ifNoneMatch === $etag) {
+            return $this->response->setStatusCode(304)->setHeader('ETag', $etag)->setBody('');
+        }
+
+        return $this->respondData($data)->setHeader('ETag', $etag);
+    }
+
+    /**
      * Fehler-Envelope mit stabilem englischem `code` + deutscher `message`.
      *
      * @param array<string, string>|null $fields nur bei `422`

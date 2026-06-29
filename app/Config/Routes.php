@@ -93,6 +93,12 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->post('groups/(:num)/feed/(:num)/pin', 'GroupController::togglePin/$1/$2');
         $routes->post('groups/(:num)/feed/(:num)/reactions', 'GroupController::reactToPost/$1/$2');
 
+        // Chat (§9–10) — privat (komplett im Auth-Filter). Spezifische Segmente vor `(:num)`.
+        $routes->get('conversations', 'ConversationController::index');
+        $routes->get('conversations/unread-count', 'ConversationController::unreadCount');
+        $routes->get('conversations/(:num)', 'ConversationController::show/$1');
+        $routes->get('conversations/(:num)/messages', 'ConversationController::messages/$1');
+
         $routes->get('health/secure', 'HealthController::secure');
     });
 });
