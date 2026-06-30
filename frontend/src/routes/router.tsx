@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { RequireAuth, RequireGuest } from '@/components/auth/guards'
 import { AppShell } from '@/components/layout/AppShell'
+import { GuestLayout } from '@/components/layout/GuestLayout'
 import { Chat } from './Chat'
 import { Dashboard } from './Dashboard'
 import { Einstellungen } from './Einstellungen'
@@ -27,9 +28,14 @@ export const router = createBrowserRouter(
     {
       element: <RequireGuest />,
       children: [
-        { path: '/landing', element: <Landing /> },
-        { path: '/login', element: <Login /> },
-        { path: '/register', element: <Register /> },
+        {
+          element: <GuestLayout />,
+          children: [
+            { path: '/landing', element: <Landing /> },
+            { path: '/login', element: <Login /> },
+            { path: '/register', element: <Register /> },
+          ],
+        },
       ],
     },
     {

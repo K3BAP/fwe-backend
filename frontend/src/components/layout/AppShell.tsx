@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
-import { useReducedMotion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { Toaster } from '@/components/ui'
 import { cn } from '@/lib/cn'
+import { tween } from '@/lib/motion'
 import { BottomNav } from './BottomNav'
 import { PageTransition } from './PageTransition'
 import { TopBar } from './TopBar'
@@ -34,7 +35,15 @@ export function AppShell() {
   }, [pathname, fullBleed, reduce])
 
   return (
-    <div className={cn('flex flex-col bg-base-200 text-base-content', fullBleed ? 'h-[100svh] overflow-hidden' : 'min-h-svh')}>
+    // Eingangs-Fade beim ersten Mount → weicher Übergang von Login/Register in die App (nur Opacity,
+    // damit die `fixed` Bottom-Nav ihren Viewport-Bezug behält). Beim Wechsel zwischen App-Routen
+    // bleibt der Shell montiert (kein erneutes Fade); dort blendet nur die PageTransition den Inhalt.
+    <motion.div
+      className={cn('flex flex-col bg-base-200 text-base-content', fullBleed ? 'h-[100svh] overflow-hidden' : 'min-h-svh')}
+      initial={reduce ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={tween.base}
+    >
       <TopBar />
       {fullBleed ? (
         <main className="min-h-0 flex-1">
@@ -51,6 +60,6 @@ export function AppShell() {
       )}
       <BottomNav />
       <Toaster />
-    </div>
+    </motion.div>
   )
 }
