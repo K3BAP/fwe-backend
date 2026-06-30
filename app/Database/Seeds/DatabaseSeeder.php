@@ -859,6 +859,19 @@ class DatabaseSeeder extends Seeder
 
             return $row !== null ? (int) $row['id'] : null;
         };
+        // Channel-Konversations-ID einer Gruppe per Titel — für Channel-`new_message`-Benachrichtigungen,
+        // die der Presenter (data.group_id gesetzt) auf die Channel-UI statt den globalen Chat führt.
+        $channelId = function (int $groupId, string $title): ?int {
+            $row = $this->db->table('conversations')
+                ->where('type', 'group_channel')->where('context_id', $groupId)->where('title', $title)
+                ->get()->getRowArray();
+
+            return $row !== null ? (int) $row['id'] : null;
+        };
+        // Render-Payload für eine Channel-Nachricht (markiert die Konversation im Presenter als Channel).
+        $channelData = static fn (array $group, string $channel): array => [
+            'group_id' => (int) $group['id'], 'group_name' => $group['name'], 'channel_name' => $channel,
+        ];
 
         // — Lena (Demo-Pilotin): voll gemischtes Center —
         $push($P[0], 'meetup_join', $P[1], 'meetup', (int) $meetups[0]['id'], ['meetup_title' => $meetups[0]['title']], false, 1);
@@ -867,12 +880,14 @@ class DatabaseSeeder extends Seeder
         $push($P[0], 'group_join_request', $P[2], 'group', (int) $groups[0]['id'], ['group_name' => $groups[0]['name']], false, 2);
         $push($P[0], 'group_feed_post', $P[1], 'group', (int) $groups[0]['id'], ['group_name' => $groups[0]['name']], true, 30);
         $push($P[0], 'new_message', $P[1], 'conversation', $dmId($P[0], $P[1]), ['title' => 'Markus Thaler'], false, 1);
+        $push($P[0], 'new_message', $P[1], 'conversation', $channelId((int) $groups[0]['id'], 'Wetter'), $channelData($groups[0], 'Wetter'), false, 4);
         $push($P[0], 'message_reaction', $P[2], 'conversation', $dmId($P[0], $P[2]), ['emoji' => '👍', 'title' => 'Sophie Berg'], true, 26);
 
         // — Markus —
         $push($P[1], 'meetup_join', $P[2], 'meetup', (int) $meetups[1]['id'], ['meetup_title' => $meetups[1]['title']], false, 3);
         $push($P[1], 'group_join_request', $P[2], 'group', (int) $groups[1]['id'], ['group_name' => $groups[1]['name']], true, 8);
         $push($P[1], 'new_message', $P[0], 'conversation', $dmId($P[1], $P[0]), ['title' => 'Lena Krüger'], false, 2);
+        $push($P[1], 'new_message', $P[0], 'conversation', $channelId((int) $groups[1]['id'], 'Streckenmeldungen'), $channelData($groups[1], 'Streckenmeldungen'), true, 9);
         $push($P[1], 'group_invite', $P[2], 'group', (int) $groups[2]['id'], ['group_name' => $groups[2]['name']], false, 14);
 
         // — Sophie —
