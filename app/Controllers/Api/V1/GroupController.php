@@ -4,6 +4,7 @@ namespace App\Controllers\Api\V1;
 
 use App\Controllers\Api\BaseApiController;
 use App\Exceptions\ApiException;
+use App\Services\ChatService;
 use App\Services\GroupPresenter;
 use App\Services\GroupService;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -118,10 +119,7 @@ final class GroupController extends BaseApiController
             return $this->forbidden();
         }
 
-        $present = new GroupPresenter();
-
-        return $this->respondData(array_map(
-            fn (array $c): array => $present->channel($c),
+        return $this->respondData($this->presentChannels(
             $service->channels((int) $id, $membership, $this->isAdmin()),
         ));
     }
@@ -519,9 +517,23 @@ final class GroupController extends BaseApiController
     {
         $service    = new GroupService();
         $membership = $service->membershipOf($id, $this->viewerId());
-        $present    = new GroupPresenter();
 
-        return $this->respondData(array_map(fn (array $c): array => $present->channel($c), $service->channels($id, $membership, $this->isAdmin())));
+        return $this->respondData($this->presentChannels($service->channels($id, $membership, $this->isAdmin())));
+    }
+
+    /**
+     * Channel-Rohzeilen → DTOs mit echtem Ungelesen-Zähler (Watermark des Betrachters, {@see ChatService}).
+     *
+     * @param list<array<string, mixed>> $channels
+     * @return list<array<string, mixed>>
+     */
+    private function presentChannels(array $channels): array
+    {
+        $present = new GroupPresenter();
+        $ids     = array_map(static fn (array $c): int => (int) $c['id'], $channels);
+        $unread  = (new ChatService())->unreadCounts($ids, $this->viewerId());
+
+        return array_map(fn (array $c): array => $present->channel($c, $unread[(int) $c['id']] ?? 0), $channels);
     }
 
     /** Einzelner Feed-Post als Antwort (Create/Update/Pin/React). */

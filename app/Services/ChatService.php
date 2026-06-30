@@ -219,7 +219,7 @@ final class ChatService
      * @param list<int> $convIds
      * @return array<int, int>
      */
-    private function unreadCounts(array $convIds, int $viewerId): array
+    public function unreadCounts(array $convIds, int $viewerId): array
     {
         if ($convIds === []) {
             return [];
@@ -382,7 +382,14 @@ final class ChatService
         $this->upsertParticipant($convId, $viewerId, $id);
 
         // Benachrichtigung an die übrigen (nicht stummgeschalteten) Teilnehmer — aggregiert je Konversation.
-        (new NotificationService())->notifyNewMessage($this->recipientsFor($conv, $viewerId), $convId, $viewerId);
+        // Channel-Kontext (Gruppe/Channel-Name) reicht das Render-Payload mit, damit die Notification
+        // auf die Channel-Oberfläche verlinkt statt auf den globalen Chat (ADR-012/C7).
+        (new NotificationService())->notifyNewMessage(
+            $this->recipientsFor($conv, $viewerId),
+            $convId,
+            $viewerId,
+            $this->messageNotificationData($conv),
+        );
 
         return $id;
     }
@@ -440,8 +447,8 @@ final class ChatService
      */
     public function reactToMessage(int $viewerId, int $convId, int $messageId, string $emoji): int
     {
-        $this->assertAccess($convId, $viewerId);
-        $msg = $this->requireMessage($convId, $messageId);
+        $conv = $this->assertAccess($convId, $viewerId);
+        $msg  = $this->requireMessage($convId, $messageId);
         if ($msg['deleted_at'] !== null) {
             throw new ApiException('message_deleted', 'Auf gelöschte Nachrichten kann nicht reagiert werden.', 409);
         }
@@ -460,7 +467,15 @@ final class ChatService
             // Nur beim Hinzufügen den Autor benachrichtigen (nicht bei eigener Reaktion).
             $authorId = (int) $msg['sender_id'];
             if ($authorId !== $viewerId) {
-                (new NotificationService())->create($authorId, 'message_reaction', $viewerId, 'conversation', $convId, ['emoji' => $emoji]);
+                // Channel-Kontext mitreichen, damit auch Reaktions-Notifications auf die Channel-UI verlinken.
+                (new NotificationService())->create(
+                    $authorId,
+                    'message_reaction',
+                    $viewerId,
+                    'conversation',
+                    $convId,
+                    array_merge(['emoji' => $emoji], $this->messageNotificationData($conv)),
+                );
             }
         }
         // Reaktionen ändern die messages-Zeile nicht ⇒ updated_at explizit anstoßen (Polling-Delta).
@@ -641,6 +656,27 @@ final class ChatService
         $row = db_connect()->table('groups')->select('name')->where('id', $groupId)->get()->getRowArray();
 
         return (string) ($row['name'] ?? 'Gruppe');
+    }
+
+    /**
+     * Render-Payload für Nachrichten-Benachrichtigungen: für Gruppen-Channels Gruppe + Channel-Name
+     * (damit der Presenter channel-aware Text + Deeplink baut), sonst leer (DM/Treffen → globaler Chat).
+     *
+     * @param array<string, mixed> $conv
+     * @return array<string, mixed>
+     */
+    private function messageNotificationData(array $conv): array
+    {
+        if ($conv['type'] !== 'group_channel') {
+            return [];
+        }
+
+        return [
+            'kind'         => 'group_channel',
+            'group_id'     => (int) $conv['context_id'],
+            'group_name'   => $this->groupName((int) $conv['context_id']),
+            'channel_name' => (string) $conv['title'],
+        ];
     }
 
     /** @return array<string, mixed>|null */

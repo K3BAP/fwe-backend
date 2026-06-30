@@ -164,6 +164,9 @@ export function useMarkRead() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.chat.conversations })
       qc.invalidateQueries({ queryKey: qk.chat.unread })
+      // Channels nutzen denselben Thread → Gruppen-Channel-Badges nach dem Lesen prompt auffrischen
+      // (markRead kennt die groupId nicht, daher per Prädikat auf allen Channel-Listen).
+      qc.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'groups' && q.queryKey[3] === 'channels' })
     },
   })
 }

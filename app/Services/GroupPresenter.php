@@ -145,18 +145,19 @@ final class GroupPresenter
     }
 
     /**
-     * Gruppen-Channel (= conversation type=group_channel). `unread_count` ist in M4 stets 0 (Messages M5).
+     * Gruppen-Channel (= conversation type=group_channel). `unread_count` = ungelesene Fremdnachrichten
+     * oberhalb des Watermarks des Betrachters (vom Controller via {@see ChatService::unreadCounts} ermittelt).
      *
      * @param array<string, mixed> $row
      * @return array<string, mixed>
      */
-    public function channel(array $row): array
+    public function channel(array $row, int $unread = 0): array
     {
         return [
             'conversation_id' => (int) $row['id'],
             'name'            => $row['title'],
             'is_default'      => (bool) $row['is_default'],
-            'unread_count'    => 0,
+            'unread_count'    => $unread,
         ];
     }
 

@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useGroup, useGroupChannels } from '@/api/groups'
 import { ChatThread } from '@/components/chat/ChatThread'
 import { ChannelList } from '@/components/groups/ChannelList'
+import { ChannelsLocked } from '@/components/groups/ChannelsLocked'
 import { Card, Skeleton } from '@/components/ui'
 import { ChatIcon } from '@/components/layout/icons'
 import { cn } from '@/lib/cn'
@@ -24,8 +25,15 @@ export function GruppeChannels() {
   const groupId = Number(id)
   const convId = channelId ? Number(channelId) : null
   const group = useGroup(groupId)
-  const channels = useGroupChannels(groupId)
+  const canSeeChannels = group.isSuccess && (!!group.data?.my_membership || !!group.data?.can_manage)
+  const channels = useGroupChannels(groupId, canSeeChannels)
   const backTo = `/gruppen/${groupId}/channels`
+
+  const groupLink = (
+    <Link to={`/gruppen/${groupId}`} className="btn btn-primary btn-sm rounded-full">
+      Zur Gruppe
+    </Link>
+  )
 
   return (
     <div className="flex flex-col gap-4">
@@ -40,17 +48,33 @@ export function GruppeChannels() {
             <p className="truncate text-xs text-base-content/50">{group.data?.name}</p>
           </div>
           <div className="flex-1 overflow-y-auto p-2">
-            {channels.isLoading &&
-              Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="mb-1 h-10 w-full" />)}
-            {channels.data && <ChannelList channels={channels.data} groupId={groupId} activeId={convId ?? undefined} />}
-            {channels.data && channels.data.length === 0 && (
-              <p className="px-3 py-6 text-center text-sm text-base-content/55">Noch keine Channels.</p>
+            {group.isLoading || channels.isLoading ? (
+              Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="mb-1 h-10 w-full" />)
+            ) : !canSeeChannels ? (
+              <ChannelsLocked compact />
+            ) : (
+              <>
+                <ChannelList channels={channels.data ?? []} groupId={groupId} activeId={convId ?? undefined} />
+                {channels.data && channels.data.length === 0 && (
+                  <p className="px-3 py-6 text-center text-sm text-base-content/55">Noch keine Channels.</p>
+                )}
+              </>
             )}
           </div>
         </aside>
 
         <main className={cn('min-w-0 flex-1', convId == null && 'hidden md:block')}>
-          {convId != null ? <ChatThread key={convId} conversationId={convId} backTo={backTo} /> : <ChannelEmpty />}
+          {group.isLoading ? (
+            <div className="grid h-full place-items-center p-8">
+              <Skeleton className="h-24 w-3/4" />
+            </div>
+          ) : !canSeeChannels ? (
+            <ChannelsLocked action={groupLink} />
+          ) : convId != null ? (
+            <ChatThread key={convId} conversationId={convId} backTo={backTo} />
+          ) : (
+            <ChannelEmpty />
+          )}
         </main>
       </Card>
     </div>

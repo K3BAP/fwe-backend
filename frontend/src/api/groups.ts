@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { USE_MOCKS } from '@/config'
+import { POLL, USE_MOCKS } from '@/config'
 import { chatTable } from '@/mocks/chat'
 import { groupsTable } from '@/mocks/groups'
 import { mockRead, mockWrite } from '@/mocks/runtime'
@@ -79,8 +79,18 @@ export function useGroupRequests(id: number, enabled = true) {
 export function useGroupInvites(id: number, enabled = true) {
   return useQuery({ queryKey: qk.groups.invites(id), queryFn: () => fetchInvites(id), enabled: enabled && Number.isFinite(id) })
 }
-export function useGroupChannels(id: number) {
-  return useQuery({ queryKey: qk.groups.channels(id), queryFn: () => fetchChannels(id), enabled: Number.isFinite(id) })
+/**
+ * Channels einer Gruppe. `enabled` gated auf Sichtbarkeit (Mitglied/Verwalter) — sonst liefert das
+ * Backend 403, das bei jedem Poll Lärm machen würde. Pollt wie die Chat-Liste (Badge-Aktualität);
+ * beim Beitritt kippt `enabled` → true und die Query lädt automatisch (sofortiges Erscheinen).
+ */
+export function useGroupChannels(id: number, enabled = true) {
+  return useQuery({
+    queryKey: qk.groups.channels(id),
+    queryFn: () => fetchChannels(id),
+    enabled: enabled && Number.isFinite(id),
+    refetchInterval: POLL.lists,
+  })
 }
 
 /** Beitritt/Verlassen/Antrag: schreibt Detail + frischt Liste/Mitglieder auf. */
@@ -95,6 +105,8 @@ function useGroupMembershipMutation(
       qc.setQueryData(qk.groups.detail(detail.id), detail)
       qc.invalidateQueries({ queryKey: [...qk.groups.all, 'list'] })
       qc.invalidateQueries({ queryKey: qk.groups.members(detail.id) })
+      // Sichtbarkeit der Channels hängt an der Mitgliedschaft → nach Beitritt/Verlassen neu laden.
+      qc.invalidateQueries({ queryKey: qk.groups.channels(detail.id) })
       toast.success(successMsg)
     },
     onError: (err) =>

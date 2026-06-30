@@ -342,6 +342,30 @@ final class GroupReadTest extends CIUnitTestCase
         $this->assertSame(0, $chans[0]['unread_count']);
     }
 
+    public function testChannelUnreadCountReflectsForeignMessagesAndWatermark(): void
+    {
+        $owner  = $this->createPilot('o@flightmeet.test');
+        $member = $this->createPilot('m@flightmeet.test');
+        $id     = $this->createGroup($owner->id);
+        $this->addMember($id, $member->id);
+
+        $convId = (int) db_connect()->table('conversations')
+            ->where('type', 'group_channel')->where('context_type', 'group')->where('context_id', $id)
+            ->get()->getRowArray()['id'];
+
+        // Owner schreibt zwei Nachrichten → Member hat zwei ungelesene Fremdnachrichten.
+        $this->actingAs($owner)->withBodyFormat('json')->post("api/v1/conversations/{$convId}/messages", ['body' => 'eins']);
+        $this->actingAs($owner)->withBodyFormat('json')->post("api/v1/conversations/{$convId}/messages", ['body' => 'zwei']);
+
+        $chans = json_decode($this->actingAs($member)->get("api/v1/groups/{$id}/channels")->getJSON(), true)['data'];
+        $this->assertSame(2, $chans[0]['unread_count']);
+
+        // Nach dem Lesen zieht der Watermark mit → Zähler 0.
+        $this->actingAs($member)->post("api/v1/conversations/{$convId}/read")->assertStatus(204);
+        $chans = json_decode($this->actingAs($member)->get("api/v1/groups/{$id}/channels")->getJSON(), true)['data'];
+        $this->assertSame(0, $chans[0]['unread_count']);
+    }
+
     public function testChannelsOwnerSeesAdminChannel(): void
     {
         $owner = $this->createPilot('o@flightmeet.test');

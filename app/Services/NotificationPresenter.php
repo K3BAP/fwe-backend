@@ -30,7 +30,7 @@ final class NotificationPresenter
             'type'       => $row['type'],
             'actor'      => $actor,
             'text'       => $this->text((string) $row['type'], $actor['display_name'] ?? 'Jemand', $data),
-            'link'       => $this->link((string) $row['type'], $row['context_type'] ?? null, $row['context_id'] ?? null),
+            'link'       => $this->link((string) $row['type'], $row['context_type'] ?? null, $row['context_id'] ?? null, $data),
             'read_at'    => $this->toIso($row['read_at'] ?? null),
             'created_at' => (string) $this->toIso($row['created_at']),
         ];
@@ -53,14 +53,20 @@ final class NotificationPresenter
             'group_request_approved' => "Dein Beitritt zu „{$group}“ wurde bestätigt.",
             'group_invite'           => "Du wurdest zu „{$group}“ eingeladen.",
             'group_feed_post'        => "Neuer Beitrag in „{$group}“.",
-            'new_message'            => "Neue Nachricht von {$actor}.",
+            'new_message'            => isset($d['channel_name'])
+                ? "Neue Nachricht im Channel „{$d['channel_name']}“ der Gruppe „{$d['group_name']}“."
+                : "Neue Nachricht von {$actor}.",
             'message_reaction'       => "{$actor} hat auf deine Nachricht reagiert.",
             default                  => 'Neue Benachrichtigung.',
         };
     }
 
-    /** Ziel-Link (Router-Pfad) je Typ/Kontext; `null`, wenn kein Kontext. */
-    private function link(string $type, ?string $ctxType, mixed $ctxId): ?string
+    /**
+     * Ziel-Link (Router-Pfad) je Typ/Kontext; `null`, wenn kein Kontext.
+     *
+     * @param array<string, mixed> $d Render-Payload (`group_id` markiert Channel-Konversationen)
+     */
+    private function link(string $type, ?string $ctxType, mixed $ctxId, array $d = []): ?string
     {
         if ($ctxId === null) {
             return null;
@@ -70,6 +76,11 @@ final class NotificationPresenter
         // Beitrittsanträge führen auf die Verwaltungsseite der Gruppe.
         if ($type === 'group_join_request') {
             return "/gruppen/{$id}/einstellungen";
+        }
+
+        // Channel-Konversationen (Nachricht/Reaktion) → dedizierte Channel-UI statt globalem Chat.
+        if ($ctxType === 'conversation' && isset($d['group_id'])) {
+            return "/gruppen/{$d['group_id']}/channels/{$id}";
         }
 
         return match ($ctxType) {

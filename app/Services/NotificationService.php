@@ -91,13 +91,15 @@ final class NotificationService
      * `new_message`-Fan-out (aggregiert): je Empfänger **eine** ungelesene Zeile pro Konversation —
      * vorhandene ungelesene wird auf den neuen Actor/Zeitpunkt gehoben, sonst neu angelegt (ADR-012/C7).
      *
-     * @param list<int> $recipientIds bereits ohne Sender/`muted`
+     * @param list<int>            $recipientIds bereits ohne Sender/`muted`
+     * @param array<string, mixed> $data         Render-Payload (JSON), z. B. Channel-/Gruppen-Kontext
      */
-    public function notifyNewMessage(array $recipientIds, int $convId, int $actorId): void
+    public function notifyNewMessage(array $recipientIds, int $convId, int $actorId, array $data = []): void
     {
         try {
-            $db  = db_connect();
-            $now = gmdate('Y-m-d H:i:s');
+            $db   = db_connect();
+            $now  = gmdate('Y-m-d H:i:s');
+            $json = $data === [] ? null : json_encode($data, JSON_UNESCAPED_UNICODE);
             foreach ($recipientIds as $rid) {
                 if ($rid === $actorId) {
                     continue;
@@ -107,11 +109,12 @@ final class NotificationService
                     ->where('context_type', 'conversation')->where('context_id', $convId)->where('read_at', null)
                     ->get()->getRowArray();
                 if ($existing !== null) {
-                    $db->table('notifications')->where('id', $existing['id'])->update(['actor_user_id' => $actorId, 'created_at' => $now]);
+                    // `data` mit aktualisieren — heilt umbenannte Channels/Gruppen bei der nächsten Nachricht.
+                    $db->table('notifications')->where('id', $existing['id'])->update(['actor_user_id' => $actorId, 'created_at' => $now, 'data' => $json]);
                 } else {
                     model(NotificationModel::class)->insert([
                         'user_id' => $rid, 'type' => 'new_message', 'actor_user_id' => $actorId,
-                        'context_type' => 'conversation', 'context_id' => $convId, 'data' => null,
+                        'context_type' => 'conversation', 'context_id' => $convId, 'data' => $json,
                     ]);
                 }
             }

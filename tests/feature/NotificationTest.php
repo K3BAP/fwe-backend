@@ -244,6 +244,45 @@ final class NotificationTest extends CIUnitTestCase
         $this->assertSame('Bea hat auf deine Nachricht reagiert.', $reaction[0]['text']);
     }
 
+    public function testNewMessageInGroupChannelHasChannelTextAndChannelLink(): void
+    {
+        $owner   = $this->createPilot('o@flightmeet.test', ['display_name' => 'Olli']);
+        $member  = $this->createPilot('m@flightmeet.test');
+        $groupId = $this->createGroup((int) $owner->id, 'open', [[(int) $member->id, 'member']]);
+        $convId  = (int) model(ConversationModel::class)->insert([
+            'type' => 'group_channel', 'context_type' => 'group', 'context_id' => $groupId,
+            'title' => 'Allgemein', 'position' => 0, 'is_default' => 1, 'min_role' => 'member', 'created_by' => $owner->id,
+        ], true);
+
+        $this->actingAs($owner)->withBodyFormat('json')
+            ->post("api/v1/conversations/{$convId}/messages", ['body' => 'servus'])->assertStatus(201);
+
+        $n = array_values(array_filter($this->notifs($member), static fn (array $x): bool => $x['type'] === 'new_message'));
+        $this->assertCount(1, $n);
+        $this->assertSame('Neue Nachricht im Channel „Allgemein“ der Gruppe „Testgruppe“.', $n[0]['text']);
+        $this->assertSame("/gruppen/{$groupId}/channels/{$convId}", $n[0]['link']);
+    }
+
+    public function testMessageReactionInGroupChannelLinksToChannelUi(): void
+    {
+        $owner   = $this->createPilot('o@flightmeet.test');
+        $member  = $this->createPilot('m@flightmeet.test', ['display_name' => 'Mara']);
+        $groupId = $this->createGroup((int) $owner->id, 'open', [[(int) $member->id, 'member']]);
+        $convId  = (int) model(ConversationModel::class)->insert([
+            'type' => 'group_channel', 'context_type' => 'group', 'context_id' => $groupId,
+            'title' => 'Allgemein', 'position' => 0, 'is_default' => 1, 'min_role' => 'member', 'created_by' => $owner->id,
+        ], true);
+        $mid = (int) json_decode($this->actingAs($owner)->withBodyFormat('json')
+            ->post("api/v1/conversations/{$convId}/messages", ['body' => 'hi'])->getJSON(), true)['data']['id'];
+
+        $this->actingAs($member)->withBodyFormat('json')
+            ->post("api/v1/conversations/{$convId}/messages/{$mid}/reactions", ['emoji' => '🔥']);
+
+        $r = array_values(array_filter($this->notifs($owner), static fn (array $x): bool => $x['type'] === 'message_reaction'));
+        $this->assertCount(1, $r);
+        $this->assertSame("/gruppen/{$groupId}/channels/{$convId}", $r[0]['link']);
+    }
+
     // ──────────────────────────── Generierung: Meetup ────────────────────────────
 
     public function testMeetupJoinNotifiesOrganizer(): void

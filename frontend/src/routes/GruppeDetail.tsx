@@ -17,6 +17,7 @@ import {
 } from '@/api/groups'
 import type { FeedPost, GroupDetail as GroupDetailDto } from '@/api/schemas'
 import { ChannelList } from '@/components/groups/ChannelList'
+import { ChannelsLocked } from '@/components/groups/ChannelsLocked'
 import { FeedComposer } from '@/components/groups/FeedComposer'
 import { FeedPostCard } from '@/components/groups/FeedPostCard'
 import { GroupHero } from '@/components/groups/GroupHero'
@@ -112,7 +113,8 @@ export function GruppeDetail() {
   const { id } = useParams()
   const groupId = Number(id)
   const group = useGroup(groupId)
-  const channels = useGroupChannels(groupId)
+  const canSeeChannels = group.isSuccess && (!!group.data?.my_membership || !!group.data?.can_manage)
+  const channels = useGroupChannels(groupId, canSeeChannels)
   const feed = useGroupFeed(groupId)
   const members = useGroupMembers(groupId)
   const react = useReactToPost(groupId)
@@ -204,11 +206,15 @@ export function GruppeDetail() {
           <Card className="p-4">
             <div className="mb-2 flex items-center justify-between px-1">
               <h2 className="font-display text-lg">Channels</h2>
-              <Link to={`/gruppen/${groupId}/channels`} className="text-xs font-semibold text-primary hover:underline">
-                Öffnen →
-              </Link>
+              {canSeeChannels && (
+                <Link to={`/gruppen/${groupId}/channels`} className="text-xs font-semibold text-primary hover:underline">
+                  Öffnen →
+                </Link>
+              )}
             </div>
-            {channels.isLoading ? (
+            {!canSeeChannels ? (
+              <ChannelsLocked compact />
+            ) : channels.isLoading ? (
               <Skeleton className="h-20 w-full" />
             ) : (
               <ChannelList channels={channels.data ?? []} groupId={groupId} />
