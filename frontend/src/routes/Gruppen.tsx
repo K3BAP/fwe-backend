@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useGroups } from '@/api/groups'
 import { GroupCard } from '@/components/groups/GroupCard'
-import { EmptyState, SelectField, Skeleton, TextField } from '@/components/ui'
+import { EmptyState, SelectField, Skeleton, Stagger, StaggerItem, TextField } from '@/components/ui'
 import { GroupIcon, PlusIcon } from '@/components/layout/icons'
 
 /** Gruppen-Verzeichnis: Suche + Region-Filter, Grid aus GroupCards (private bleiben verborgen). */
@@ -73,9 +73,13 @@ export function Gruppen() {
       )}
 
       {!isLoading && !isError && filtered.length > 0 && (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((g) => <GroupCard key={g.id} group={g} />)}
-        </div>
+        <Stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((g) => (
+            <StaggerItem key={g.id}>
+              <GroupCard group={g} />
+            </StaggerItem>
+          ))}
+        </Stagger>
       )}
     </div>
   )

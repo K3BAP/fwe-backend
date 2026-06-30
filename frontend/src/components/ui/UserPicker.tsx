@@ -3,6 +3,7 @@ import { useUsers } from '@/api/users'
 import type { PublicUserCard } from '@/api/schemas'
 import { Avatar } from './Avatar'
 import { Field } from './FormField'
+import { Popover } from './Popover'
 import { fieldControlClass } from './fieldControl'
 
 /** Nutzersuche (@-Suche) für gerichtete Einladungen / neue DMs. `exclude` blendet IDs aus. */
@@ -42,8 +43,8 @@ export function UserPicker({
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           autoComplete="off"
         />
-        {open && results.length > 0 && (
-          <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-2xl border border-base-300 bg-base-100 p-1 shadow-popover">
+        <Popover open={open && results.length > 0} origin="top" className="absolute z-20 mt-1 w-full">
+          <ul className="max-h-60 w-full overflow-auto rounded-2xl border border-base-300 bg-base-100 p-1 shadow-popover">
             {results.map((u) => (
               <li key={u.id}>
                 <button
@@ -63,7 +64,7 @@ export function UserPicker({
               </li>
             ))}
           </ul>
-        )}
+        </Popover>
       </div>
     </Field>
   )

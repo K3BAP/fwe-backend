@@ -7,7 +7,7 @@ import { MeetupFilters, type MeetupFilterState } from '@/components/meetups/Meet
 import { MeetupListRow } from '@/components/meetups/MeetupListRow'
 import { MeetupMap } from '@/components/meetups/MeetupMap'
 import { MeetupTable } from '@/components/meetups/MeetupTable'
-import { EmptyState, Pager, SegmentedControl, Skeleton, type SegmentOption } from '@/components/ui'
+import { EmptyState, Pager, SegmentedControl, Skeleton, Stagger, StaggerItem, type SegmentOption } from '@/components/ui'
 import { PlusIcon, WingIcon } from '@/components/layout/icons'
 import { useMediaQuery } from '@/lib/useMediaQuery'
 import { useMeetupViewStore, type MeetupView } from '@/stores/meetupViewStore'
@@ -155,9 +155,13 @@ export function Flugtreffen() {
             )}
             {!isLoading && !isError && items.length === 0 && emptyState}
             {!isLoading && !isError && items.length > 0 && (
-              <div className="flex flex-col gap-3">
-                {items.map((m) => <MeetupListRow key={m.id} meetup={m} selected={m.id === selectedId} />)}
-              </div>
+              <Stagger className="flex flex-col gap-3">
+                {items.map((m) => (
+                  <StaggerItem key={m.id}>
+                    <MeetupListRow meetup={m} selected={m.id === selectedId} />
+                  </StaggerItem>
+                ))}
+              </Stagger>
             )}
           </div>
         </aside>
@@ -201,9 +205,13 @@ export function Flugtreffen() {
         {!isLoading && !isError && items.length > 0 && (
           <>
             {view === 'cards' && (
-              <div className="grid gap-5 sm:grid-cols-2">
-                {items.map((m) => <MeetupCard key={m.id} meetup={m} />)}
-              </div>
+              <Stagger className="grid gap-5 sm:grid-cols-2">
+                {items.map((m) => (
+                  <StaggerItem key={m.id}>
+                    <MeetupCard meetup={m} />
+                  </StaggerItem>
+                ))}
+              </Stagger>
             )}
             {view === 'table' && <MeetupTable meetups={items} sort={filters.sort} onSort={(sort) => patchFilters({ sort })} />}
             {view === 'map' && <MeetupMap meetups={items} />}

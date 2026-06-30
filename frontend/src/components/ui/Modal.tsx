@@ -1,7 +1,15 @@
 import { useId, useRef, type ReactNode } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion, type Variants } from 'motion/react'
 import { cn } from '@/lib/cn'
+import { spring, tween } from '@/lib/motion'
 import { useDialogA11y } from '@/lib/useDialogA11y'
+
+/** Panel-Variants: sanftes Skalieren + leichter Aufwärts-Versatz (zentrales Bewegungs-Vokabular). */
+const PANEL_VARIANTS: Variants = {
+  hidden: { opacity: 0, scale: 0.96, y: 12 },
+  show: { opacity: 1, scale: 1, y: 0, transition: spring.overlay },
+  exit: { opacity: 0, scale: 0.96, y: 8, transition: tween.fast },
+}
 
 export type ModalProps = {
   open: boolean
@@ -20,6 +28,7 @@ export type ModalProps = {
 export function Modal({ open, onClose, title, children, footer, className }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
+  const reduce = useReducedMotion()
   useDialogA11y(open, onClose, panelRef)
 
   return (
@@ -29,9 +38,9 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
           <motion.div
             className="absolute inset-0 bg-[rgba(14,23,38,.5)] backdrop-blur-sm"
             onClick={onClose}
-            initial={{ opacity: 0 }}
+            initial={reduce ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, transition: reduce ? { duration: 0 } : tween.base }}
           />
           <motion.div
             ref={panelRef}
@@ -43,10 +52,10 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
               'relative w-full max-w-md rounded-[28px] border border-base-300 bg-base-100 p-6 shadow-popover focus:outline-none',
               className,
             )}
-            initial={{ opacity: 0, scale: 0.95, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+            variants={PANEL_VARIANTS}
+            initial={reduce ? false : 'hidden'}
+            animate="show"
+            exit={reduce ? { opacity: 0, transition: { duration: 0 } } : 'exit'}
           >
             {title && <h2 id={titleId} className="mb-3 pr-8 font-display text-xl">{title}</h2>}
             <button

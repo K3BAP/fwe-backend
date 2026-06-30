@@ -1,6 +1,7 @@
 import { useId, useRef, type ReactNode } from 'react'
-import { AnimatePresence, motion, type TargetAndTransition } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { cn } from '@/lib/cn'
+import { slideIn, tween } from '@/lib/motion'
 import { useDialogA11y } from '@/lib/useDialogA11y'
 
 type Side = 'right' | 'bottom'
@@ -8,10 +9,6 @@ type Side = 'right' | 'bottom'
 const PANEL: Record<Side, string> = {
   right: 'inset-y-0 right-0 h-full w-full max-w-sm rounded-l-[28px]',
   bottom: 'inset-x-0 bottom-0 max-h-[85vh] w-full rounded-t-[28px]',
-}
-const MOTION: Record<Side, { initial: TargetAndTransition; animate: TargetAndTransition; exit: TargetAndTransition }> = {
-  right: { initial: { x: '100%' }, animate: { x: 0 }, exit: { x: '100%' } },
-  bottom: { initial: { y: '100%' }, animate: { y: 0 }, exit: { y: '100%' } },
 }
 
 export type DrawerProps = {
@@ -30,6 +27,7 @@ export type DrawerProps = {
 export function Drawer({ open, onClose, side = 'right', title, children, className }: DrawerProps) {
   const panelRef = useRef<HTMLElement>(null)
   const titleId = useId()
+  const reduce = useReducedMotion()
   useDialogA11y(open, onClose, panelRef)
 
   return (
@@ -39,9 +37,9 @@ export function Drawer({ open, onClose, side = 'right', title, children, classNa
           <motion.div
             className="absolute inset-0 bg-[rgba(14,23,38,.5)] backdrop-blur-sm"
             onClick={onClose}
-            initial={{ opacity: 0 }}
+            initial={reduce ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, transition: reduce ? { duration: 0 } : tween.base }}
           />
           <motion.aside
             ref={panelRef}
@@ -50,10 +48,10 @@ export function Drawer({ open, onClose, side = 'right', title, children, classNa
             aria-modal="true"
             aria-labelledby={title ? titleId : undefined}
             className={cn('absolute border border-base-300 bg-base-100 p-6 shadow-popover focus:outline-none', PANEL[side], className)}
-            initial={MOTION[side].initial}
-            animate={MOTION[side].animate}
-            exit={MOTION[side].exit}
-            transition={{ type: 'spring', stiffness: 360, damping: 36 }}
+            variants={slideIn(side)}
+            initial={reduce ? false : 'hidden'}
+            animate="show"
+            exit={reduce ? { opacity: 0, transition: { duration: 0 } } : 'exit'}
           >
             {title && <h2 id={titleId} className="mb-4 font-display text-xl">{title}</h2>}
             {children}

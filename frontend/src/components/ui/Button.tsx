@@ -18,7 +18,13 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: Size
 }
 
-/** Pille-Button auf DaisyUI-Basis (Design-System §05). */
+/** Pille-Button auf DaisyUI-Basis (Design-System §05). `transition` (inkl. transform) + `active:scale`
+ *  geben ein weiches Druck-Feedback; bei reduzierter Bewegung neutralisiert die globale CSS-Regel das. */
 export function Button({ variant = 'primary', size = 'md', className, ...props }: ButtonProps) {
-  return <button className={cn('btn rounded-full', VARIANT[variant], SIZE[size], className)} {...props} />
+  return (
+    <button
+      className={cn('btn rounded-full transition duration-200 active:scale-[.97]', VARIANT[variant], SIZE[size], className)}
+      {...props}
+    />
+  )
 }

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useConversations } from '@/api/chat'
 import { ChatThread } from '@/components/chat/ChatThread'
 import { ConversationListItem } from '@/components/chat/ConversationListItem'
-import { Skeleton } from '@/components/ui'
+import { Skeleton, Stagger, StaggerItem } from '@/components/ui'
 import { ChatIcon } from '@/components/layout/icons'
 import { cn } from '@/lib/cn'
 
@@ -54,12 +54,21 @@ export function Chat() {
             />
           </label>
         </div>
-        <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-24 md:pb-3">
-          {conversations.isLoading &&
-            Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="mb-1 h-16 w-full" />)}
-          {filtered.map((c) => (
-            <ConversationListItem key={c.id} conversation={c} active={c.id === convId} />
-          ))}
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-24 md:pb-3">
+          {conversations.isLoading && (
+            <div className="space-y-0.5">
+              {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="mb-1 h-16 w-full" />)}
+            </div>
+          )}
+          {!conversations.isLoading && filtered.length > 0 && (
+            <Stagger className="space-y-0.5">
+              {filtered.map((c) => (
+                <StaggerItem key={c.id}>
+                  <ConversationListItem conversation={c} active={c.id === convId} />
+                </StaggerItem>
+              ))}
+            </Stagger>
+          )}
           {!conversations.isLoading && filtered.length === 0 && (
             <p className="px-3 py-8 text-center text-sm text-base-content/55">
               {query ? 'Keine Treffer.' : 'Noch keine Konversationen.'}

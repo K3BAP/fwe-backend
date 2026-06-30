@@ -1,9 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type Ref, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useProfile } from '@/api/profiles'
 import { useOpenDm } from '@/api/chat'
 import { Avatar, Button, ExperienceBadge, Spinner } from '@/components/ui'
 import { cn } from '@/lib/cn'
+import { scaleIn } from '@/lib/motion'
 
 /** Schwebekarte zu einem Profil: Avatar/Name/Level + „Profil ansehen" / „Direktchat". */
 function ProfilePopover({
@@ -20,13 +22,18 @@ function ProfilePopover({
   const { data, isLoading } = useProfile(userId)
   const openDm = useOpenDm()
   const navigate = useNavigate()
+  const reduce = useReducedMotion()
 
   return (
-    <div
+    <motion.div
       ref={ref}
+      variants={scaleIn()}
+      initial={reduce ? false : 'hidden'}
+      animate="show"
+      exit={reduce ? { opacity: 0, transition: { duration: 0 } } : 'exit'}
       className={cn(
         'absolute left-0 z-30 w-64 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-popover',
-        placement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1',
+        placement === 'top' ? 'origin-bottom bottom-full mb-1' : 'origin-top top-full mt-1',
       )}
     >
       {isLoading || !data ? (
@@ -73,7 +80,7 @@ function ProfilePopover({
           </div>
         </>
       )}
-    </div>
+    </motion.div>
   )
 }
 
@@ -120,7 +127,9 @@ export function ProfileHovercard({ userId, children, className }: { userId: numb
       <div ref={triggerRef} role="button" tabIndex={0} onClick={() => setOpen((o) => !o)} className="cursor-pointer">
         {children}
       </div>
-      {open && <ProfilePopover ref={popoverRef} userId={userId} placement={placement} onClose={() => setOpen(false)} />}
+      <AnimatePresence>
+        {open && <ProfilePopover ref={popoverRef} userId={userId} placement={placement} onClose={() => setOpen(false)} />}
+      </AnimatePresence>
     </div>
   )
 }

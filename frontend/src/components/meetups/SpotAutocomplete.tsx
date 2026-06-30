@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useSpots } from '@/api/spots'
-import { Field } from '@/components/ui'
+import { Field, Popover } from '@/components/ui'
 import { fieldControlClass } from '@/components/ui/fieldControl'
 import type { Spot } from '@/api/schemas'
 
@@ -42,8 +42,8 @@ export function SpotAutocomplete({
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           autoComplete="off"
         />
-        {open && results.length > 0 && (
-          <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-2xl border border-base-300 bg-base-100 p-1 shadow-popover">
+        <Popover open={open && results.length > 0} origin="top" className="absolute z-20 mt-1 w-full">
+          <ul className="max-h-60 w-full overflow-auto rounded-2xl border border-base-300 bg-base-100 p-1 shadow-popover">
             {results.map((s) => (
               <li key={s.id}>
                 <button
@@ -62,7 +62,7 @@ export function SpotAutocomplete({
               </li>
             ))}
           </ul>
-        )}
+        </Popover>
       </div>
     </Field>
   )

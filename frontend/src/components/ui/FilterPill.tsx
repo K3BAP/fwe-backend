@@ -14,7 +14,7 @@ export function FilterPill({ active, className, children, ...props }: FilterPill
   return (
     <div
       className={cn(
-        'relative inline-flex shrink-0 items-center rounded-full border text-[13px] font-semibold transition',
+        'relative inline-flex shrink-0 items-center rounded-full border text-[13px] font-semibold transition-colors duration-200',
         active
           ? 'border-transparent bg-sky-50 text-sky-700'
           : 'border-base-300 bg-base-100 text-base-content/80 hover:bg-base-200',

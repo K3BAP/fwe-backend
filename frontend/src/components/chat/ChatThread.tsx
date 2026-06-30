@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
+import { tween } from '@/lib/motion'
 import {
   useConversation,
   useDeleteMessage,
@@ -102,7 +103,7 @@ export function ChatThread({ conversationId, backTo }: { conversationId: number;
               key={m.id}
               initial={reduce ? false : { opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
+              transition={tween.fast}
             >
               <ChatMessage
                 message={m}

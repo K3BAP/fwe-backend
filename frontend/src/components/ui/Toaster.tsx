@@ -1,5 +1,6 @@
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { cn } from '@/lib/cn'
+import { spring } from '@/lib/motion'
 import { useToastStore, type ToastVariant } from '@/stores/toastStore'
 
 const STYLE: Record<ToastVariant, string> = {
@@ -12,6 +13,7 @@ const STYLE: Record<ToastVariant, string> = {
 export function Toaster() {
   const toasts = useToastStore((s) => s.toasts)
   const dismiss = useToastStore((s) => s.dismiss)
+  const reduce = useReducedMotion()
 
   return (
     <div
@@ -26,11 +28,11 @@ export function Toaster() {
             key={t.id}
             type="button"
             onClick={() => dismiss(t.id)}
-            layout
-            initial={{ opacity: 0, y: 16, scale: 0.96 }}
+            layout={reduce ? false : true}
+            initial={reduce ? false : { opacity: 0, y: 16, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+            exit={reduce ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, y: 8, scale: 0.96 }}
+            transition={spring.toast}
             className={cn(
               'pointer-events-auto rounded-full border px-4 py-2.5 text-sm font-semibold shadow-popover backdrop-blur',
               STYLE[t.variant],

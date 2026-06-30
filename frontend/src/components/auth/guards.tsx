@@ -1,14 +1,10 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import { Spinner } from '@/components/ui'
+import { DelayedSpinner } from '@/components/ui'
 import { useAuthStore } from '@/stores/authStore'
 
-/** Vollbild-Ladezustand, solange die Session (`['me']`) noch unbekannt ist. */
+/** Vollbild-Ladezustand, solange die Session (`['me']`) noch unbekannt ist (verzögert eingeblendet). */
 function RouteFallback() {
-  return (
-    <div className="grid min-h-svh place-items-center bg-base-200">
-      <Spinner size="lg" />
-    </div>
-  )
+  return <DelayedSpinner className="min-h-svh bg-base-200" />
 }
 
 /** Schützt App-Routen: Gäste → Landing; bis die Session geladen ist → Spinner. */

@@ -5,6 +5,7 @@ import { Avatar, Logo, Pill } from '@/components/ui'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { ANY_MOCK } from '@/config'
 import { cn } from '@/lib/cn'
+import { spring } from '@/lib/motion'
 import { useAuthStore } from '@/stores/authStore'
 import { SearchIcon } from './icons'
 import { NAV } from './nav'
@@ -40,7 +41,7 @@ export function TopBar() {
                 end={item.end}
                 className={({ isActive }) =>
                   cn(
-                    'inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm',
+                    'inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm transition-colors duration-200',
                     isActive ? 'bg-sky-50 font-semibold text-sky-700' : 'text-base-content/60 hover:bg-base-200',
                   )
                 }
@@ -51,7 +52,7 @@ export function TopBar() {
                     key={badge}
                     initial={pop}
                     animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 600, damping: 18 }}
+                    transition={spring.badge}
                     className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-coral-500 px-1 text-[10px] font-bold text-white"
                   >
                     {badge}

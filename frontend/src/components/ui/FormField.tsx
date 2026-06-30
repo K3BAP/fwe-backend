@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { cn } from '@/lib/cn'
+import { fadeUp } from '@/lib/motion'
 
 /**
  * Geteiltes Feld-Gerüst für TextField/Select/Textarea (Label + Fehlertext), damit die drei
@@ -19,6 +21,7 @@ export function Field({
   className?: string
   children: ReactNode
 }) {
+  const reduce = useReducedMotion()
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
       {label && (
@@ -27,7 +30,20 @@ export function Field({
         </label>
       )}
       {children}
-      {error && <span className="text-xs text-error">{error}</span>}
+      <AnimatePresence>
+        {error && (
+          <motion.span
+            key="error"
+            className="text-xs text-error"
+            variants={fadeUp(4)}
+            initial={reduce ? false : 'hidden'}
+            animate="show"
+            exit={reduce ? { opacity: 0, transition: { duration: 0 } } : 'exit'}
+          >
+            {error}
+          </motion.span>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

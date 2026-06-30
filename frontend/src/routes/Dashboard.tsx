@@ -5,7 +5,7 @@ import { MeetupCard } from '@/components/meetups/MeetupCard'
 import { GroupMiniCard } from '@/components/groups/GroupMiniCard'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { SectionHeader } from '@/components/dashboard/SectionHeader'
-import { EmptyState, Skeleton } from '@/components/ui'
+import { EmptyState, Skeleton, Stagger, StaggerItem } from '@/components/ui'
 
 /** Eingeloggte Startseite: Begrüßung, Kennzahlen, aktuelle Treffen & eigene Gruppen. */
 export function Dashboard() {
@@ -44,9 +44,13 @@ export function Dashboard() {
           <EmptyState title="Noch keine Flugtreffen" description="Erstelle das erste in deiner Region." />
         )}
         {upcoming.length > 0 && (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {upcoming.map((m) => <MeetupCard key={m.id} meetup={m} />)}
-          </div>
+          <Stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {upcoming.map((m) => (
+              <StaggerItem key={m.id}>
+                <MeetupCard meetup={m} />
+              </StaggerItem>
+            ))}
+          </Stagger>
         )}
       </section>
 
@@ -61,9 +65,13 @@ export function Dashboard() {
           <EmptyState title="Noch keine Gruppen" description="Entdecke Communities in deiner Region." />
         )}
         {(groups.data?.length ?? 0) > 0 && (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {groups.data?.slice(0, 6).map((g) => <GroupMiniCard key={g.id} group={g} />)}
-          </div>
+          <Stagger className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {groups.data?.slice(0, 6).map((g) => (
+              <StaggerItem key={g.id}>
+                <GroupMiniCard group={g} />
+              </StaggerItem>
+            ))}
+          </Stagger>
         )}
       </section>
     </div>

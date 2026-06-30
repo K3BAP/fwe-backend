@@ -156,3 +156,41 @@
     outline-offset: 2px;
   }
 }
+
+/* ── Theme-Crossfade ────────────────────────────────────────────
+   Nur WÄHREND eines Theme-Wechsels aktiv: lib/theme.ts setzt `.theme-transition` für ~300ms auf
+   <html> und entfernt sie danach wieder. So blenden alle farbtragenden Eigenschaften (inkl. der
+   `backdrop-blur`-Leisten von Top-/Bottom-Nav) weich über, ohne Hover/Focus dauerhaft zu verzögern.
+   Unbelayert → gewinnt im Wechsel-Moment gegen einzelne `transition-colors`-Utilities. */
+.theme-transition {
+  --fm-theme-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 280ms var(--fm-theme-ease),
+              border-color 280ms var(--fm-theme-ease),
+              color 280ms var(--fm-theme-ease),
+              fill 280ms var(--fm-theme-ease),
+              stroke 280ms var(--fm-theme-ease);
+}
+
+/* ── Bewegungs-Präferenz (global, ergänzt das JS-Gating) ────────
+   Neutralisiert auch reine CSS-Animationen (z.B. `animate-pulse` der Skeletons) und CSS-Transitions
+   bei reduzierter Bewegung. Motion-Animationen sind zusätzlich per `useReducedMotion` abgesichert. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}

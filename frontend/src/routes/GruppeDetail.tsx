@@ -22,7 +22,7 @@ import { FeedComposer } from '@/components/groups/FeedComposer'
 import { FeedPostCard } from '@/components/groups/FeedPostCard'
 import { GroupHero } from '@/components/groups/GroupHero'
 import { MemberList } from '@/components/groups/MemberList'
-import { Button, Card, EmptyState, Modal, Skeleton, TextareaField } from '@/components/ui'
+import { Button, Card, EmptyState, Modal, Skeleton, Stagger, StaggerItem, TextareaField } from '@/components/ui'
 import { GroupIcon } from '@/components/layout/icons'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -188,18 +188,23 @@ export function GruppeDetail() {
           {feed.data && feed.data.length === 0 && (
             <Card className="px-6 py-10 text-center text-base-content/55">Noch keine Beiträge in dieser Gruppe.</Card>
           )}
-          {feed.data?.map((post) => (
-            <FeedPostCard
-              key={post.id}
-              post={post}
-              onReact={(emoji) => react.mutate({ postId: post.id, emoji })}
-              currentUserId={currentUserId}
-              canManage={g.can_manage}
-              onPin={(p) => togglePin.mutate(p.id)}
-              onEdit={(p) => openComposer(p)}
-              onDelete={setDeletingPost}
-            />
-          ))}
+          {feed.data && feed.data.length > 0 && (
+            <Stagger className="flex flex-col gap-4">
+              {feed.data.map((post) => (
+                <StaggerItem key={post.id}>
+                  <FeedPostCard
+                    post={post}
+                    onReact={(emoji) => react.mutate({ postId: post.id, emoji })}
+                    currentUserId={currentUserId}
+                    canManage={g.can_manage}
+                    onPin={(p) => togglePin.mutate(p.id)}
+                    onEdit={(p) => openComposer(p)}
+                    onDelete={setDeletingPost}
+                  />
+                </StaggerItem>
+              ))}
+            </Stagger>
+          )}
         </div>
 
         <aside className="flex flex-col gap-4">

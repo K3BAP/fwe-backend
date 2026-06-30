@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useNotificationUnread } from '@/api/notifications'
 import { Drawer } from '@/components/ui'
+import { spring } from '@/lib/motion'
 import { useMediaQuery } from '@/lib/useMediaQuery'
 import { BellIcon } from '@/components/layout/icons'
 import { NotificationPanel } from './NotificationPanel'
@@ -54,7 +55,7 @@ export function NotificationCenter() {
           key={unread}
           initial={pop}
           animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 600, damping: 18 }}
+          transition={spring.badge}
           className="absolute right-1 top-1 grid h-[16px] min-w-[16px] place-items-center rounded-full bg-coral-500 px-1 text-[9px] font-bold text-white"
         >
           {unread}
@@ -91,7 +92,7 @@ export function NotificationCenter() {
             initial={reduce ? false : { opacity: 0, scale: 0.96, y: -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: -8 }}
-            transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+            transition={spring.overlay}
             className="absolute right-0 z-40 mt-2 w-[min(24rem,calc(100vw-1.5rem))] origin-top-right overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-popover"
           >
             <NotificationPanel onClose={close} />

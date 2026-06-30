@@ -1,12 +1,16 @@
 import { useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
 import { cn } from '@/lib/cn'
+import { spring } from '@/lib/motion'
 import type { Reaction } from '@/api/schemas'
+import { Popover } from './Popover'
 
 const PALETTE = ['👍', '🔥', '🪂', '❤️', '😂', '🥾']
 
 /** Reaktionsleiste: bestehende Reaktionen (toggle) + kleiner Emoji-Picker zum Hinzufügen. */
 export function ReactionBar({ reactions, onReact }: { reactions: Reaction[]; onReact: (emoji: string) => void }) {
   const [open, setOpen] = useState(false)
+  const reduce = useReducedMotion()
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {reactions.map((r) => (
@@ -20,7 +24,15 @@ export function ReactionBar({ reactions, onReact }: { reactions: Reaction[]; onR
           )}
         >
           <span>{r.emoji}</span>
-          <span className="text-xs font-semibold">{r.count}</span>
+          <motion.span
+            key={r.count}
+            initial={reduce ? false : { scale: 0.6 }}
+            animate={{ scale: 1 }}
+            transition={spring.badge}
+            className="text-xs font-semibold"
+          >
+            {r.count}
+          </motion.span>
         </button>
       ))}
       <div className="relative">
@@ -36,24 +48,22 @@ export function ReactionBar({ reactions, onReact }: { reactions: Reaction[]; onR
             <path d="M8.5 14a4 4 0 0 0 7 0M9 9.5h.01M15 9.5h.01" />
           </svg>
         </button>
-        {open && (
-          <div className="absolute z-20 mt-1 flex gap-1 rounded-2xl border border-base-300 bg-base-100 p-1.5 shadow-popover">
-            {PALETTE.map((e) => (
-              <button
-                key={e}
-                type="button"
-                onMouseDown={(ev) => ev.preventDefault()}
-                onClick={() => {
-                  onReact(e)
-                  setOpen(false)
-                }}
-                className="rounded-lg px-1.5 py-1 text-lg transition hover:bg-base-200"
-              >
-                {e}
-              </button>
-            ))}
-          </div>
-        )}
+        <Popover open={open} origin="top" className="absolute z-20 mt-1 flex gap-1 rounded-2xl border border-base-300 bg-base-100 p-1.5 shadow-popover">
+          {PALETTE.map((e) => (
+            <button
+              key={e}
+              type="button"
+              onMouseDown={(ev) => ev.preventDefault()}
+              onClick={() => {
+                onReact(e)
+                setOpen(false)
+              }}
+              className="rounded-lg px-1.5 py-1 text-lg transition hover:bg-base-200"
+            >
+              {e}
+            </button>
+          ))}
+        </Popover>
       </div>
     </div>
   )

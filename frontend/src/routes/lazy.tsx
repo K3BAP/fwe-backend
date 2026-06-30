@@ -1,13 +1,9 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { Spinner } from '@/components/ui'
+import { DelayedSpinner } from '@/components/ui'
 
-/** Suspense-Hülle mit zentriertem Spinner für code-gesplittete Routen. */
+/** Suspense-Hülle mit verzögert einblendendem Spinner für code-gesplittete Routen (kein Aufblitzen). */
 export function Lazy({ children }: { children: ReactNode }) {
-  return (
-    <Suspense fallback={<div className="grid place-items-center py-20"><Spinner size="lg" /></div>}>
-      {children}
-    </Suspense>
-  )
+  return <Suspense fallback={<DelayedSpinner className="py-20" />}>{children}</Suspense>
 }
 
 /** Styleguide zieht Leaflet/Map — lazy, damit es nicht im Initial-Bundle landet. */

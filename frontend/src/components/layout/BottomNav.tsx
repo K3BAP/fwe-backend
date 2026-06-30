@@ -2,6 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import { useChatUnread } from '@/api/chat'
 import { cn } from '@/lib/cn'
+import { spring } from '@/lib/motion'
 import { NAV } from './nav'
 
 /** Mobile Bottom-Navigation (Home · Flugtreffen · Gruppen · Chat). */
@@ -22,7 +23,7 @@ export function BottomNav() {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  'relative flex min-w-15 flex-col items-center gap-1 rounded-xl px-2 py-1.5',
+                  'relative flex min-w-15 flex-col items-center gap-1 rounded-xl px-2 py-1.5 transition-colors duration-200',
                   isActive ? 'text-primary' : 'text-base-content/50',
                 )
               }
@@ -34,7 +35,7 @@ export function BottomNav() {
                     <motion.span
                       layoutId="bottomnav-active"
                       className="absolute inset-0 rounded-xl bg-primary/10"
-                      transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 40 }}
+                      transition={reduce ? { duration: 0 } : spring.gentle}
                     />
                   )}
                   <Icon size={24} />
@@ -44,7 +45,7 @@ export function BottomNav() {
                       key={badge}
                       initial={reduce ? false : { scale: 0.5 }}
                       animate={{ scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 600, damping: 18 }}
+                      transition={spring.badge}
                       className="absolute right-2.5 top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-coral-500 px-1 text-[10px] font-bold text-white"
                     >
                       {badge}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from '@/api/notifications'
-import { Button, EmptyState, SegmentedControl, Skeleton } from '@/components/ui'
+import { Button, EmptyState, SegmentedControl, Skeleton, Stagger, StaggerItem } from '@/components/ui'
 import { BellIcon, CheckIcon } from '@/components/layout/icons'
 import { NotificationItem } from './NotificationItem'
 
@@ -73,18 +73,19 @@ export function NotificationPanel({ onClose }: { onClose: () => void }) {
         )}
 
         {!isLoading && visible.length > 0 && (
-          <div className="flex flex-col gap-0.5">
+          <Stagger className="flex flex-col gap-0.5">
             {visible.map((n) => (
-              <NotificationItem
-                key={n.id}
-                notification={n}
-                onRead={() => {
-                  if (n.read_at == null) markRead.mutate(n.id)
-                  onClose()
-                }}
-              />
+              <StaggerItem key={n.id}>
+                <NotificationItem
+                  notification={n}
+                  onRead={() => {
+                    if (n.read_at == null) markRead.mutate(n.id)
+                    onClose()
+                  }}
+                />
+              </StaggerItem>
             ))}
-          </div>
+          </Stagger>
         )}
       </div>
     </div>
