@@ -1,7 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { RequireAuth, RequireGuest } from '@/components/auth/guards'
 import { AppShell } from '@/components/layout/AppShell'
-import { Benachrichtigungen } from './Benachrichtigungen'
 import { Chat } from './Chat'
 import { Dashboard } from './Dashboard'
 import { Einstellungen } from './Einstellungen'
@@ -54,7 +53,6 @@ export const router = createBrowserRouter(
             { path: 'chat/:id', element: <Chat /> },
             { path: 'profil/bearbeiten', element: <ProfilBearbeiten /> },
             { path: 'profil/:id', element: <Profil /> },
-            { path: 'benachrichtigungen', element: <Benachrichtigungen /> },
             { path: 'einstellungen', element: <Einstellungen /> },
             { path: 'styleguide', element: <Lazy><StyleguideLazy /></Lazy> },
             { path: '*', element: <Placeholder title="Seite nicht gefunden (404)" /> },

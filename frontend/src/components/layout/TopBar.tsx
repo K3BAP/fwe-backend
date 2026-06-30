@@ -1,12 +1,12 @@
 import { Link, NavLink } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import { useChatUnread } from '@/api/chat'
-import { useNotificationUnread } from '@/api/notifications'
 import { Avatar, Logo, Pill } from '@/components/ui'
+import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { ANY_MOCK } from '@/config'
 import { cn } from '@/lib/cn'
 import { useAuthStore } from '@/stores/authStore'
-import { BellIcon, SearchIcon } from './icons'
+import { SearchIcon } from './icons'
 import { NAV } from './nav'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -14,7 +14,6 @@ import { ThemeToggle } from './ThemeToggle'
 export function TopBar() {
   const user = useAuthStore((s) => s.user)
   const chatUnread = useChatUnread().data ?? 0
-  const notifUnread = useNotificationUnread().data ?? 0
   const reduce = useReducedMotion()
   // Badge poppt beim Hochzählen (Key = Wert ⇒ Remount ⇒ erneute Scale-Animation).
   const pop = reduce ? false : { scale: 0.5 }
@@ -74,20 +73,7 @@ export function TopBar() {
           <button type="button" className="btn btn-circle btn-ghost btn-sm" aria-label="Suchen">
             <SearchIcon size={18} />
           </button>
-          <Link to="/benachrichtigungen" className="relative btn btn-circle btn-ghost btn-sm" aria-label="Benachrichtigungen">
-            <BellIcon size={18} />
-            {notifUnread > 0 && (
-              <motion.span
-                key={notifUnread}
-                initial={pop}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 600, damping: 18 }}
-                className="absolute right-1 top-1 grid h-[16px] min-w-[16px] place-items-center rounded-full bg-coral-500 px-1 text-[9px] font-bold text-white"
-              >
-                {notifUnread}
-              </motion.span>
-            )}
-          </Link>
+          <NotificationCenter />
           <ThemeToggle />
           <Link to={`/profil/${user?.id ?? 1}`} aria-label="Mein Profil">
             <Avatar name={user?.displayName ?? 'Gast'} src={user?.avatarUrl} size={34} />
