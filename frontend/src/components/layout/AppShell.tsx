@@ -52,7 +52,10 @@ export function AppShell() {
           </PageTransition>
         </main>
       ) : (
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 pb-28 sm:px-5 sm:py-8 md:pb-10">
+        // Unten `pb-28` als Freiraum unter der fixierten Bottom-Nav (~70 px + Safe-Area), oben separat
+        // via `pt-*`: ein `sm:py-8` würde als Variant-Utility das `pb-28` überschreiben und den
+        // Freiraum zwischen `sm` und `md` auf 32 px zusammenfallen lassen — die Nav verdeckte dann Inhalt.
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-28 sm:px-5 sm:pt-8 md:pb-10">
           <PageTransition>
             <Outlet />
           </PageTransition>
