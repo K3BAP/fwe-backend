@@ -10,6 +10,7 @@ export const USE_MOCKS = {
   groups: false, // M4 — echtes Gruppen-Backend
   chat: false, // M5 — echtes Chat-Backend
   notifications: false, // M5 — echtes Benachrichtigungs-Backend
+  weather: false, // echter Open-Meteo-Proxy (ADR-017)
 } as const
 
 /** True, solange irgendeine Domäne noch Mock-Daten liefert → steuert die „Mock-Daten"-Pille im Header. */

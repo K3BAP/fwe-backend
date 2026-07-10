@@ -333,7 +333,7 @@
     - B) Wetter-Integration als read-only Anzeige in der Detailansicht (externe API, z.B. Open-Meteo, mit lat/lng/Datum).
     - C) Wiederkehrende Treffen über simples Wiederholungsmuster.
 - **Empfehlung:** Option A für den Kern-MVP; Wetter (B) über Open-Meteo (kostenlos, kein API-Key) ist ein attraktives, gut abgegrenztes Optional-Feature für die Detailansicht, sobald lat/lng existieren. Recurrence (C) bewusst weglassen — schlechtes Aufwand/Nutzen-Verhältnis.
-- **Entscheidung:** _offen_
+- **Entscheidung:** **Option B** (nach dem MVP umgesetzt, siehe [ADR-017](DECISIONS.md)): Wetter read-only auf der Detailseite über Open-Meteo, hinter einem Backend-Proxy (`GET /meetups/{id}/weather`) mit 30-min-Cache; Schwerpunkt Bodenwind/Böen. Wiederkehrende Treffen (C) bleiben außerhalb des Scope.
 
 ### FT13. [niedrig] Soll die Deutsch-Regel (alle nutzer-sichtbaren Strings auf Deutsch) für FlightMeet bestätigt werden?
 - **Warum wichtig:** Regel stammt aus dem Vorgänger-Projekt; betrifft Enum-Labels, Toasts, Buttons und API-Fehlermeldungen. Sollte vor Implementierung verbindlich sein.

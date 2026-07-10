@@ -16,6 +16,26 @@ export function formatClock(iso: string): string {
   return timeFmt.format(new Date(iso))
 }
 
+const intFmt = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 })
+
+/** „12 km/h" — gerundet, weil Nachkommastellen bei Windprognosen Genauigkeit vortäuschen. */
+export function formatWindSpeed(kmh: number): string {
+  return `${intFmt.format(kmh)} km/h`
+}
+
+/** „21 °C" (mit schmalem geschütztem Leerzeichen vor der Einheit). */
+export function formatTemperature(celsius: number): string {
+  return `${intFmt.format(celsius)} °C`
+}
+
+const COMPASS = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'] as const
+
+/** Gradzahl → deutsche 8-Sektoren-Himmelsrichtung, aus der der Wind **kommt** (0° = Nord). */
+export function compassPoint(degrees: number): string {
+  const sector = Math.round((((degrees % 360) + 360) % 360) / 45) % 8
+  return COMPASS[sector]
+}
+
 const relFmt = new Intl.RelativeTimeFormat('de-DE', { numeric: 'auto' })
 const STEPS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['year', 31536000],

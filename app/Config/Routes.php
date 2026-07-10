@@ -29,6 +29,8 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->get('spots/(:num)', 'SpotController::show/$1');
     $routes->get('meetups', 'MeetupController::index');
     $routes->get('meetups/(:num)', 'MeetupController::show/$1');
+    // Wetter-Proxy (ADR-017): gedrosselt, weil jeder Aufruf Open-Meteo-Kontingent kosten kann.
+    $routes->get('meetups/(:num)/weather', 'MeetupController::weather/$1', ['filter' => 'throttle:weather,30']); // 30/min/IP
 
     // Gruppen: Lesen ist sichtbarkeits-/rollenabhängig (Controller autorisiert; Gäste sehen public).
     $routes->get('groups', 'GroupController::index');

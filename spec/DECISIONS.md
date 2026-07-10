@@ -305,3 +305,41 @@ echtem Backend verkabelt (**M2–M5**), **M6** Politur/Deploy.
 
 **Konsequenzen:** früh sichtbarer/präsentierbarer Stand (stark für die Abnahme); Risiko „Backend zu spät"
 wird aktiv gemanagt (M2–M5 nicht quetschen). [`MILESTONES.md`](MILESTONES.md) neu strukturiert (M0–M6).
+
+---
+
+## ADR-017 – Wetter am Flugtreffen: Open-Meteo hinter einem Backend-Proxy ✅
+**Datum:** 2026-07-10 · **Quelle:** Nutzer · **Löst:** [`OFFENE_FRAGEN.md`](OFFENE_FRAGEN.md) FT12 (Option B)
+
+**Kontext:** Die Detailseite eines Flugtreffens zeigt Ort und Zeit, aber nicht, ob geflogen werden kann.
+Für Gleitschirmflieger entscheidet vor allem der **Bodenwind (10 m) samt Böen**; Höhenwind (850 hPa
+≈ 1500 m) und CAPE (Thermik) ergänzen das Bild. `spots`/`meetups` führen bereits `lat`/`lng` (ADR-007),
+`starts_at` liegt als UTC-DATETIME vor — die Vorhersage ist damit rein lesend ableitbar.
+
+**Entscheidung:**
+1. **Datenquelle Open-Meteo** (`/v1/forecast`) — kostenlos, **kein API-Key**, kein Vertrag, keine
+   Registrierung. Passt zum Webspace-Deployment (ADR-002) und zur Nicht-Kommerzialität des Projekts.
+2. **Backend-Proxy statt Direktaufruf aus dem Browser:** `GET /api/v1/meetups/{id}/weather` (öffentlich,
+   wie die übrigen Treffen-Reads). Gründe: der Server leitet Koordinaten und Zeitpunkt aus der
+   Meetup-Zeile ab (**der Client übergibt nie eigene Koordinaten**); die Antwort trägt den normalen
+   Envelope und läuft dadurch unverändert durch `apiFetch` inkl. ETag/`304`; der serverseitige Cache
+   entkoppelt uns von Open-Meteos Kontingent; `ThrottleFilter` (`throttle:weather,30`) begrenzt Missbrauch.
+3. **Cache:** FileCache (`Config\Cache`, bereits konfiguriert), Schlüssel = auf 2 Nachkommastellen
+   gerundete Koordinate (~1,1 km) + Datumsfenster, **TTL 30 min**. Gecacht wird die **Rohantwort** —
+   `is_current` und das Trend-Fenster hängen von „jetzt" ab und dürfen nicht mit einfrieren. Kein Cron
+   (ADR-002): der Cache füllt sich beim ersten Leser.
+4. **`timezone=UTC`:** `meetups.starts_at` ist UTC (siehe Zeitzonen-Pin in `Config/Events.php`), damit ist
+   die Stundenachse von Open-Meteo direkt vergleichbar — keine Zeitzonen-Arithmetik im Backend.
+5. **Nicht-Verfügbarkeit ist Datum, kein Fehler:** vergangene Treffen (`past`, mit 2 h Kulanz für
+   laufende), Treffen jenseits des 16-Tage-Horizonts (`out_of_range`) und Treffen ohne Koordinaten
+   (`no_location`) liefern `200 { available: false, reason }` — **ohne** Upstream-Call. Nur ein echter
+   Ausfall (Timeout, 5xx, fehlendes `ext-curl`) ergibt `503 weather_unavailable`.
+6. **Darstellung:** Bodenwind und Böen werden farblich betont (DaisyUI-Tokens `success`/`warning`/
+   `error` ab 20/30 bzw. 25/35 km/h). Das ist bewusst eine **Hervorhebung der Zahl, keine
+   Flugempfehlung** — die Einschätzung bleibt beim Piloten (Haftung, und wir kennen den Startplatz nicht).
+
+**Konsequenzen:** Erster ausgehender HTTP-Call der Anwendung (`service('curlrequest')`, Timeout 4 s) →
+**Deploy-Check nötig**: `ext-curl` + ausgehendes HTTPS auf dem Uni-Webspace (siehe
+[`06-backend-deployment.md`](06-backend-deployment.md) §13). Fällt das aus, degradiert die Seite sauber:
+das Panel zeigt eine leise Ersatzzeile, alles andere funktioniert. Abgesagte, aber künftige Treffen zeigen
+weiterhin Wetter (die Absage kommuniziert die Detailseite selbst) — die Regel bleibt rein zeitbasiert.

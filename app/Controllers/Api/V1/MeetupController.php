@@ -6,6 +6,7 @@ use App\Controllers\Api\BaseApiController;
 use App\Exceptions\ApiException;
 use App\Services\MeetupPresenter;
 use App\Services\MeetupService;
+use App\Services\WeatherService;
 use CodeIgniter\HTTP\ResponseInterface;
 
 /**
@@ -52,6 +53,27 @@ final class MeetupController extends BaseApiController
         }
 
         return $this->respondDetail((int) $id);
+    }
+
+    /**
+     * GET /meetups/{id}/weather — Wetter am Startplatz zur Startzeit (Open-Meteo-Proxy, ADR-017).
+     * Öffentlich wie die übrigen Treffen-Reads; Koordinaten und Zeitpunkt kommen aus der Zeile,
+     * nie vom Client. „Kein Wetter" (vergangen/zu weit voraus/ohne Koordinaten) ist ein `200`.
+     */
+    public function weather($id): ResponseInterface
+    {
+        $row = (new MeetupService())->findRow((int) $id);
+        if ($row === null) {
+            return $this->respondError('not_found', 'Flugtreffen nicht gefunden.', 404);
+        }
+
+        try {
+            $weather = (new WeatherService())->forMeetup($row);
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondMaybeCached($weather);
     }
 
     /** POST /meetups — Erstellen (Wizard, §9). Auth-pflichtig; Creator wird Ersteller + Teilnehmer. */

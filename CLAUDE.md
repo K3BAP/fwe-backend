@@ -33,6 +33,8 @@ course project (module "fwe", Uni Trier) and ships to a shared university webspa
 **Deliberately NOT used** (locked, see ADRs): WebSockets/SSE/daemons (shared webspace can't run them →
 realtime = polling), Supabase (a Supabase MCP is connected but unused), JWT (Shield session cookie), cron.
 
+**Only outbound HTTP call:** the Open-Meteo weather proxy (ADR-017), via CI4 `service('curlrequest')`.
+
 ## 3. Repository layout
 
 ```
@@ -129,6 +131,7 @@ view/moderation yet** (deferred). Chat has **no** admin override.
 | **Gruppen** | GroupController, GroupService, GroupPresenter | `visibility` (public/unlisted/private) × `join_policy` (open/request/invite_only); roles owner/admin/moderator/member; join/request/approve/reject; directed + token invites (accept/preview backend-only, no UI yet); feed (broadcast posts + emoji reactions, soft-delete); **soft-delete** group; denormalized `members_count` recomputed on every membership change. |
 | **Chat** | ConversationController, ChatService, ChatPresenter | polymorphic (DM/channel/meetup); send/edit (15-min window)/delete (tombstone, body kept)/react (toggle)/markRead/openDm (find-or-create, `dm_key=min:max`); group channels have a dedicated UI (`/gruppen/:id/channels`) and are **excluded** from the global chat list. |
 | **Benachrichtigungen** | NotificationController, NotificationService, NotificationPresenter | list/unread-count/markRead/markAllRead; 8 types: meetup_join, meetup_cancelled, group_join_request, group_request_approved, group_invite, new_message, message_reaction, group_feed_post. |
+| **Wetter** | MeetupController::weather, WeatherService, WeatherPresenter | `GET /meetups/{id}/weather` (public, `throttle:weather,30`) — **Open-Meteo proxy** (ADR-017, no API key). Server derives lat/lng + `starts_at` from the meetup row (client sends nothing); `timezone=UTC` so the hourly axis matches the DB directly. FileCache 30 min, key = coords rounded to 2 decimals + date window. Panel shows ground wind (10 m) + gusts (color-coded), temp, rain, cloud, WMO code, nullable 850 hPa wind / CAPE, plus a 6-hour wind trend. **Unavailability is data, not error:** `past` (2 h grace) / `out_of_range` (>16 d) / `no_location` → `200 {available:false, reason}` with **no** upstream call; only a real outage → `503 weather_unavailable`. |
 | **Landing** | (frontend only) | guest marketing page at `/landing`: full-screen sky hero + sticky nav (transparent→solid, smooth-scroll anchors) + features + **live public groups** (`GET /groups`, guest-accessible) + popular spots + CTA. |
 
 ## 6. Data model (high level)
@@ -193,8 +196,8 @@ Vite dev base = `/`. The SPA hits `/api/v1/...` (proxied). Demo logins: `lena@fl
 ## 9. Testing
 
 ```bash
-composer test                        # PHPUnit — 200 backend tests (MySQL test DB db_team15_test)
-cd frontend && npm run test          # Vitest — 10 smoke tests (schemas, lib/format, Badge render)
+composer test                        # PHPUnit — 228 backend tests (MySQL test DB db_team15_test)
+cd frontend && npm run test          # Vitest — 18 smoke tests (schemas, lib/format, Badge render)
 cd frontend && npm run typecheck     # tsc -b
 cd frontend && npm run lint          # eslint
 ```
@@ -206,6 +209,9 @@ cd frontend && npm run lint          # eslint
   `CREATE DATABASE IF NOT EXISTS db_team15_test CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
 - `respondNoContent()` = real **204** under PHPUnit/prod, but **200 `{data:null}`** under `php spark serve`
   (the dev server emits a malformed 204 the Vite proxy rejects). Assert accordingly.
+- Outbound HTTP is faked via `Services::injectMock('curlrequest', FakeCurlRequest::returning(...))`
+  (`tests/_support/Libraries/`); its `calls` counter asserts the cache/no-upstream paths. Weather tests
+  `cache()->clean()` in setUp/tearDown — the FileCache is shared with the `throttle` filter.
 
 ## 10. Database & migrations
 
@@ -265,7 +271,7 @@ upload quota / ETag-304 on the real webspace) and D4 (admin login for grading) a
 | File | Contents |
 |---|---|
 | `TARGET_SPEC.md` | main spec overview |
-| `DECISIONS.md` | **ADR log (ADR-001…016)** — the locked architectural decisions; read this |
+| `DECISIONS.md` | **ADR log (ADR-001…017)** — the locked architectural decisions; read this |
 | `DATA_MODEL.md` | binding schema design |
 | `API.md` | endpoint catalogue |
 | `01..06-*.md` | per-area chapters (auth/profil, flugtreffen, gruppen, chat-realtime, frontend, backend-deployment) |
@@ -277,12 +283,14 @@ upload quota / ETag-304 on the real webspace) and D4 (admin login for grading) a
 Key ADRs to know: 001 polling (not websockets), 002 deploy/migrations (SFTP + SQL dump), 004 Shield
 session auth, 005 polymorphic chat engine, 006 group visibility×join_policy, 008 scope (notifications in;
 email/moderation deferred), 012 (A1 bigint id, A2 timestamp(3), C6 15-min edit, C7 aggregated unread,
-D3/D4 deploy TODOs), 013 readable code, 016 prototype-first seam.
+D3/D4 deploy TODOs), 013 readable code, 016 prototype-first seam, 017 weather via Open-Meteo proxy.
 
 ## 14. Status
 
-M1–M6 complete on `flightmeet-react` (not pushed). Backend 200 PHPUnit green, frontend 10 Vitest green.
+M1–M6 complete on `flightmeet-react` (not pushed). Backend 228 PHPUnit green, frontend 18 Vitest green.
+Post-MVP: weather on the meetup detail page (ADR-017).
 **Deferred / open:** real admin/moderation view (only the role badge exists); group invite-accept UI
 (backend ready); design-alignment of chat/notification/groups pages to the prototype; the actual live
-deploy + D3 webspace tests (artifacts + runbook are ready). Low-priority: muted-text contrast bump
+deploy + D3 webspace tests (artifacts + runbook are ready; D3 now also covers outbound HTTPS/`ext-curl`
+for the weather proxy). Low-priority: muted-text contrast bump
 (`text-base-content/55` ≈ 4:1, just under AA); dev-only `vite` advisory.

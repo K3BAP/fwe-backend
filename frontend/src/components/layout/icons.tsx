@@ -52,3 +52,31 @@ export const MoreIcon = (p: IconProps) => (
   <Base {...p}><circle cx="12" cy="5" r="1.4" /><circle cx="12" cy="12" r="1.4" /><circle cx="12" cy="19" r="1.4" /></Base>
 )
 export const UsersIcon = GroupIcon
+
+// --- Wetter (ADR-017) ---
+export const WindIcon = (p: IconProps) => (
+  <Base {...p}><path d="M3 8h10a3 3 0 1 0-3-3M3 16h13a3 3 0 1 1-3 3M3 12h17" /></Base>
+)
+export const GustIcon = (p: IconProps) => (
+  <Base {...p}><path d="M3 7h8a2.5 2.5 0 1 0-2.5-2.5M3 12h12.5a2.5 2.5 0 1 1-2.5 2.5" /><path d="M17 7.5h1.5M20.5 12h1M17 17h2" /></Base>
+)
+export const CloudIcon = (p: IconProps) => (
+  <Base {...p}><path d="M7 18a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.5 1.5A3.5 3.5 0 0 1 17 18z" /></Base>
+)
+export const CloudRainIcon = (p: IconProps) => (
+  <Base {...p}><path d="M7 15a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.5 1.5A3.5 3.5 0 0 1 17 15z" /><path d="M8 18.5v2M12 18v2.5M16 18.5v2" /></Base>
+)
+export const SnowIcon = (p: IconProps) => (
+  <Base {...p}><path d="M7 15a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.5 1.5A3.5 3.5 0 0 1 17 15z" /><path d="M8 19h.01M12 18.5h.01M16 19h.01M10 21h.01M14 21h.01" /></Base>
+)
+export const FogIcon = (p: IconProps) => (
+  <Base {...p}><path d="M7 14a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.5 1.5A3.5 3.5 0 0 1 17 14z" /><path d="M4 17.5h16M7 20.5h12" /></Base>
+)
+export const ThunderIcon = (p: IconProps) => (
+  <Base {...p}><path d="M7 14a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.5 1.5A3.5 3.5 0 0 1 17 14z" /><path d="m13 13-3 4.5h3L10 22" /></Base>
+)
+export const ThermometerIcon = (p: IconProps) => (
+  <Base {...p}><path d="M14 14.8V4.5a2.5 2.5 0 0 0-5 0v10.3a4.5 4.5 0 1 0 5 0z" /><path d="M11.5 17.5v-6" /></Base>
+)
+/** Pfeil nach oben — für die Windrichtung um `wind_direction_deg` gedreht. */
+export const ArrowUpIcon = (p: IconProps) => <Base {...p}><path d="M12 20V4M6 10l6-6 6 6" /></Base>

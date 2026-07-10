@@ -11,6 +11,7 @@ import {
 } from '@/api/meetups'
 import type { MeetupDetail as MeetupDetailDto, PublicUserCard } from '@/api/schemas'
 import { ParticipantList } from '@/components/meetups/ParticipantList'
+import { WeatherPanel } from '@/components/meetups/WeatherPanel'
 import { MapShell } from '@/components/map/MapShell'
 import { pinIcon } from '@/components/map/pin'
 import { Button, Card, EmptyState, ExperienceBadge, Modal, Skeleton, StatusBadge } from '@/components/ui'
@@ -239,6 +240,9 @@ export function MeetupDetail() {
               </MapShell>
             )}
           </Card>
+
+          {/* Ohne Startplatz-Koordinaten (gelöschter Spot) gibt es kein Wetter — wie bei der Karte. */}
+          {m.lat != null && m.lng != null && <WeatherPanel meetupId={m.id} startsAt={m.starts_at} />}
         </aside>
       </div>
 

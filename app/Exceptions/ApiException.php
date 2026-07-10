@@ -59,4 +59,10 @@ final class ApiException extends RuntimeException
     {
         return new self('validation_error', $message, 422, $fields);
     }
+
+    /** Ein externer Dienst (aktuell: Open-Meteo, ADR-017) antwortet nicht oder fehlerhaft. */
+    public static function upstreamUnavailable(string $code, string $message): self
+    {
+        return new self($code, $message, 503);
+    }
 }

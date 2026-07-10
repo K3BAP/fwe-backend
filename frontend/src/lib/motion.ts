@@ -95,12 +95,12 @@ export const staggerItem: Variants = {
 /**
  * Liefert reduce-bewusste Props für eine Variants-basierte Komponente: bei `prefers-reduced-motion`
  * wird `initial` übersprungen (`false`), sodass kein Eingangs-Tween läuft. So bleiben Aufrufer
- * Einzeiler (`<motion.div {...cfg} variants={…} />`).
+ * Einzeiler (`<motion.div {...cfg} variants={…} />`) — das Ergebnis enthält deshalb **nur**
+ * Motion-Props; wer das Flag selbst braucht, ruft `useReducedMotion()` direkt.
  */
 export function useMotionConfig() {
   const reduce = useReducedMotion()
   return {
-    reduce,
     initial: reduce ? (false as const) : 'hidden',
     animate: 'show',
     exit: 'exit',

@@ -45,6 +45,7 @@ Alle Endpunkte liegen unter dem Präfix **`/api/v1`** (ADR via offene Frage „A
 | 409 | `conflict` (z.B. doppelter Beitritt, Treffen voll) |
 | 422 | `validation_error` (Body-Validierung; `error.fields` gefüllt) |
 | 429 | `rate_limited` (Throttle, v.a. Login) |
+| 503 | `weather_unavailable` (externer Dienst nicht erreichbar; nur Wetter-Proxy, ADR-017) |
 
 ### 1.5 Validierung (doppelt: Zod + CI4)
 Jedes Request-Schema wird **client-seitig mit Zod** (React Hook Form) **und** identisch **server-seitig mit CI4-Validation** geprüft (Defense in Depth). Unten ist je Feld die maßgebliche Regel angegeben; sie gilt für beide Seiten.
@@ -232,6 +233,7 @@ Einzelner Spot inkl. `description`. **Response 200** → `{ data: Spot }`. **Feh
 | 5.6 | POST | `/meetups/{id}/participants` | eingeloggt |
 | 5.7 | DELETE | `/meetups/{id}/participants/me` | Teilnehmer (self) |
 | 5.8 | DELETE | `/meetups/{id}/participants/{userId}` | Creator oder `admin` |
+| 5.9 | GET | `/meetups/{id}/weather` | öffentlich (throttled) |
 
 > **Status-Konsolidierung:** persistiert nur `open|cancelled`; `full` (= `participant_count >= max_participants`) und `finished` (= `starts_at < NOW()`) werden im Read berechnet (ADR-002). „Teilnehmen/Absagen" ist ein eigener Sub-Resource (`participants`), **nicht** `/join` — vereinheitlicht gegen das Beitrittsmuster der Gruppen.
 
@@ -302,6 +304,37 @@ Hartes Löschen (kaskadiert `meetup_participants` + zugehörige `conversations` 
 
 ### 5.8 DELETE `/meetups/{id}/participants/{userId}`
 Admin/Creator entfernt Teilnehmer. **Auth: Creator oder `admin`.** Der Creator kann sich hierüber nicht selbst entfernen (`409 creator_cannot_leave`). **Response 200** → `{ data: MeetupDetail }`. **Fehler:** `403 forbidden`; `404 not_found`.
+
+### 5.9 GET `/meetups/{id}/weather`
+Wetter am Startplatz zur Startzeit (**Open-Meteo-Proxy**, ADR-017). **Öffentlich** (wie die übrigen Treffen-Reads), gedrosselt mit `throttle:weather,30` (30/min/IP), Antwort mit `ETag`/`304`. Koordinaten und Zeitpunkt stammen aus der Meetup-Zeile — **der Client übergibt keine Parameter**. Die Upstream-Antwort wird 30 min serverseitig gecacht.
+
+**Response 200** → `{ data: MeetupWeather }`
+
+```jsonc
+{
+  "available": true,              // false ⇒ snapshot: null, trend: []
+  "reason": null,                 // "past" | "out_of_range" | "no_location" | null
+  "is_current": false,            // true, wenn das Treffen bereits läuft (Ist-Wetter statt Prognose)
+  "snapshot": {                   // WeatherHour — die Stunde des Treffen-Starts
+    "at": "2026-07-12T10:00:00Z", // ISO-8601, UTC-Stundenraster
+    "temperature_c": 22.0,
+    "wind_speed_kmh": 10.2,       // Bodenwind 10 m — der wichtigste Wert
+    "wind_gusts_kmh": 29.9,
+    "wind_direction_deg": 32,     // meteorologisch: Richtung, *aus der* der Wind kommt
+    "precipitation_probability_pct": 0,   // nullable (Modell-Lücke)
+    "precipitation_mm": 0.0,
+    "cloud_cover_pct": 0,
+    "weather_code": 0,            // WMO
+    "wind_1500m_kmh": 12.0,       // 850 hPa — nullable
+    "wind_1500m_direction_deg": 240,      // nullable
+    "cape_j_kg": 0.0              // Thermik-Indikator — nullable
+  },
+  "trend": [ /* ≤ 6 WeatherHour: 2 Stunden davor … 3 danach, an den Rändern der Zeitreihe beschnitten */ ]
+}
+```
+
+**„Kein Wetter" ist kein Fehler:** vergangenes Treffen (`past`, 2 h Kulanz für laufende), jenseits des 16-Tage-Horizonts (`out_of_range`) oder ohne Koordinaten (`no_location`) ⇒ `200 { available: false, reason }` **ohne** Upstream-Call.
+**Fehler:** `404 not_found`; `429 rate_limited`; `503 weather_unavailable` (Open-Meteo nicht erreichbar/fehlerhaft).
 
 ---
 
