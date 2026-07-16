@@ -382,3 +382,59 @@ Shared Webspace, kein Budget (kostenloser API-Key), Haftungsvorsicht bei einem R
 (leise „nicht eingerichtet"-Zeile) — das Feature ist strikt Beiwerk. Der geteilte
 `curlrequest`-Service verlangt beim Gemini-Call absolute URL + Optionen pro Request (der
 WeatherService erzeugt die Instanz ggf. zuerst, mit Open-Meteo-BaseURI und 4-s-Timeout).
+
+---
+
+## ADR-019 – Admin-Dashboard: Verwaltung statt Moderation ✅
+**Datum:** 2026-07-16 · **Quelle:** Nutzer (ausdrücklich vom Professor gefordert)
+
+**Kontext:** Die Shield-Gruppe `admin` existierte seit M2, war aber nur ein BOLA-Override in den
+Services plus ein Badge in der TopBar — eine eigene Oberfläche fehlte (in ADR-008 zurückgestellt,
+in CLAUDE.md §14 als „deferred" geführt). Gefordert ist volle Kontrolle über die Instanz:
+Benutzer, Flugtreffen, Gruppen.
+
+**Entscheidung:**
+1. **Zwei Lese-Endpunkte, keine zehn Schreib-Endpunkte.** `PATCH/DELETE /meetups/{id}` und
+   `/groups/{id}` akzeptieren Admins längst über den `$isAdmin`-Parameter, der von Anfang an durch die
+   Services läuft — die Admin-UI ruft **diese** Routen. Neu unter `/admin` sind nur Lesesichten
+   (Kennzahlen, Nutzer, Treffen, Gruppen, Startplätze) plus Schreibpfade für Benutzer und Spots, die
+   noch nie eine hatten. Eine zweite Tür zum selben Service-Aufruf wäre reines Duplikat (ADR-013).
+2. **Löschen von Konten = ausschließlich Shields Soft-Delete** (`users.deleted_at`), plus
+   Wiederherstellen. Kein Hard-Delete: `groups.owner_user_id` ist `ON DELETE RESTRICT`, ein gelöschter
+   Gruppen-Eigentümer würde am FK scheitern; und ein Fehlklick in der Demo wäre nicht umkehrbar.
+   **Folge, die benannt gehört:** Soft-Delete ist ein UPDATE, es feuert also keine Kaskade — Treffen,
+   Mitgliedschaften, Feed-Posts und Nachrichten des Kontos bleiben bestehen und zeigen weiter Name und
+   Avatar. Das Konto ist vom Login ausgeschlossen, die Person nicht von der Plattform. Der
+   Lösch-Dialog sagt das wörtlich, statt es den Nutzer entdecken zu lassen.
+3. **Selbstschutz per 409** (`admin_self_demote`/`admin_self_deactivate`/`admin_self_delete`) statt
+   403 — die Rechte fehlen ja nicht, das Ziel ist ungültig. Weil der `admin`-Filter garantiert, dass
+   der Handelnde Admin ist, folgt daraus die **Invariante: es gibt immer mindestens einen Admin**;
+   eine „letzter Admin"-Prüfung erübrigt sich. Das DTO trägt `is_self`, damit das UI die drei
+   Aktionen ausgraut, statt in den 409 zu laufen — die Prüfung im Service bleibt die Wahrheit.
+4. **Keine Inhalts-Moderation.** ADR-005 gibt dem Chat bewusst *keinen* Admin-Override, ADR-008 hat
+   den Melde-Workflow zurückgestellt. Das Dashboard verwaltet damit **Konten und Entitäten, nicht
+   Sprache**. Wer Chat-Moderation will, muss zuerst ADR-005 aufmachen.
+5. **`active` wird jetzt pro Request geprüft** (`ApiAuthFilter` → `403 account_suspended` + Logout).
+   Vorher sah nur `AuthService::login()` das Flag: eine bereits offene Sitzung lief nach der Sperre
+   unbegrenzt weiter — die „Sperre" war faktisch nur eine Login-Hürde. Soft-Delete braucht das nicht,
+   dort verwirft Shields `Session::checkUserState()` die Session von selbst (der Provider findet den
+   User nicht mehr).
+6. **Startplatz-Pflege löst ADR-012/A4 ein** („nur Admin/Seed pflegen die `spots`-Liste"); das dortige
+   „kein `POST /spots`" betraf die *öffentliche* Route — bis jetzt hieß „Admin" phpMyAdmin von Hand.
+   Löschen ist ein Hard-Delete und unbedenklich: der FK ist `ON DELETE SET NULL` und Ort/Koordinaten
+   liegen als Schnappschuss auf der Treffen-Zeile, das Treffen behält also Ortsangabe, Karte und
+   Wetter — nur die Verknüpfung entfällt.
+7. **Kein Mock-Store.** Die Naht aus ADR-016 existiert, damit das UI *vor* dem Backend gebaut werden
+   konnte (M1 → M2–M5); diese Domäne entstand backend-first und alle `USE_MOCKS`-Flags stehen längst
+   auf `false`. Ein `USE_MOCKS.admin` samt Store wäre Code, den kein Pfad je erreicht. Die wertvolle
+   Hälfte der Naht — der typisierte DTO-Vertrag — steckt vollständig in `api/schemas/admin.ts`.
+
+**Konsequenzen:** `isAdmin()` wandert in den `BaseApiController` (war in zwei Controllern dupliziert);
+neuer `admin`-Filter (403-Envelope). Der Admin-Bereich ist lazy geladen und hängt an einem
+`RequireAdmin`-Guard — der ist reine UX, durchgesetzt wird serverseitig. Der Zugang liegt in der TopBar
+(Badge + Desktop-Nav), **nicht** in `layout/nav.ts`: das Array speist auch die mobile BottomNav, die auf
+vier Einträge ausgelegt ist — mobil ist das Badge deshalb der einzige Weg hinein. Gruppen bekommen ein
+Gegenstück zum Soft-Delete (`POST /admin/groups/{id}/restore`), sonst wäre die (gewollte) Anzeige
+gelöschter Gruppen eine Sackgasse. Die Admin-Gruppenliste ist eine **eigene** Abfrage neben
+`GroupService::list()`: dort ein `$isAdmin` einzuziehen, das Sichtbarkeits- *und* Soft-Delete-Filter
+aushebelt, wäre kein BOLA-Override mehr, sondern eine andere Abfrage unter demselben Namen.

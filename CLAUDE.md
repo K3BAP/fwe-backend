@@ -49,8 +49,11 @@ app/                      CodeIgniter backend
                           Notification, Health
   Services/               Business logic + Presenters (DTO shaping). *Service = logic/transactions,
                           *Presenter = output mapping to the exact frontend Zod shape
+    Admin/                ADR-019: UserAdmin/GroupAdmin/SpotAdmin/Stats services + AdminPresenter +
+                          UserLookup (batched PublicUserCards — never a per-row lookup)
   Models/                 CI4 array models (returnType=array, useTimestamps=false mostly)
-  Filters/                ApiAuthFilter (→JSON 401), ApiCsrfFilter (GET passthrough), ThrottleFilter (→429)
+  Filters/                ApiAuthFilter (→JSON 401; also enforces `active` →403), ApiCsrfFilter (GET
+                          passthrough), ThrottleFilter (→429), AdminFilter (Shield group `admin` →403)
   Libraries/              ApiExceptionHandler (api/* paths → error envelope)
   Exceptions/ApiException.php  Factories: notFound/forbidden/conflict/validation (errorCode,message,status,fields)
   Database/Migrations/    Schema = source of truth (20 migrations, MySQL-specific)
@@ -63,7 +66,8 @@ frontend/                 React SPA (Vite)
                           queryKeys.ts + schemas/ (Zod DTOs, the binding API contract)
     components/           ui/ (design system), layout/, auth/, meetups/, groups/, chat/,
                           notifications/, profile/, map/, dashboard/
-    routes/               Pages + router.tsx (RequireAuth/RequireGuest guards) + lazy.tsx
+    routes/               Pages + router.tsx (RequireAuth/RequireGuest/RequireAdmin guards) + lazy.tsx
+      admin/              ADR-019 admin area (AdminLayout + 5 pages; lazy — dead code for non-admins)
     mocks/                Per-domain mock stores (used when USE_MOCKS.<domain> = true)
     stores/               Zustand: authStore (session mirror), uiStore (theme), toastStore
     lib/                  cn, format (de-DE), theme, queryClient, mediaUrl, useDialogA11y
@@ -121,9 +125,18 @@ from `import.meta.env.BASE_URL` (`API_BASE`, `lib/mediaUrl.ts`, router `basename
 `/public/`. When adding any absolute client URL, derive it from BASE_URL.
 
 **Admin role:** Shield group `admin` = a **site-admin override** on BOLA checks (services take an
-`$isAdmin` param; Presenters set `can_edit`/`can_manage` true for admins). `/auth/me` (+login/register)
-emit `is_admin` → `authStore.user.isAdmin` → TopBar shows an "ADMIN" badge. There is **no dedicated admin
-view/moderation yet** (deferred). Chat has **no** admin override.
+`$isAdmin` param — `BaseApiController::isAdmin()` supplies it; Presenters set `can_edit`/`can_manage`
+true for admins). `/auth/me` (+login/register) emit `is_admin` → `authStore.user.isAdmin` → TopBar badge
++ `RequireAdmin` guard. Chat still has **no** admin override (ADR-005, deliberate).
+
+**Admin dashboard (ADR-019):** `/admin` (lazy, `RequireAdmin`) with overview/users/meetups/groups/spots;
+API under `/api/v1/admin/*` behind `['csrf','auth','admin']` (`AdminFilter` → 403). The load-bearing
+idea: it adds **two read endpoints, not ten write endpoints** — meetup/group writes reuse the existing
+`$isAdmin` routes, so only users and spots got new write surface. Account deletion is **Shield soft-delete
+only** (reversible; no cascade fires, so the person's content survives — say so, the delete dialog does).
+Three 409 self-protections (`admin_self_demote|_deactivate|_delete`) yield the invariant **≥1 admin**.
+`ApiAuthFilter` now checks `active` **per request** (403 `account_suspended`) — before, a suspended user's
+open session ran on forever. No content moderation, and no mock store for this domain (see §7).
 
 ## 5. Domains & features
 
@@ -137,6 +150,7 @@ view/moderation yet** (deferred). Chat has **no** admin override.
 | **Wetter** | MeetupController::weather, WeatherService, WeatherPresenter | `GET /meetups/{id}/weather` (public, `throttle:weather,30`) — **Open-Meteo proxy** (ADR-017, no API key). Server derives lat/lng + `starts_at` from the meetup row (client sends nothing); `timezone=UTC` so the hourly axis matches the DB directly. FileCache 30 min, key = coords rounded to 2 decimals + date window. Panel shows ground wind (10 m) + gusts (color-coded), temp, rain, cloud, WMO code, nullable 850 hPa wind / CAPE, plus a 6-hour wind trend. **Unavailability is data, not error:** `past` (2 h grace) / `out_of_range` (>16 d) / `no_location` → `200 {available:false, reason}` with **no** upstream call; only a real outage → `503 weather_unavailable`. |
 | **KI-Briefing** | MeetupController::briefing, BriefingService, Config\Gemini | `GET /meetups/{id}/briefing` (public, `throttle:briefing,10`) — **Gemini proxy** (ADR-018). On-demand button in the WeatherPanel; 2–3 German sentences summarizing the ADR-017 weather DTO. Key server-side only (`gemini.apiKey` in `.env`, get one at aistudio.google.com/apikey); prompt contains **only curated data** (no user text → no injection surface); system instruction forbids fly/no-fly wording; UI labels output "KI-generiert … keine Flugfreigabe". Cache 30 min keyed to the weather target hour; failures never cached. No key → `200 {available:false, reason:'not_configured'}`; weather reasons pass through; real outage → `503 briefing_unavailable` (429 upstream → "ausgelastet" message). Default model `gemini-flash-lite-latest` (evergreen lite alias — older model IDs are closed to new keys, and non-lite flash models "think" 12–15 s even on tiny prompts, blowing the 15-s timeout). No `thinkingConfig` (its params are incompatible across model generations); instead `maxOutputTokens: 1024` headroom, because flash models bill internal "thinking" tokens against the budget and a tight limit truncates the text. |
 | **Landing** | (frontend only) | guest marketing page at `/landing`: full-screen sky hero + sticky nav (transparent→solid, smooth-scroll anchors) + features + **live public groups** (`GET /groups`, guest-accessible) + popular spots + CTA. |
+| **Admin** | `Api/V1/Admin/{Overview,User,Meetup,Group,Spot}Controller`, `Services/Admin/*` | ADR-019. `/admin/stats` (counts); users (list w/ email+role+counts, edit profile, toggle admin, suspend, soft-delete+restore, 3× self-protection 409); meetups + groups **read-only** (groups incl. private/deleted + restore); spots CRUD. Writes for meetups/groups go through the **existing** public routes. |
 
 ## 6. Data model (high level)
 
@@ -160,7 +174,9 @@ can't). `users.id` is BIGINT (migration 120000 rebuilds Shield FKs).
   domain under `src/api/schemas/` with an `index.ts` barrel — import via `@/api/schemas` (the `@` alias = `src/`).
 - **Backend ↔ frontend contract:** the Presenter output must equal the committed frontend Zod shape
   exactly. If they ever diverge, the committed frontend wins; reconcile the spec, don't bend the FE.
-- **Seam additions:** new domain → schema + mock store + hook branching on `USE_MOCKS`.
+- **Seam additions:** new domain → schema + hook. A mock store **only when the UI precedes the backend**
+  (the ADR-016 M1 pattern, hook branching on `USE_MOCKS`); domains built backend-first (e.g. `admin`)
+  don't get one — it would be code no path ever reaches. The typed DTO contract is the half that matters.
 - **Endpoints:** specific route segments before `(:num)`; write methods inside the `['csrf','auth']` group.
 - **Frontend gate before commit:** `npm run typecheck` + `npm run lint` + `npm run test` must be green.
   Tests are decoupled from the build (`tsconfig.app.json` excludes `*.test.*`; `tsconfig.vitest.json` types them).
@@ -204,8 +220,9 @@ and the UI shows a quiet fallback — everything else works.
 ## 9. Testing
 
 ```bash
-composer test                        # PHPUnit — 243 backend tests (MySQL test DB db_team15_test)
-cd frontend && npm run test          # Vitest — 22 smoke tests (schemas, lib/format, Badge render)
+composer test                        # PHPUnit — 325 backend tests (MySQL test DB db_team15_test)
+                                     # (composer's 300-s process timeout can trip → run `vendor/bin/phpunit` directly)
+cd frontend && npm run test          # Vitest — 42 smoke tests (schemas, lib/format, Badge/Table render)
 cd frontend && npm run typecheck     # tsc -b
 cd frontend && npm run lint          # eslint
 ```
@@ -221,6 +238,12 @@ cd frontend && npm run lint          # eslint
   (`tests/_support/Libraries/`); `::routing([...])` maps URL substrings to responses when one flow hits
   several upstreams (briefing = forecast + generateContent); `calls`/`callsByRoute` assert the
   cache/no-upstream paths. Gemini config in feature tests via `Factories::injectMock('config', 'Gemini', $cfg)`.
+- **`actingAs()` is in-memory only** — in feature tests there is no real session (it's empty), the
+  `auth` singleton *is* the session. So `Services::resetSingle('auth')` doesn't simulate a fresh
+  request, it just logs you out; and a `users` row change won't reach `auth()->user()`. To test
+  per-request user state (e.g. the `active` check), re-`actingAs()` the **reloaded** entity — that's
+  what a real request does, where `Session::checkUserState()` re-reads via `findById()`.
+  See `AdminAccessTest`.
 - **Throttled routes in feature tests:** CIUnitTestCase injects a **fresh MockCache per test**, but the
   `Services::throttler()` singleton keeps the cache instance of its *first* creation and counts there
   for the whole PHPUnit process — `cache()->clean()` does **not** reset buckets (it cleans the wrong
@@ -279,6 +302,14 @@ upload quota / ETag-304 on the real webspace) and D4 (admin login for grading) a
   older nested examples in some spec chapters.
 - `feed_posts.updated_at` has `ON UPDATE CURRENT_TIMESTAMP` → presenter emits it only when `!= created_at`
   (real edit), else the UI shows "· bearbeitet" forever.
+- **Shield's `UserModel::$allowedFields` is `username,status,status_message,active,last_active` — `deleted_at`
+  is NOT in it.** So `model(UserModel::class)->update($id, ['deleted_at' => null])` **silently drops the
+  field and no-ops**: no error, restore just doesn't happen. Un-deleting must use the raw query builder
+  (`UserAdminService::restore()`); `->delete($id)` for soft-delete is fine (uses `deletedField`).
+- **MySQL types over the wire:** `SUM()`/`COUNT()` come back as **strings**, `DECIMAL` as a **string**,
+  booleans as `0`/`1`. Zod's `z.number()`/`z.boolean()` reject all three → presenters must cast
+  (`(int)`, `(float)`, `(bool)`). The schema tests in `api/schemas/admin.test.ts` pin this down.
+- `` `group` `` is a reserved MySQL word — backtick it when touching `auth_groups_users`.
 
 ## 13. The spec (`spec/`) — read before extending
 
@@ -296,14 +327,16 @@ upload quota / ETag-304 on the real webspace) and D4 (admin login for grading) a
 
 Key ADRs to know: 001 polling (not websockets), 002 deploy/migrations (SFTP + SQL dump), 004 Shield
 session auth, 005 polymorphic chat engine, 006 group visibility×join_policy, 008 scope (notifications in;
-email/moderation deferred), 012 (A1 bigint id, A2 timestamp(3), C6 15-min edit, C7 aggregated unread,
-D3/D4 deploy TODOs), 013 readable code, 016 prototype-first seam, 017 weather via Open-Meteo proxy,
-018 Gemini flight briefing (key in `.env`, describe-never-clear stance).
+email/moderation deferred), 012 (A1 bigint id, A2 timestamp(3), A4 spots admin/seed-only, C6 15-min edit,
+C7 aggregated unread, D3/D4 deploy TODOs), 013 readable code, 016 prototype-first seam, 017 weather via
+Open-Meteo proxy, 018 Gemini flight briefing (key in `.env`, describe-never-clear stance),
+019 admin dashboard (soft-delete only, ≥1-admin invariant, governs accounts not speech).
 
 ## 14. Status
 
-M1–M6 complete and pushed to `origin/flightmeet-react`. Backend 243 PHPUnit green, frontend 22 Vitest green.
-Post-MVP: weather on the meetup detail page (ADR-017) + Gemini flight briefing (ADR-018).
+M1–M6 complete and pushed to `origin/flightmeet-react`. Backend 325 PHPUnit green, frontend 42 Vitest green.
+Post-MVP: weather on the meetup detail page (ADR-017), Gemini flight briefing (ADR-018), **admin dashboard
+(ADR-019)**.
 
 **Live on prod** (https://team15.wi1cm.uni-trier.de/public/, last deploy 16.07.2026, incl. ADR-017/018).
 D3 verified on the real webspace: outbound HTTPS + `ext-curl` work (Open-Meteo **and** Gemini reachable),
@@ -311,9 +344,12 @@ FileCache writable, ETag→`304` passes through Apache. Prod `.env` carries `gem
 is live there; the previous config is backed up server-side as `/web/.env.bak-20260716-155350` (delete once
 you're satisfied — a later `mirror --delete` would drop it anyway).
 
-**Deferred / open:** real admin/moderation view (only the role badge exists); group invite-accept UI
-(backend ready); design-alignment of chat/notification/groups pages to the prototype. D3 leftovers: avatar
+**Deferred / open:** content moderation (chat/feed) — deliberately out (ADR-005/019: the dashboard governs
+accounts and entities, not speech); group invite-accept UI (backend ready); design-alignment of
+chat/notification/groups pages to the prototype. D3 leftovers: avatar
 upload quota/no-exec on the webspace, SMTP (both untested; e-mail flows are out of MVP scope anyway).
+**ADR-019 is not deployed yet** — it landed after the 16.07.2026 deploy; needs `build:frontend` +
+`deploy:remote` (no migration: it uses Shield's existing `deleted_at`/`active` columns).
 The prod DB seed dates from 26.06.2026 — only ~5 meetups are still in the future, so re-seed + re-import
 via phpMyAdmin before a demo if you want a fuller weather/briefing showcase. Low-priority: muted-text
 contrast bump (`text-base-content/55` ≈ 4:1, just under AA); dev-only `vite` advisory.

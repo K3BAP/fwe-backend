@@ -717,6 +717,129 @@ Alle als gelesen markieren. **Response 200** → `{ data: Notification[] }` (gan
 
 ---
 
+## 11b. Admin (ADR-019)
+
+Plattform-Verwaltung unter `/admin/*`, Filter `['csrf','auth','admin']` — die Shield-Gruppe `admin`
+ist Pflicht, sonst `403 forbidden`. Alle Antworten ohne `ETag`/`304` (hier pollt nichts).
+
+**Bewusst nicht hier:** Schreibrouten für Treffen und Gruppen. `PATCH/DELETE /meetups/{id}` bzw.
+`/groups/{id}` akzeptieren Admins längst über den `$isAdmin`-BOLA-Override im Service — die Admin-UI
+ruft diese. Ebenso **keine** Inhalts-Moderation (ADR-005 gibt dem Chat keinen Admin-Override).
+
+| # | Methode | Pfad | Auth |
+|---|---|---|---|
+| 11b.1 | GET | `/admin/stats` | admin |
+| 11b.2 | GET | `/admin/users` | admin |
+| 11b.3 | GET | `/admin/users/{id}` | admin |
+| 11b.4 | PATCH | `/admin/users/{id}` | admin |
+| 11b.5 | POST | `/admin/users/{id}/admin` | admin |
+| 11b.6 | POST | `/admin/users/{id}/active` | admin |
+| 11b.7 | DELETE | `/admin/users/{id}` | admin |
+| 11b.8 | POST | `/admin/users/{id}/restore` | admin |
+| 11b.9 | GET | `/admin/meetups` | admin |
+| 11b.10 | GET | `/admin/groups` | admin |
+| 11b.11 | POST | `/admin/groups/{id}/restore` | admin |
+| 11b.12 | GET | `/admin/spots` | admin |
+| 11b.13 | POST | `/admin/spots` | admin |
+| 11b.14 | PATCH | `/admin/spots/{id}` | admin |
+| 11b.15 | DELETE | `/admin/spots/{id}` | admin |
+
+### 11b.1 GET `/admin/stats`
+Kennzahlen der Instanz. **Response 200** → `{ data: AdminStats }`:
+```json
+{ "data": { "users":   { "total": 16, "active": 15, "suspended": 0, "deleted": 1, "admins": 1, "new_7d": 2 },
+            "meetups": { "total": 18, "upcoming": 5, "cancelled": 2 },
+            "groups":  { "total": 8, "active": 8, "deleted": 0, "private": 2 },
+            "spots":   { "total": 30 } } }
+```
+
+### 11b.2 GET `/admin/users`
+Alle Konten — **standardmäßig inklusive soft-gelöschter**: eine Admin-Liste zeigt die Wahrheit.
+Query: `q` (Name/Handle/**E-Mail**), `status` (`active|suspended|deleted|admins`), `sort`
+(`created_at_desc|created_at_asc|name_asc|email_asc|last_active_desc`), `limit` (≤200), `offset`.
+**Response 200** → `{ data: AdminUserRow[], meta: { total, limit, offset, sort } }`:
+```json
+{ "data": [ { "id": 3, "display_name": "Lena Krüger", "handle": "lena_xc", "avatar_path": null,
+              "email": "lena@flightmeet.test", "is_admin": false, "active": true,
+              "created_at": "2026-06-26T10:00:00Z", "last_active": null, "deleted_at": null,
+              "meetups_count": 4, "groups_count": 2 } ],
+  "meta": { "total": 16, "limit": 20, "offset": 0, "sort": "created_at_desc" } }
+```
+`email` stammt aus `auth_identities` (nicht aus `profiles`); `is_admin` wird per JOIN auf
+``auth_groups_users.`group` = 'admin'`` aufgelöst (kein `inGroup()` je Zeile → kein N+1).
+
+### 11b.3 GET `/admin/users/{id}` · 11b.4 PATCH `/admin/users/{id}`
+Detail = Zeile + `bio_markdown`, `experience_level`, `license_class`, `glider`, `home_region`,
+`flight_hours`, `is_self`. PATCH ändert dieselben Profilfelder wie `PATCH /me/profile` (gleiche
+Regeln, `409 handle_taken`). **`email` ist read-only** — sie liegt in `auth_identities`, ihre Änderung
+hieße Identity + Verifikation + Eindeutigkeit; E-Mail-Flows sind laut ADR-008 out of scope.
+
+### 11b.5–11b.8 Rolle, Sperre, Soft-Delete, Restore
+Bodies: `{ "is_admin": bool }` bzw. `{ "active": bool }`. **Alle vier antworten mit dem frischen
+`AdminUserDetail`** (kein 204) — das Frontend aktualisiert damit die Zeile direkt.
+
+`DELETE` ist Shields **Soft-Delete** (`deleted_at`), `restore` hebt ihn auf. Ein gesperrtes Konto
+verliert seine laufende Session beim nächsten Request (`ApiAuthFilter` → `403 account_suspended`);
+ein soft-gelöschtes verliert sie, weil Shields Provider es nicht mehr findet.
+
+**Selbstschutz** → `409` (nicht 403 — die Rechte fehlen nicht, das Ziel ist ungültig):
+
+| Code | Wann |
+|---|---|
+| `admin_self_demote` | `is_admin:false` auf sich selbst |
+| `admin_self_deactivate` | `active:false` auf sich selbst |
+| `admin_self_delete` | `DELETE` auf sich selbst |
+
+Daraus folgt die Invariante **≥ 1 Admin** (der Handelnde ist per Filter Admin und kann sich nicht
+selbst entfernen). Sich selbst *befördern* ist ein harmloser No-Op und bleibt erlaubt.
+
+### 11b.9 GET `/admin/meetups`
+Nutzt `MeetupService::list()` unverändert (Treffen haben weder Sichtbarkeit noch Soft-Delete — die
+öffentliche Abfrage *ist* die Admin-Abfrage). Query wie `/meetups`. Zeigt **beides**: den
+persistierten `status` (`open|cancelled`) und den beim Lesen abgeleiteten `derived_status`.
+```json
+{ "data": [ { "id": 12, "title": "Morgenthermik Wallberg", "spot_name": "Wallberg", "region": "Bayern",
+              "starts_at": "2026-08-01T07:00:00Z", "status": "open", "derived_status": "open",
+              "participant_count": 5, "max_participants": 8,
+              "creator": { "id": 3, "display_name": "Lena Krüger", "handle": "lena_xc", "avatar_path": null },
+              "created_at": "2026-07-01T09:00:00Z" } ],
+  "meta": { "total": 18, "limit": 20, "offset": 0, "sort": "starts_at_asc" } }
+```
+
+### 11b.10 GET `/admin/groups` · 11b.11 POST `/admin/groups/{id}/restore`
+**Ohne** Sichtbarkeits- und **ohne** Soft-Delete-Filter — private, nicht gelistete und gelöschte
+Gruppen inklusive; genau dafür existiert die Route (eigene Abfrage neben `GroupService::list()`,
+Begründung in ADR-019). Query: `q`, `visibility`, `status` (`active|deleted`), `sort`, `limit`, `offset`.
+```json
+{ "data": [ { "id": 4, "name": "Chiemgau Flieger", "slug": "chiemgau-flieger", "visibility": "private",
+              "join_policy": "request", "members_count": 6,
+              "owner": { "id": 2, "display_name": "Markus Weber", "handle": "markus", "avatar_path": null },
+              "created_at": "2026-06-26T10:00:00Z", "deleted_at": null } ] }
+```
+`restore` (→ **204**) hebt den Soft-Delete der Gruppe **und ihrer Channels** auf; `409
+group_not_deleted`, wenn sie gar nicht gelöscht ist.
+
+### 11b.12–11b.15 Startplätze
+Löst ADR-012/A4 ein („nur Admin/Seed pflegen die Liste"). Query: `q`, `region`, `type`, `sort`, `limit`,
+`offset`. Create → **201**, Update → **200** (beide mit `AdminSpot`), Delete → **204**.
+```json
+{ "data": { "id": 7, "name": "Wallberg", "region": "Bayern", "country": "DE",
+            "lat": 47.7042, "lng": 11.7583, "type": "launch",
+            "description": "Klassiker am Tegernsee.", "meetups_count": 3 } }
+```
+Regeln: `name` 2–150, `region` ≤80, `country` 2 Buchstaben (default `DE`, serverseitig uppercase),
+`lat` −90…90, `lng` −180…180, `type` ∈ `launch|landing|area`, `description` ≤2000 → `422` mit
+`error.fields`. **Löschen ist ein Hard-Delete und unbedenklich:** `meetups.spot_id` ist
+`ON DELETE SET NULL`, Ort und Koordinaten liegen als Schnappschuss auf der Treffen-Zeile — das Treffen
+behält Ortsangabe, Karte und Wetter (ADR-017 liest lat/lng vom Treffen), nur die Verknüpfung entfällt.
+Deshalb kein `409 spot_in_use`, sondern `meetups_count` im UI + Hinweis im Dialog.
+
+> **Typ-Vertrag:** `active`/`is_admin` sind echte Booleans, Zähler und `SUM()`-Werte echte Zahlen,
+> `lat`/`lng` echte Floats. MySQL liefert all das roh als `0`/`1` bzw. String — die Presenter casten,
+> und `frontend/src/api/schemas/admin.test.ts` hält genau das fest.
+
+---
+
 ## 12. Uploads (Querschnitt)
 
 | # | Methode | Pfad | Auth |
