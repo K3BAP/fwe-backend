@@ -106,10 +106,10 @@ Jede API-Antwort nutzt ein einheitliches Envelope. **Erfolg** trägt `data` (+ o
 ```json
 {
   "data": { "id": 42, "title": "Frühflug Wasserkuppe", "status": "open" },
-  "meta": { "page": 1, "perPage": 20, "total": 57 }
+  "meta": { "total": 57, "limit": 20, "offset": 0, "sort": "starts_at_asc" }
 }
 ```
-`meta` nur bei Listen/Pagination. Bei `204 No Content` kein Body.
+`meta` nur bei serverseitig paginierten Listen (`{ total, limit, offset, sort }`). Bei `204 No Content` kein Body.
 
 ### Fehler
 
@@ -137,10 +137,10 @@ Jede API-Antwort nutzt ein einheitliches Envelope. **Erfolg** trägt `data` (+ o
 | `304 Not Modified` | ETag-Match (Polling) | – |
 | `400 Bad Request` | malformter Request (kein JSON, falscher Typ) | `bad_request` |
 | `401 Unauthorized` | nicht eingeloggt / Session ungültig | `unauthenticated` |
-| `403 Forbidden` | eingeloggt, aber **nicht berechtigt** (BOLA) | `forbidden`, `not_a_member` |
+| `403 Forbidden` | eingeloggt, aber **nicht berechtigt** (BOLA) | `forbidden`, `forbidden_role`, `not_a_participant` |
 | `404 Not Found` | Ressource existiert nicht / soft-deleted / unsichtbar | `not_found` |
-| `409 Conflict` | Doppelbeitritt, Treffen voll, DM existiert bereits | `already_joined`, `meetup_full` |
-| `422 Unprocessable Entity` | Validierungsfehler mit `fields` | `validation_failed` |
+| `409 Conflict` | Doppelbeitritt, Treffen voll, Selbstschutz | `already_member`, `meetup_full`, `admin_self_delete` |
+| `422 Unprocessable Entity` | Validierungsfehler mit `fields` | `validation_error` |
 | `429 Too Many Requests` | Rate-Limit (Login, Schreibrate) | `rate_limited` |
 | `500 Internal Server Error` | unerwarteter Serverfehler | `internal_error` |
 
@@ -148,7 +148,7 @@ Jede API-Antwort nutzt ein einheitliches Envelope. **Erfolg** trägt `data` (+ o
 
 ### Error-Code-Katalog (Auszug, englisch & stabil)
 
-`unauthenticated`, `forbidden`, `not_found`, `validation_failed`, `bad_request`, `rate_limited`, `internal_error`, `already_joined`, `meetup_full`, `meetup_cancelled`, `not_a_member`, `not_owner`, `not_participant`, `conversation_exists`, `invalid_credentials`, `email_taken`, `display_name_taken`, `upload_too_large`, `unsupported_media_type`, `csrf_invalid`.
+`unauthenticated`, `invalid_credentials`, `account_suspended`, `csrf_invalid`, `forbidden`, `forbidden_role`, `not_a_participant`, `not_found`, `validation_error`, `rate_limited`, `internal_error` — Auth/Querschnitt. Domänen: `email_taken`, `handle_taken`; `meetup_full`, `meetup_not_joinable`, `creator_cannot_leave`, `capacity_below_current`; `already_member`, `join_policy_mismatch`, `group_member_banned`, `owner_must_transfer`, `group_not_deleted`, `invite_expired`, `invite_exhausted`, `invite_revoked`; `cannot_dm_self`, `user_not_found`, `message_deleted`, `edit_window_expired`, `reply_target_not_found`, `invalid_emoji`, `default_channel_not_deletable`, `last_channel_not_deletable`; `file_too_large`, `unsupported_media_type`; `weather_unavailable`, `briefing_unavailable`; `admin_self_demote`, `admin_self_deactivate`, `admin_self_delete`.
 
 ---
 
@@ -230,11 +230,11 @@ Beispiel `meetups`-Create (Zod ↔ CI4):
 
 | Feld | Zod | CI4-Rule | Fehler-`message` (de) |
 |---|---|---|---|
-| `title` | `z.string().min(3).max(120)` | `required|min_length[3]|max_length[120]` | „Titel muss 3–120 Zeichen lang sein." |
-| `spot_id` | `z.number().int().positive()` | `required|is_natural_no_zero|is_not_unique[spots.id]` | „Unbekannter Startplatz." |
-| `starts_at` | `z.string().datetime()` (future) | `required|valid_date|future_datetime` (custom) | „Startzeit muss in der Zukunft liegen." |
-| `max_participants` | `z.number().int().min(1).optional()` | `permit_empty|is_natural_no_zero` | „Mindestens 1 Teilnehmer." |
-| `visibility` | `z.enum(['public','group'])` | `required|in_list[public,group]` | „Ungültige Sichtbarkeit." |
+| `title` | `z.string().min(3).max(150)` | `required|min_length[3]|max_length[150]` | „Titel darf höchstens 150 Zeichen lang sein." |
+| `spot_id` | `z.number().int().positive()` | `required|is_natural_no_zero` (+ Existenz-Check im Service) | „Bitte einen gültigen Startplatz wählen." |
+| `starts_at` | `z.string().min(1)` (Zukunft prüft der Server) | `required|valid_date` + UTC-Zukunfts-Check im Service | „Der Termin muss in der Zukunft liegen." |
+| `max_participants` | `z.number().int().min(1).nullable()` | `permit_empty|is_natural_no_zero` | „Mindestens 1 Platz." |
+| `experience_level` | `z.enum(['beginner','advanced','expert','all'])` | `required|in_list[beginner,advanced,expert,all]` | „Ungültiges Erfahrungslevel." |
 
 Validierungsfehler werden **immer** als `422 validation_failed` mit `error.fields` (Feld→deutsche Message) zurückgegeben. Deutsche Messages via `app/Language/de/Validation.php` (CI4-Locale `de`).
 
@@ -252,12 +252,13 @@ Validierungsfehler werden **immer** als `422 validation_failed` mit `error.field
 ## 7. Datei-Upload-Handling
 
 Querschnitts-Problem (`_crosscutting.json`): `writable/` ist nicht öffentlich, `public/` wird vom Vite-Build berührt. **Konsens:** öffentliche Bilder in ein vom Build **unberührtes** Verzeichnis.
+*(Im MVP existiert nur der Avatar-Upload, `POST /me/avatar` — Logo/Feed-Bild sind deferred, API.md §12.)*
 
 | Aspekt | Regel |
 |---|---|
 | Zielpfad | `public/media/uploads/<context>/` (z.B. `avatars/`, `group_logos/`, `feed/`) — **außerhalb** des Vite-Output, geschützt vor `emptyOutDir` |
 | Erlaubte MIME | Allowlist `image/jpeg`, `image/png`, `image/webp` (Server-Prüfung via `finfo`, **nicht** Client-Content-Type); sonst `415 unsupported_media_type` |
-| Größenlimit | max. **2 MB** pro Bild; sonst `413/422 upload_too_large`. Zusätzlich `upload_max_filesize`/`post_max_size` in `.htaccess`/`php.ini` setzen |
+| Größenlimit | max. **5 MB** pro Bild; sonst `400 file_too_large`. Zusätzlich `upload_max_filesize`/`post_max_size` in `.htaccess`/`php.ini` setzen |
 | Resize | **GD** (auf dem Webspace verfügbar): Avatar max. 512×512, Logo max. 512×512, Feed-Bild max. 1280px Kante; re-encode (zerstört eingebetteten Schadcode) |
 | EXIF | beim Re-Encode **gestrippt** (Geo-/Geräte-Metadaten entfernt, Datenschutz) |
 | Dateiname | **randomisiert** (`bin2hex(random_bytes(16))` + Endung aus echtem MIME) — kein Original-Name (Path-Traversal/Overwrite-Schutz) |

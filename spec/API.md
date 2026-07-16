@@ -412,8 +412,9 @@ Gründet Gruppe; Ersteller wird `owner`; legt automatisch Default-`conversations
 | `visibility` | enum | `public`(Default)\|`private`\|`unlisted` |
 | `join_policy` | enum | `open`(Default)\|`request`\|`invite_only` |
 
-`slug` wird serverseitig aus `name` generiert (`^[a-z0-9-]{3,60}$`, kollisionssicher eindeutig).
-**Response 201** → `{ data: GroupDetail }` (volles Detail, **nicht** ein gekürztes Objekt). **Fehler:** `422 validation_error`; `409 slug_taken`.
+`slug` wird serverseitig aus `name` generiert (`^[a-z0-9-]{3,60}$`, kollisionssicher eindeutig — ein
+`409 slug_taken` kann deshalb nicht auftreten).
+**Response 201** → `{ data: GroupDetail }` (volles Detail, **nicht** ein gekürztes Objekt). **Fehler:** `422 validation_error`.
 
 ### 6.4 GET `/groups/{id}`
 Detail/Metadaten (Adressierung per numerischer **`id`**, nicht `slug`). Sichtbarkeit je
@@ -665,7 +666,7 @@ Liefert den **vollständigen** Verlauf (kein Cursor/Pagination im MVP — Thread
 ### 10.2 POST `/conversations/{id}/messages`
 **Request:** `{ body: string.min(1).max(4000), reply_to_id?: int|null }`
 **Response 201** → `{ data: Message }`.
-**Fehler:** `422 validation_error`; `403 not_a_participant`; `403 insufficient_role` (`min_role`); `409 reply_target_not_found`.
+**Fehler:** `422 validation_error`; `403 not_a_participant` (deckt auch die `min_role`-Schranke ab); `409 reply_target_not_found`.
 
 ### 10.3 PATCH `/conversations/{id}/messages/{messageId}`
 Soft-Edit (`edited_at`). **Auth: nur eigener Sender, innerhalb 15 min ab `created_at`** (ADR-012/C6). **Request:** `{ body: string.min(1).max(4000) }`. **Response 200** → `{ data: Message }`. **Fehler:** `403 forbidden`; `409 message_deleted`; `409 edit_window_expired`.
