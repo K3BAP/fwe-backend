@@ -117,4 +117,39 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
 
         $routes->get('health/secure', 'HealthController::secure');
     });
+
+    /**
+     * --- Admin-Backend (ADR-019) ---
+     * Eigene Gruppe statt Verschachtelung: Filter werden je Gruppe **deklariert, nicht vererbt** — die
+     * drei müssen also ausgeschrieben stehen (`admin` impliziert fachlich `auth`, technisch nicht).
+     *
+     * Bewusst **ohne** Schreibrouten für Treffen und Gruppen: `PATCH/DELETE /meetups/{id}` bzw.
+     * `/groups/{id}` akzeptieren Admins längst über den `$isAdmin`-BOLA-Override im Service. Eine zweite
+     * Tür zum selben Service-Aufruf wäre nur Duplikat. Neu sind hier nur Benutzer und Startplätze — die
+     * hatten noch nie eine Schreibfläche.
+     */
+    $routes->group('admin', ['filter' => ['csrf', 'auth', 'admin'], 'namespace' => 'App\Controllers\Api\V1\Admin'], static function (RouteCollection $routes): void {
+        $routes->get('stats', 'OverviewController::index');
+
+        // Benutzer (§ADR-019): Soft-Delete + Wiederherstellen; `restore` vor `(:num)`-Kollisionen.
+        $routes->get('users', 'UserController::index');
+        $routes->get('users/(:num)', 'UserController::show/$1');
+        $routes->patch('users/(:num)', 'UserController::update/$1');
+        $routes->post('users/(:num)/admin', 'UserController::setAdmin/$1');
+        $routes->post('users/(:num)/active', 'UserController::setActive/$1');
+        $routes->post('users/(:num)/restore', 'UserController::restore/$1');
+        $routes->delete('users/(:num)', 'UserController::destroy/$1');
+
+        // Treffen/Gruppen: nur Lesen — die Admin-Sicht zeigt mehr als die öffentliche (private +
+        // soft-gelöschte Gruppen, roher Status). Geschrieben wird über die öffentlichen Routen.
+        $routes->get('meetups', 'MeetupController::index');
+        $routes->get('groups', 'GroupController::index');
+        $routes->post('groups/(:num)/restore', 'GroupController::restore/$1');
+
+        // Startplätze: die Pflege, die ADR-012/A4 „nur Admin/Seed" schon vorsah.
+        $routes->get('spots', 'SpotController::index');
+        $routes->post('spots', 'SpotController::store');
+        $routes->patch('spots/(:num)', 'SpotController::update/$1');
+        $routes->delete('spots/(:num)', 'SpotController::destroy/$1');
+    });
 });
