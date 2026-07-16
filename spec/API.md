@@ -514,7 +514,7 @@ Widerrufen (`status=revoked`). **Auth: `owner`/`admin`.** **Response 200** → `
 Öffentliche Preview vor Annahme (Gruppenname/Info). **Response 200** → `{ data: { group: GroupListItem, valid: bool, expired: bool, uses_left: int|null } }`. **Fehler:** `404 invite_not_found`.
 
 ### 6.18 POST `/invites/{token}/accept`
-Token einlösen → `group_members`-Eintrag, falls gültig/nicht abgelaufen/`uses` verfügbar; inkrementiert `uses_count`; Ban wird geprüft. **Auth: eingeloggt.** **Response 201** → `{ data: GroupMember }`. **Fehler:** `410 invite_expired`; `409 invite_exhausted` (max_uses); `409 invite_revoked`; `403 group_member_banned`; `409 already_member`. *(UI-Verdrahtung deferred; Backend + PHPUnit in M4.)*
+Token einlösen → `group_members`-Eintrag, falls gültig/nicht abgelaufen/`uses` verfügbar; inkrementiert `uses_count`; Ban wird geprüft. **Auth: eingeloggt.** **Response 201** → `{ data: { group_id: int, joined: true } }` (getestet in `GroupAdminTest`). **Fehler:** `410 invite_expired`; `409 invite_exhausted` (max_uses); `409 invite_revoked`; `403 group_member_banned`; `409 already_member`. *(UI-Verdrahtung deferred; Backend + PHPUnit in M4.)*
 
 ---
 

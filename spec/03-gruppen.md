@@ -14,6 +14,20 @@ Verbindliche Tabellen-/Feldnamen siehe `DATA_MODEL.md` §5 (Gruppen) und §7 (Ch
 funktionale Spezifikation darüber. Nutzersichtbare Labels Deutsch, technische Keys/`error.code` Englisch
 (Querschnitt „Enum-/Sprach-Konvention").
 
+> ⚠️ **Verbindlicher Vertrag = [`API.md §6–8`](API.md) + committetes Frontend** (`frontend/src/api/groups.ts`,
+> `api/schemas/groups.ts`). Dieses Dossier hält das Design-Denken fest; die **ausgelieferte** API weicht
+> in Details ab (für die Umsetzung gilt API.md):
+> - **Ban** ist `POST …/members/{userId}/ban` (Toggle), nicht `PATCH …/members/{userId}` mit `status`.
+> - **Antrags-Entscheid** ist `POST …/join-requests/{id}/approve|reject`, nicht `PATCH` mit `{status}`.
+> - **Response-Shapes:** Beitritt/Antrag → frisches `GroupDetail` (200); Mitglieder-Mutationen →
+>   `GroupMember[]`; Invite-Accept → `201 { group_id, joined: true }` (wie §9 unten).
+> - `GET /groups` und `GET /groups/{id}/members` sind **unpaginiert**; Suche/Region-Filter laufen
+>   **client-seitig** (keine `?q=`-Parameter).
+> - **Deferred:** `GET /groups/suggestions` (kein Frontend-Hook), Logo-/Feed-Bild-Upload (kein
+>   `POST /uploads`, s. API.md §12), Invite-Accept-**UI** (Backend + Tests vorhanden).
+> - **Kick** entfernt die `group_members`-Zeile hart (kein Soft-Delete der Mitgliedschaft); Soft-Delete
+>   gilt für Gruppen, Channels und Feed-Posts.
+
 ---
 
 ## 1. Sichtbarkeit × Beitritt — die zwei orthogonalen Achsen

@@ -330,9 +330,9 @@ Nur für drei Aktionen via `onMutate`/`onError`-Rollback/`onSettled`-Invalidate 
 
 | Aktion | Endpoint | Optimistik | Rollback bei |
 |---|---|---|---|
-| Teilnahme-Toggle | `POST /flugtreffen/:id/teilnahme` | `participant_count`±1, eigener Status sofort | `409 meetup_full` → Toast „ausgebucht" |
-| Gruppen-Beitritt/-Verlassen | `POST /gruppen/:id/mitgliedschaft` | Mitglieds-Status/Count sofort | `403`/`409` |
-| Chat-Nachricht senden | `POST /chat/:cid/messages` | Pending-Bubble (Status `sending`) | Fehler → `failed`-Marker + Retry |
+| Teilnahme-Toggle | `POST/DELETE /meetups/{id}/participants[/me]` | `participant_count`±1, eigener Status sofort | `409 meetup_full` → Toast „ausgebucht" |
+| Gruppen-Beitritt/-Verlassen | `POST/DELETE /groups/{id}/members` | Mitglieds-Status/Count sofort | `403`/`409` |
+| Chat-Nachricht senden | `POST /conversations/{id}/messages` | Pending-Bubble (Status `sending`) | Fehler → `failed`-Marker + Retry |
 
 Komplexe Create-/Edit-Formulare: normales Mutate + Toast + Invalidate (kein Optimismus).
 
