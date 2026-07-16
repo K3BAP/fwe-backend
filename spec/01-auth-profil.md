@@ -50,20 +50,20 @@ Shield liefert per Migration u.a.:
 
 > Die im Auth-Dossier vorgeschlagenen Spalten `users.email`, `users.password_hash`, `users.role` existieren in diesem Modell **nicht** als eigene Spalten: E-Mail/Passwort leben in `auth_identities`, die Rolle in `auth_groups_users`. Das ist durch ADR-004 so festgelegt.
 
-**Deferred (Schema vorbereiten, ADR-008):** `email_verified_at` als Zusatzspalte auf `users` (nullable) **und/oder** Shield-`email_activate`-Action später aktivierbar; `password_resets`-Tabelle (`id, user_id FK, token_hash UNIQUE, expires_at, used_at NULL, created_at`) wird im Migrationsstand **angelegt aber ungenutzt** gelassen — kein SMTP im MVP (ADR-002).
+**Deferred (ADR-008):** Als Schema-Vorbereitung existiert nur `profiles.email_verified_at` (nullable, ungenutzt); Shield-`email_activate` wäre später aktivierbar. Eine `password_resets`-Tabelle wurde **nicht** angelegt — kein SMTP im MVP (ADR-002), s. §3.6.
 
 ### 2.2 `profiles` (eigene Tabelle, 1:1 zu `users`)
 
 | Spalte | Typ | Null | Default | Beschreibung |
 |---|---|---|---|---|
 | `user_id` | `BIGINT UNSIGNED` | nein | — | **PK + FK** → `users.id` (`ON DELETE CASCADE`) |
-| `display_name` | `VARCHAR(60)` | nein | — | Anzeigename (Pflicht bei Registrierung) |
+| `display_name` | `VARCHAR(80)` | nein | — | Anzeigename (Pflicht bei Registrierung) |
 | `handle` | `VARCHAR(30)` | ja | NULL | Eindeutiger @-Name, `UNIQUE`, Regex `^[a-z0-9_]{3,30}$`, lowercase |
 | `bio_markdown` | `TEXT` | ja | NULL | Bio-Rohtext (eingeschränktes Markdown), max. 2000 Zeichen |
 | `avatar_path` | `VARCHAR(255)` | ja | NULL | Relativer Pfad unter `public/media/uploads/avatars/…`; NULL ⇒ Default-Avatar |
 | `experience_level` | `ENUM('beginner','advanced','expert')` | ja | NULL | Gleiche Skala wie Flugtreffen (konsolidiert; `all` gibt es nur auf `meetups`, nicht im Profil) |
 | `license_class` | `VARCHAR(60)` | ja | NULL | Schein/Lizenz als **Freitext** (ADR-012/C1; nationale Klassen variieren), z.B. „A-Schein", „B-Schein" |
-| `glider` | `VARCHAR(80)` | ja | NULL | Marke/Modell, Freitext |
+| `glider` | `VARCHAR(120)` | ja | NULL | Marke/Modell, Freitext |
 | `home_region` | `VARCHAR(80)` | ja | NULL | Heimatregion, Freitext (nicht zwingend an `spots.region` gebunden) |
 | `flight_hours` | `INT UNSIGNED` | ja | NULL | Geschätzte Flugstunden |
 | `created_at` | `DATETIME` | nein | — | |
