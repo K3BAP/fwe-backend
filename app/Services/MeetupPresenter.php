@@ -7,7 +7,8 @@ namespace App\Services;
  * angereicherten) Tabellenzeilen. **Eine** Stelle für die Projektionen + den abgeleiteten Status, von
  * Read- **und** Write-/Teilnahme-Controllern genutzt. Feldnamen entsprechen exakt dem Wire-Vertrag
  * (Zod-Schemas im Frontend): flach (`spot_id`/`creator_user_id`/`derived_status`), Teilnehmer als
- * `PublicUserCard`, `conversation_id` = Treffen-Chat (ab M5 gesetzt; `null`, falls noch kein Chat).
+ * `PublicUserCard`, `conversation_id` = Treffen-Chat (wird beim Erstellen mit-angelegt; nullable,
+ * weil `meetups.conversation_id` es per `ON DELETE SET NULL` formal bleibt).
  */
 final class MeetupPresenter
 {

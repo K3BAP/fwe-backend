@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ConversationModel;
 use App\Models\MeetupModel;
 use App\Models\MeetupParticipantModel;
 use App\Models\ProfileModel;
@@ -121,8 +122,13 @@ final class MeetupWriteTest extends CIUnitTestCase
         $this->assertSame((int) $user->id, $body['participants'][0]['id']);
         $this->assertTrue($body['is_participant']);
         $this->assertTrue($body['can_edit']);
-        $this->assertNull($body['conversation_id']);
         $this->assertSame('Allgäu', $body['region']); // Geo aus Spot abgeleitet
+
+        // Der Treffen-Chat entsteht in derselben Transaktion (ADR-005) — genau eine Konversation.
+        $this->assertIsInt($body['conversation_id']);
+        $conv = model(ConversationModel::class)->find($body['conversation_id']);
+        $this->assertSame('meetup', $conv['type']);
+        $this->assertSame($body['id'], (int) $conv['context_id']);
     }
 
     public function testCreateIgnoresClientGeoAndUsesSpot(): void
@@ -268,11 +274,16 @@ final class MeetupWriteTest extends CIUnitTestCase
         $other = $this->createPilot('other@flightmeet.test');
         $id    = $this->createMeetup($owner->id);
         model(MeetupParticipantModel::class)->insert(['meetup_id' => $id, 'user_id' => $other->id]);
+        $convId = (int) model(ConversationModel::class)->insert([
+            'type' => 'meetup', 'context_type' => 'meetup', 'context_id' => $id, 'created_by' => $owner->id,
+        ], true);
+        model(MeetupModel::class)->update($id, ['conversation_id' => $convId]);
 
         $this->actingAs($owner)->delete("api/v1/meetups/{$id}")->assertStatus(204); // CLI/Test: echtes 204
 
         $this->assertNull(model(MeetupModel::class)->find($id));
         $this->assertSame(0, model(MeetupParticipantModel::class)->where('meetup_id', $id)->countAllResults()); // FK CASCADE
+        $this->assertNull(model(ConversationModel::class)->find($convId)); // Treffen-Chat mit-aufgeräumt (ADR-014)
     }
 
     public function testDeleteForbiddenForNonCreator(): void

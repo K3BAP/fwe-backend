@@ -113,7 +113,7 @@ Maßgeblich ist `DATA_MODEL.md`. Hier nur die für dieses Kapitel relevanten Fel
 | Typ | Entstehung |
 |---|---|
 | `group_channel` | Beim Anlegen eines Channels in einer Gruppe (Gruppen-Domäne). `context_type='group'`, `context_id=group.id`, `title` = Channel-Name. Teilnehmer = Gruppenmitglieder. |
-| `meetup` | **Lazy** beim Anlegen des Meetups oder beim ersten Chat-Zugriff: genau eine Konversation pro Meetup (`context_type='meetup'`, `context_id=meetup.id`). Teilnehmer = `meetup_participants`. |
+| `meetup` | Beim Anlegen des Meetups, in derselben Transaktion (`MeetupService::create`): genau eine Konversation pro Meetup (`context_type='meetup'`, `context_id=meetup.id`, `uq_conv_meetup`). Teilnehmer = `meetup_participants`. Beim Hard-Delete des Treffens wird sie mit-gelöscht (ADR-014). |
 | `direct` | **find-or-create** über `dm_key` (§5). |
 
 ---

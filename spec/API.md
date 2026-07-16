@@ -267,7 +267,7 @@ Bedient Karte, Tabelle und Cards mit einer Route.
 ### 5.2 GET `/meetups/{id}`
 Detail inkl. Teilnehmerliste, berechnetem Status, `is_participant`-Flag für `current_user`.
 
-**Response 200** → `{ data: MeetupDetail }` (MeetupListItem + `spot_id`, `creator_user_id`, `description`, `conversation_id: int|null` (M3: `null`; real ab M5), `participants: PublicUserCard[]`, `is_participant: bool`, `can_edit: bool`). Teilnehmer sortiert: Ersteller zuerst, dann `joined_at` aufsteigend. **Fehler:** `404 not_found` (auch bei nicht-sichtbarem group-scoped Treffen).
+**Response 200** → `{ data: MeetupDetail }` (MeetupListItem + `spot_id`, `creator_user_id`, `description`, `conversation_id: int|null` (Treffen-Chat, wird beim Erstellen mit-angelegt), `participants: PublicUserCard[]`, `is_participant: bool`, `can_edit: bool`). Teilnehmer sortiert: Ersteller zuerst, dann `joined_at` aufsteigend. **Fehler:** `404 not_found` (auch bei nicht-sichtbarem group-scoped Treffen).
 
 ### 5.3 POST `/meetups`
 Erstellt Treffen; trägt Creator automatisch als Teilnehmer ein.

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\ApiException;
+use App\Models\ConversationModel;
 use App\Models\MeetupModel;
 use App\Models\MeetupParticipantModel;
 use App\Models\SpotModel;
@@ -13,9 +14,8 @@ use DateTimeZone;
 use Throwable;
 
 /**
- * Datenzugriff + Geschäftslogik der Flugtreffen-Domäne (ADR-013: Controller bleibt dünn).
- * In M3-Slice 2 nur lesend (Liste/Detail). Schreiben (Create/Update/Delete) und Teilnahme
- * (Join/Leave) folgen in Slice 3/4.
+ * Datenzugriff + Geschäftslogik der Flugtreffen-Domäne (ADR-013: Controller bleibt dünn):
+ * Lesen (Liste/Detail), Schreiben (Create/Update/Delete inkl. Treffen-Chat) und Teilnahme (Join/Leave).
  *
  * Der `participant_count` wird als **korrelierte Subquery** mitgeladen (keine GROUP-BY-Verzerrung),
  * sämtliche Filter — auch die auf dem **abgeleiteten** Status — laufen in WHERE (nicht HAVING, das
@@ -160,8 +160,9 @@ final class MeetupService
 
     /**
      * Legt ein Treffen an (02-flugtreffen.md §9.3): Spot-Geo als Snapshot kopieren, `INSERT meetups`
-     * (`status=open`, `visibility=public`) und Ersteller als ersten Teilnehmer — in **einer**
-     * Transaktion. Server leitet `spot_name/region/lat/lng` aus `spot_id` ab (Client-Werte ignoriert).
+     * (`status=open`, `visibility=public`), Ersteller als ersten Teilnehmer **und den Treffen-Chat**
+     * (04-chat §5: eine Konversation je Treffen, `uq_conv_meetup`) — in **einer** Transaktion.
+     * Server leitet `spot_name/region/lat/lng` aus `spot_id` ab (Client-Werte ignoriert).
      *
      * @param array<string, mixed> $input
      * @throws ApiException validation_error (Zukunftsdatum/ungültiger Spot) | internal_error
@@ -186,6 +187,17 @@ final class MeetupService
             ]), true);
 
             model(MeetupParticipantModel::class)->insert(['meetup_id' => $id, 'user_id' => $creatorId]);
+
+            // Treffen-Chat direkt mitanlegen (ADR-005): Zugriff ist mitgliedschaftsgetrieben
+            // (`meetup_participants`), es braucht also keine `conversation_participants`-Zeilen.
+            $convId = (int) model(ConversationModel::class)->insert([
+                'type'         => 'meetup',
+                'context_type' => 'meetup',
+                'context_id'   => $id,
+                'title'        => $input['title'],
+                'created_by'   => $creatorId,
+            ], true);
+            model(MeetupModel::class)->update($id, ['conversation_id' => $convId]);
 
             $db->transCommit();
 
@@ -259,9 +271,11 @@ final class MeetupService
     }
 
     /**
-     * Hard-Delete (§10). BOLA: nur Creator oder Admin. Teilnehmer verschwinden via FK `ON DELETE CASCADE`.
+     * Hard-Delete (§10). BOLA: nur Creator oder Admin. Teilnehmer verschwinden via FK `ON DELETE
+     * CASCADE`; der Treffen-Chat wird mit-gelöscht (ADR-014: Service-Aufräumen statt verwaister
+     * Konversationen — Messages/Watermarks hängen per FK-CASCADE an der Konversation).
      *
-     * @throws ApiException not_found | forbidden
+     * @throws ApiException not_found | forbidden | internal_error
      */
     public function delete(int $id, int $userId, bool $isAdmin): void
     {
@@ -271,7 +285,17 @@ final class MeetupService
         }
         $this->assertCanManage($row, $userId, $isAdmin, 'Nur der Organisator darf das Treffen löschen.');
 
-        model(MeetupModel::class)->delete($id);
+        $db = db_connect();
+        $db->transBegin();
+        try {
+            model(MeetupModel::class)->delete($id);
+            $db->table('conversations')->where('type', 'meetup')->where('context_id', $id)->delete();
+            $db->transCommit();
+        } catch (Throwable $e) {
+            $db->transRollback();
+            log_message('error', 'Meetup delete failed: ' . $e->getMessage());
+            throw new ApiException('internal_error', 'Treffen konnte nicht gelöscht werden.', 500);
+        }
     }
 
     // ─────────────────────── Teilnahme (Slice 4) ───────────────────────

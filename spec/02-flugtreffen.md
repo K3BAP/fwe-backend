@@ -14,7 +14,7 @@ Dieses Kapitel spezifiziert die Domäne **Flugtreffen** vollständig: Datenmodel
 | Teilnahme-Integrität | `UNIQUE(meetup_id,user_id)` + Kapazitätsprüfung in DB-Transaktion, `409` bei voll | Querschnitt „Datenintegrität" |
 | Suche/Filter | serverseitig über `GET /api/v1/meetups` (LIKE), `limit/offset`-Pagination | flugtreffen.json, openMidLow |
 | Autorisierung | Auth-Filter **plus** Objekt-Autorisierung (BOLA): Bearbeiten/Absagen nur Creator/Admin | ADR-004, Querschnitt „BOLA" |
-| Chat-Bindeglied | Treffen-Chat = `conversations(type='meetup', context_id=meetup.id)`; Flugtreffen-API liefert `conversation_id` (nullable; in M3 `null`, real ab M5) | ADR-005 |
+| Chat-Bindeglied | Treffen-Chat = `conversations(type='meetup', context_id=meetup.id)`, wird beim Erstellen des Treffens mit-angelegt; Flugtreffen-API liefert `conversation_id` (nullable) | ADR-005 |
 | Sprache | DB/Enum/API englisch, Labels deutsch, Datum/Zeit `Intl` de-DE | Querschnitt „Enum/Sprache" |
 
 > **✅ Entschieden (ADR-012/A1):** `users.id` projektweit `BIGINT UNSIGNED`; `meetups.creator_user_id` und `meetup_participants.user_id` sind `BIGINT UNSIGNED`. Der Platzhalter `<user_id-Typ>` in diesem Kapitel = `BIGINT UNSIGNED`.
@@ -260,7 +260,7 @@ Zeigt alle Felder + Teilnehmerliste + freie Plätze + Beziehung des aktuellen Nu
 - `derived_status` (§4)
 - `is_participant` = existiert Zeile in `meetup_participants` für `current_user` (`false` für Gäste)
 - `can_edit = is_creator || is_admin` (`false` für Gäste)
-- `conversation_id` = ID der `conversations`-Zeile (`type='meetup'`), Bindeglied zum Treffen-Chat (ADR-005); **in M3 `null`** (Chat-Domäne ab M5).
+- `conversation_id` = ID der `conversations`-Zeile (`type='meetup'`), Bindeglied zum Treffen-Chat (ADR-005); wird beim Erstellen des Treffens mit-angelegt.
 - Flache Geo-Felder (`spot_id`/`spot_name`/`region`/`lat`/`lng`) statt verschachteltem `spot`-Objekt; Ersteller über `creator_user_id` (kein `creator`-Objekt). `is_creator`, `can_join`, `created_at`/`updated_at` werden **nicht** geliefert (Frontend nutzt sie nicht).
 
 Teilnehmerliste als `PublicUserCard {id, display_name, handle, avatar_path}`, sortiert: Ersteller zuerst, dann `joined_at` aufsteigend.
