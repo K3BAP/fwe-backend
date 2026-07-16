@@ -30,7 +30,6 @@ users ─1:n─ meetups (creator), groups (owner), messages (sender),
             feed_posts (author), notifications (recipient)
 
 spots ─1:n─ meetups            (meetups.spot_id, ON DELETE SET NULL)
-spots ─1:n─ profiles           (profiles.home_spot_id, ON DELETE SET NULL)
 regions ─1:n─ spots            (OPTIONAL – siehe §4.4)
 
 meetups ─1:n─ meetup_participants   (ON DELETE CASCADE)
@@ -65,7 +64,6 @@ erDiagram
 
     regions ||--o{ spots : groups
     spots ||--o{ meetups : "hosts (SET NULL)"
-    spots ||--o{ profiles : "home_spot (SET NULL)"
 
     meetups ||--o{ meetup_participants : has
     users ||--o{ meetup_participants : joins
@@ -128,8 +126,8 @@ E-Mail-Verifikation und Passwort-Reset sind **nicht im MVP** (ADR-008), das Sche
 | `experience_level` | `ENUM('beginner','advanced','expert')` | NULL | NULL | gleiche Skala wie meetups (siehe §3.1.1) |
 | `license_class` | `VARCHAR(60)` | NULL | NULL | Schein/Lizenz als **Freitext** (ADR-012/C1; nationale Klassen variieren), z.B. „A-Schein", „B-Schein" |
 | `glider` | `VARCHAR(120)` | NULL | NULL | Marke/Modell, Freitext |
-| `home_region` | `VARCHAR(80)` | NULL | NULL | Freitext-Heimatregion (entkoppelt von `home_spot_id`) |
-| `home_spot_id` | `BIGINT UNSIGNED` | NULL | NULL | FK → `spots.id`, optionaler Heimat-Startplatz |
+| `home_region` | `VARCHAR(80)` | NULL | NULL | Freitext-Heimatregion |
+| ~~`home_spot_id`~~ | — | — | — | **nicht umgesetzt** (nie migriert): Freitext-`home_region` deckt den Bedarf, und der exakte Heimat-Startplatz war als sensibel markiert (W8) |
 | `flight_hours` | `INT UNSIGNED` | NULL | NULL | geschätzte Flugstunden |
 | `email_verified_at` | `TIMESTAMP` | NULL | NULL | **vorbereitet/deferred** (ADR-008), MVP ungenutzt |
 | `created_at` | `TIMESTAMP` | NULL | `CURRENT_TIMESTAMP` | |
@@ -137,10 +135,9 @@ E-Mail-Verifikation und Passwort-Reset sind **nicht im MVP** (ADR-008), das Sche
 
 - **PK:** `user_id`
 - **FK:** `user_id` → `users.id` **ON DELETE CASCADE** (Profil stirbt mit User; User-„Löschen" ist aber primär Soft-Delete via Shield-`users.deleted_at`/`status`).
-- **FK:** `home_spot_id` → `spots.id` **ON DELETE SET NULL**.
 - **UNIQUE:** `handle` (`uq_profiles_handle`) — `NOT NULL` & Pflicht bei der Registrierung (Auffindbarkeit via @-Name/Verzeichnis); kein doppelter Handle.
 - **INDEX:** `idx_profiles_experience (experience_level)` (für `/users`-Filter/Matching).
-- **Sichtbarkeit (ADR-012/C2):** Die **öffentliche** Profilkarte liefert nur `display_name`, `handle`, `avatar_path`, `bio_markdown`, `experience_level`. `home_region`, `glider`, `license_class`, `flight_hours`, `home_spot_id` gehen **nur an eingeloggte** Nutzer (serverseitig gefiltert).
+- **Sichtbarkeit (ADR-012/C2):** Die **öffentliche** Profilkarte liefert nur `display_name`, `handle`, `avatar_path`, `bio_markdown`, `experience_level`. `home_region`, `glider`, `license_class`, `flight_hours` gehen **nur an eingeloggte** Nutzer (serverseitig gefiltert).
 
 > **Konsolidierung:** Die Dossiers nannten `experience_level` als `anfaenger|fortgeschritten|profi` (auth-profil) bzw. `…|experte|alle` (flugtreffen). Vereinheitlicht auf englische Keys `beginner|advanced|expert`; der Wert `all`/`alle` existiert **nur** auf `meetups.experience_level` (Filter „für alle Level"), NICHT auf Profilen. `license` (auth-profil) und `glider_model`/`license_class` (backend) → einheitlich `license_class` (Freitext, ADR-012/C1) + `glider` (Freitext). `bio` (TEXT) → `bio_markdown`.
 
