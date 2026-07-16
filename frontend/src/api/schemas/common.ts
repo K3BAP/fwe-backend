@@ -25,11 +25,3 @@ export const reactionSchema = z.object({
   me: z.boolean(),
 })
 export type Reaction = z.infer<typeof reactionSchema>
-
-/** Standard-Pagination-Block der Listen-Endpunkte. */
-export const paginationSchema = z.object({
-  page: z.number(),
-  perPage: z.number(),
-  total: z.number(),
-})
-export type Pagination = z.infer<typeof paginationSchema>
