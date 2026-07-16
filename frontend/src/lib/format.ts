@@ -16,6 +16,13 @@ export function formatClock(iso: string): string {
   return timeFmt.format(new Date(iso))
 }
 
+const shortDateFmt = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+
+/** „26.06.2026" — reines Kalenderdatum ohne Uhrzeit (Verwaltungslisten: Registriert-Spalte). */
+export function formatDate(iso: string): string {
+  return shortDateFmt.format(new Date(iso))
+}
+
 const intFmt = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 })
 
 /** „12 km/h" — gerundet, weil Nachkommastellen bei Windprognosen Genauigkeit vortäuschen. */
