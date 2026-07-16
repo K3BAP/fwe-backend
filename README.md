@@ -1,69 +1,58 @@
-# CodeIgniter 4 Application Starter
+# FlightMeet 🪂
 
-## What is CodeIgniter?
+Community-Plattform für Gleitschirmflieger: **Flugtreffen** an kuratierten Startplätzen finden und
+organisieren, sich in **Gruppen** austauschen (Feed + Channels), app-weiter **Chat**, **Profile** und
+In-App-**Benachrichtigungen** — dazu Wetter-Prognose (Open-Meteo) und ein KI-Flug-Briefing (Gemini)
+direkt am Treffen sowie ein Admin-Dashboard.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+Uni-Projekt (Modul *fwe*, Universität Trier), live auf https://team15.wi1cm.uni-trier.de/public/.
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+> **Aktiver Branch ist `flightmeet-react`** — `main` enthält ein älteres, unabhängiges Schwesterprojekt.
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+## Stack
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+| Schicht | Technologie |
+|---|---|
+| Backend | PHP 8.2+, CodeIgniter 4.7, CodeIgniter Shield (Session-Auth), MySQL 8 |
+| Frontend | React 19 + TypeScript, Vite 8, Tailwind v4 + DaisyUI v5, TanStack Query, Zustand, React Router, Zod, Leaflet, Motion |
+| Realtime | bewusst **Polling + ETag/304** statt WebSockets (Shared-Webspace-Deploy, ADR-001/002) |
+| Tests | PHPUnit (325 Feature-/Unit-Tests, MySQL-Test-DB) · Vitest (52 Smoke-Tests) |
 
-## Installation & updates
+## Lokale Entwicklung
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+Voraussetzungen: PHP ≥ 8.2, Composer, Node, MAMP-MySQL auf `127.0.0.1:8889` (DB `db_team15`, root/root).
+`.env` aus der Vorlage `env` erstellen.
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+```bash
+composer install
+php spark migrate --all               # Schema (Shield → Settings → App)
+php spark db:seed DatabaseSeeder      # deterministische Demo-Daten
+php spark serve --port 8080           # API + /media
 
-## Setup
+cd frontend && npm install
+npm run dev                           # http://localhost:5180 (proxied /api → :8080)
+```
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+Demo-Logins: `lena@flightmeet.test` / `passwort123` (Pilotin) und
+`admin@flightmeet.test` / `FlightMeet!2026` (Admin, `/admin`).
+Für das KI-Briefing optional `gemini.apiKey` in die `.env` legen (sonst antwortet der Endpunkt
+`not_configured` und die UI zeigt einen stillen Fallback).
 
-## Important Change with index.php
+## Tests
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+```bash
+composer test                         # PHPUnit (nutzt Test-DB db_team15_test)
+cd frontend && npm run typecheck && npm run lint && npm run test
+```
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+## Dokumentation
 
-**Please** read the user guide for a better explanation of how CI4 works!
+Die vollständige Spezifikation liegt in [`spec/`](spec/) — Einstieg über
+[`spec/TARGET_SPEC.md`](spec/TARGET_SPEC.md), die verbindlichen Architektur-Entscheidungen in
+[`spec/DECISIONS.md`](spec/DECISIONS.md) (ADR-001…019), der API-Katalog in
+[`spec/API.md`](spec/API.md). Arbeitskonventionen und Betriebswissen: [`CLAUDE.md`](CLAUDE.md).
 
-## Repository Management
+## Deploy
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
-
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
-
-## Server Requirements
-
-PHP version 8.2 or higher is required, with the following extensions installed:
-
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
-
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
-
-Additionally, make sure that the following extensions are enabled in your PHP:
-
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+Shared Uni-Webspace, nur SFTP (ADR-002): `composer build:frontend` → `composer deploy:remote`;
+Schema/Seed als SQL-Dump via phpMyAdmin. Runbook: `spec/06-backend-deployment.md` §13.

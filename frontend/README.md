@@ -1,16 +1,14 @@
-# React + Vite
+# FlightMeet — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React-19/TypeScript-SPA (Vite 8, Tailwind v4 + DaisyUI v5). Projekt-Überblick, Setup und
+Konventionen: siehe [README im Repo-Root](../README.md) und [`spec/05-frontend.md`](../spec/05-frontend.md).
 
-Currently, two official plugins are available:
+```bash
+npm install
+npm run dev          # http://localhost:5180 — proxied /api + /media → CI4 auf :8080
+npm run typecheck && npm run lint && npm run test   # Gate vor jedem Commit
+npm run build        # Prod-Build nach ../public/ (base /public/)
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Die Zod-Schemas unter `src/api/schemas/` sind der **bindende API-Vertrag** (`z.infer` = Typquelle);
+`src/config.ts` hält die `USE_MOCKS`-Naht (ADR-016) und die Polling-Intervalle (ADR-001).
