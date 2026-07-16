@@ -5,6 +5,8 @@ namespace App\Database\Seeds;
 use CodeIgniter\Database\Seeder;
 use CodeIgniter\Shield\Entities\User;
 use CodeIgniter\Shield\Models\UserModel;
+use DateTimeImmutable;
+use DateTimeZone;
 
 /**
  * Lokaler Demo-/Abnahme-Seed (M6): ein Plattform-Admin plus ein moderat aufgestockter Satz aus Piloten,
@@ -150,27 +152,34 @@ class DatabaseSeeder extends Seeder
     /**
      * 18 Treffen, gezielt über alle abgeleiteten Status verteilt (`creator`/`extra` = Index in $pilots;
      * negatives `days` ⇒ Vergangenheit ⇒ `finished`; `extra`-Zahl = max ⇒ `full`).
-     * @var list<array{title:string,spot:string,days:int,level:string,max:int|null,status:string,creator:int,extra:list<int>,description:string}>
+     *
+     * `days` = Tagesversatz zum Seed-Lauf, `time` = **lokale** Startzeit (Europe/Berlin), die zum Treffen
+     * passt — ein Frühflug startet um 07:00, ein Vollmondflug um 21:30. Die künftigen Treffen liegen
+     * bewusst dicht (1…16 Tage): das Wetter (ADR-017) reicht nur 16 Tage voraus, sonst zeigt die
+     * Detailseite `out_of_range`. `Kössen Cross-Country` bleibt als einziges absichtlich dahinter,
+     * damit auch dieser Zustand demonstrierbar ist.
+     *
+     * @var list<array{title:string,spot:string,days:int,time:string,level:string,max:int|null,status:string,creator:int,extra:list<int>,description:string}>
      */
     private array $meetups = [
-        ['title' => 'Frühflug Wasserkuppe',             'spot' => 'Wasserkuppe',                  'days' => 7,   'level' => 'beginner', 'max' => 6,    'status' => 'open',      'creator' => 0,  'extra' => [1, 3, 7],        'description' => 'Ruhiger Morgenflug am Westhang – ideal für frische A-Scheine. Kleine Gruppe, viel Betreuung.'],
-        ['title' => 'Abendthermik am Tegelberg',        'spot' => 'Tegelberg',                    'days' => 9,   'level' => 'advanced', 'max' => 2,    'status' => 'open',      'creator' => 1,  'extra' => [2],             'description' => 'Gemeinsamer Abendflug bei schöner Restthermik. Treffpunkt am oberen Parkplatz.'],
-        ['title' => 'XC-Streckenflug Brauneck',         'spot' => 'Brauneck',                     'days' => 12,  'level' => 'expert',   'max' => 10,   'status' => 'open',      'creator' => 2,  'extra' => [0, 5, 9, 13],    'description' => 'Ambitionierter Streckentag Richtung Karwendel. Funk und Live-Tracking empfohlen.'],
-        ['title' => 'Soaring am Calmont',               'spot' => 'Mosel — Calmont / Bremm',      'days' => 14,  'level' => 'all',      'max' => null, 'status' => 'open',      'creator' => 0,  'extra' => [3, 6, 10, 1],    'description' => 'Dynamischer Hangflug überm Moseltal. Offen für alle Level – Soaring-Bedingungen vorausgesetzt.'],
-        ['title' => 'Anfänger-Übungstag Beuren',        'spot' => 'Beuren (Schwäbische Alb)',     'days' => -8,  'level' => 'beginner', 'max' => 12,   'status' => 'open',      'creator' => 1,  'extra' => [2, 0, 8, 12],    'description' => 'Übungshang-Session mit Groundhandling und kurzen Hüpfern.'],
-        ['title' => 'Gleitschirm-Treffen Hochfelln',    'spot' => 'Hochfelln',                    'days' => 18,  'level' => 'advanced', 'max' => 10,   'status' => 'cancelled', 'creator' => 2,  'extra' => [0],             'description' => 'Leider abgesagt wegen unsicherer Wetterlage – wir verschieben auf nächste Woche.'],
-        ['title' => 'Thermikfliegen Gerlitzen',         'spot' => 'Gerlitzen',                    'days' => 20,  'level' => 'advanced', 'max' => 15,   'status' => 'open',      'creator' => 0,  'extra' => [1, 2, 3, 6, 10], 'description' => 'Klassiker über dem Ossiacher See. Lange Flüge bei guter Thermik möglich.'],
-        ['title' => 'Sonnenaufgangsflug Wallberg',      'spot' => 'Wallberg (Tegernsee)',         'days' => -13, 'level' => 'advanced', 'max' => 8,    'status' => 'open',      'creator' => 1,  'extra' => [0, 3],          'description' => 'Magischer Morgenflug überm Tegernsee. Früh aufstehen lohnt sich.'],
-        ['title' => 'Eifel-Treff Nürburg',              'spot' => 'Nürburg / Hohe Acht (Eifel)',  'days' => 10,  'level' => 'all',      'max' => 20,   'status' => 'open',      'creator' => 0,  'extra' => [1, 4, 8, 12, 7], 'description' => 'Lockeres Treffen an der Hohen Acht mit anschließendem Grillen am Landeplatz.'],
-        ['title' => 'Kössen Cross-Country',             'spot' => 'Kössen (Unterberghorn)',       'days' => 25,  'level' => 'expert',   'max' => 3,    'status' => 'open',      'creator' => 2,  'extra' => [0, 1],          'description' => 'Strecke Richtung Kaisergebirge. Erfahrung mit großen Talquerungen empfohlen.'],
-        ['title' => 'Talquerung Zell am See',           'spot' => 'Zell am See (Schmittenhöhe)',  'days' => 16,  'level' => 'expert',   'max' => 8,    'status' => 'open',      'creator' => 5,  'extra' => [9, 13, 1],       'description' => 'Anspruchsvolle Talquerung Richtung Hohe Tauern. Nur für erfahrene Strecken-Crews.'],
-        ['title' => 'Groundhandling-Kurs Hohenneuffen', 'spot' => 'Hohenneuffen',                 'days' => 6,   'level' => 'beginner', 'max' => 12,   'status' => 'open',      'creator' => 4,  'extra' => [8, 12, 2, 7],    'description' => 'Strukturierte Bodenarbeit für Einsteiger:innen. Material kann gestellt werden.'],
-        ['title' => 'Vollmondfliegen Brauneck',         'spot' => 'Brauneck',                     'days' => -20, 'level' => 'advanced', 'max' => 10,   'status' => 'open',      'creator' => 3,  'extra' => [6, 10, 0],       'description' => 'Stimmungsvoller Abendflug bei Vollmond. War ein unvergesslicher Abend.'],
-        ['title' => 'Acro-Auffrischung Kössen',         'spot' => 'Kössen (Unterberghorn)',       'days' => 22,  'level' => 'advanced', 'max' => 6,    'status' => 'open',      'creator' => 10, 'extra' => [3, 14],          'description' => 'Sicheres Acro über dem Wasser – mit Sicherheitseinweisung vorab.'],
-        ['title' => 'Frühjahrsfliegen Gerlitzen',       'spot' => 'Gerlitzen',                    'days' => 11,  'level' => 'all',      'max' => 16,   'status' => 'open',      'creator' => 9,  'extra' => [5, 13, 6, 11, 14], 'description' => 'Saisonauftakt an der Gerlitzen für alle Level. Anschließend Einkehr.'],
-        ['title' => 'Hike & Fly Stubai',                'spot' => 'Stubaital (Elfer / Kreuzjoch)','days' => 19,  'level' => 'expert',   'max' => 4,    'status' => 'open',      'creator' => 5,  'extra' => [9, 13, 1],       'description' => 'Anspruchsvolle Hike-and-Fly-Tour. Gute Kondition und Bergerfahrung Pflicht.'],
-        ['title' => 'Schnupperfliegen Kandel',          'spot' => 'Kandel (Schwarzwald)',         'days' => 9,   'level' => 'beginner', 'max' => 10,   'status' => 'open',      'creator' => 12, 'extra' => [8, 4, 2],        'description' => 'Lockeres Schnuppertreffen im Schwarzwald. Auch zum Zuschauen willkommen.'],
-        ['title' => 'Abendsession Interlaken',          'spot' => 'Interlaken (Beatenberg / Niederhorn)', 'days' => -5, 'level' => 'advanced', 'max' => 12, 'status' => 'cancelled', 'creator' => 14, 'extra' => [6, 10], 'description' => 'Abgesagt wegen aufziehender Gewitter. Sicherheit geht vor.'],
+        ['title' => 'Frühflug Wasserkuppe',             'spot' => 'Wasserkuppe',                  'days' => 3,   'time' => '07:00', 'level' => 'beginner', 'max' => 6,    'status' => 'open',      'creator' => 0,  'extra' => [1, 3, 7],        'description' => 'Ruhiger Morgenflug am Westhang – ideal für frische A-Scheine. Kleine Gruppe, viel Betreuung.'],
+        ['title' => 'Abendthermik am Tegelberg',        'spot' => 'Tegelberg',                    'days' => 1,   'time' => '18:30', 'level' => 'advanced', 'max' => 2,    'status' => 'open',      'creator' => 1,  'extra' => [2],             'description' => 'Gemeinsamer Abendflug bei schöner Restthermik. Treffpunkt am oberen Parkplatz.'],
+        ['title' => 'XC-Streckenflug Brauneck',         'spot' => 'Brauneck',                     'days' => 9,   'time' => '11:00', 'level' => 'expert',   'max' => 10,   'status' => 'open',      'creator' => 2,  'extra' => [0, 5, 9, 13],    'description' => 'Ambitionierter Streckentag Richtung Karwendel. Funk und Live-Tracking empfohlen.'],
+        ['title' => 'Soaring am Calmont',               'spot' => 'Mosel — Calmont / Bremm',      'days' => 12,  'time' => '14:00', 'level' => 'all',      'max' => null, 'status' => 'open',      'creator' => 0,  'extra' => [3, 6, 10, 1],    'description' => 'Dynamischer Hangflug überm Moseltal. Offen für alle Level – Soaring-Bedingungen vorausgesetzt.'],
+        ['title' => 'Anfänger-Übungstag Beuren',        'spot' => 'Beuren (Schwäbische Alb)',     'days' => -8,  'time' => '10:00', 'level' => 'beginner', 'max' => 12,   'status' => 'open',      'creator' => 1,  'extra' => [2, 0, 8, 12],    'description' => 'Übungshang-Session mit Groundhandling und kurzen Hüpfern.'],
+        ['title' => 'Gleitschirm-Treffen Hochfelln',    'spot' => 'Hochfelln',                    'days' => 4,   'time' => '10:30', 'level' => 'advanced', 'max' => 10,   'status' => 'cancelled', 'creator' => 2,  'extra' => [0],             'description' => 'Leider abgesagt wegen unsicherer Wetterlage – wir verschieben auf nächste Woche.'],
+        ['title' => 'Thermikfliegen Gerlitzen',         'spot' => 'Gerlitzen',                    'days' => 13,  'time' => '12:00', 'level' => 'advanced', 'max' => 15,   'status' => 'open',      'creator' => 0,  'extra' => [1, 2, 3, 6, 10], 'description' => 'Klassiker über dem Ossiacher See. Lange Flüge bei guter Thermik möglich.'],
+        ['title' => 'Sonnenaufgangsflug Wallberg',      'spot' => 'Wallberg (Tegernsee)',         'days' => -13, 'time' => '05:30', 'level' => 'advanced', 'max' => 8,    'status' => 'open',      'creator' => 1,  'extra' => [0, 3],          'description' => 'Magischer Morgenflug überm Tegernsee. Früh aufstehen lohnt sich.'],
+        ['title' => 'Eifel-Treff Nürburg',              'spot' => 'Nürburg / Hohe Acht (Eifel)',  'days' => 6,   'time' => '15:00', 'level' => 'all',      'max' => 20,   'status' => 'open',      'creator' => 0,  'extra' => [1, 4, 8, 12, 7], 'description' => 'Lockeres Treffen an der Hohen Acht mit anschließendem Grillen am Landeplatz.'],
+        ['title' => 'Kössen Cross-Country',             'spot' => 'Kössen (Unterberghorn)',       'days' => 25,  'time' => '11:30', 'level' => 'expert',   'max' => 3,    'status' => 'open',      'creator' => 2,  'extra' => [0, 1],          'description' => 'Strecke Richtung Kaisergebirge. Erfahrung mit großen Talquerungen empfohlen.'],
+        ['title' => 'Talquerung Zell am See',           'spot' => 'Zell am See (Schmittenhöhe)',  'days' => 14,  'time' => '12:30', 'level' => 'expert',   'max' => 8,    'status' => 'open',      'creator' => 5,  'extra' => [9, 13, 1],       'description' => 'Anspruchsvolle Talquerung Richtung Hohe Tauern. Nur für erfahrene Strecken-Crews.'],
+        ['title' => 'Groundhandling-Kurs Hohenneuffen', 'spot' => 'Hohenneuffen',                 'days' => 2,   'time' => '09:30', 'level' => 'beginner', 'max' => 12,   'status' => 'open',      'creator' => 4,  'extra' => [8, 12, 2, 7],    'description' => 'Strukturierte Bodenarbeit für Einsteiger:innen. Material kann gestellt werden.'],
+        ['title' => 'Vollmondfliegen Brauneck',         'spot' => 'Brauneck',                     'days' => -20, 'time' => '21:30', 'level' => 'advanced', 'max' => 10,   'status' => 'open',      'creator' => 3,  'extra' => [6, 10, 0],       'description' => 'Stimmungsvoller Abendflug bei Vollmond. War ein unvergesslicher Abend.'],
+        ['title' => 'Acro-Auffrischung Kössen',         'spot' => 'Kössen (Unterberghorn)',       'days' => 16,  'time' => '16:00', 'level' => 'advanced', 'max' => 6,    'status' => 'open',      'creator' => 10, 'extra' => [3, 14],          'description' => 'Sicheres Acro über dem Wasser – mit Sicherheitseinweisung vorab.'],
+        ['title' => 'Frühjahrsfliegen Gerlitzen',       'spot' => 'Gerlitzen',                    'days' => 10,  'time' => '11:00', 'level' => 'all',      'max' => 16,   'status' => 'open',      'creator' => 9,  'extra' => [5, 13, 6, 11, 14], 'description' => 'Saisonauftakt an der Gerlitzen für alle Level. Anschließend Einkehr.'],
+        ['title' => 'Hike & Fly Stubai',                'spot' => 'Stubaital (Elfer / Kreuzjoch)','days' => 8,   'time' => '06:30', 'level' => 'expert',   'max' => 4,    'status' => 'open',      'creator' => 5,  'extra' => [9, 13, 1],       'description' => 'Anspruchsvolle Hike-and-Fly-Tour. Gute Kondition und Bergerfahrung Pflicht.'],
+        ['title' => 'Schnupperfliegen Kandel',          'spot' => 'Kandel (Schwarzwald)',         'days' => 5,   'time' => '13:00', 'level' => 'beginner', 'max' => 10,   'status' => 'open',      'creator' => 12, 'extra' => [8, 4, 2],        'description' => 'Lockeres Schnuppertreffen im Schwarzwald. Auch zum Zuschauen willkommen.'],
+        ['title' => 'Abendsession Interlaken',          'spot' => 'Interlaken (Beatenberg / Niederhorn)', 'days' => -5, 'time' => '18:00', 'level' => 'advanced', 'max' => 12, 'status' => 'cancelled', 'creator' => 14, 'extra' => [6, 10], 'description' => 'Abgesagt wegen aufziehender Gewitter. Sicherheit geht vor.'],
     ];
 
     /**
@@ -409,7 +418,7 @@ class DatabaseSeeder extends Seeder
                 'lng'              => $spot['lng'],
                 'title'            => $m['title'],
                 'description'      => $m['description'],
-                'starts_at'        => gmdate('Y-m-d H:i:s', time() + $m['days'] * 86400),
+                'starts_at'        => $this->startsAt($m['days'], $m['time']),
                 'experience_level' => $m['level'],
                 'max_participants' => $m['max'],
                 'status'           => $m['status'],
@@ -427,6 +436,24 @@ class DatabaseSeeder extends Seeder
             );
             $this->db->table('meetup_participants')->insertBatch($rows);
         }
+    }
+
+    /**
+     * `starts_at` (UTC-DATETIME) aus Tagesversatz + **lokaler** Startzeit. Der Versatz bleibt relativ
+     * zum Seed-Lauf, damit jeder Reseed frische Status erzeugt; die Uhrzeit gehört dagegen zum Treffen
+     * und darf nicht die Laufzeit des Seeders erben — sonst startet der Frühflug um 16 Uhr.
+     * Gerechnet wird in `Europe/Berlin` (alle Spots liegen im DACH-Raum) und erst zum Schluss nach UTC
+     * konvertiert, damit die Sommerzeit korrekt einfließt.
+     */
+    private function startsAt(int $days, string $time): string
+    {
+        [$hour, $minute] = array_map('intval', explode(':', $time));
+
+        return (new DateTimeImmutable('today', new DateTimeZone('Europe/Berlin')))
+            ->modify(sprintf('%+d days', $days))
+            ->setTime($hour, $minute)
+            ->setTimezone(new DateTimeZone('UTC'))
+            ->format('Y-m-d H:i:s');
     }
 
     /**
