@@ -19,9 +19,9 @@ Alle Endpunkte liegen unter dem Präfix **`/api/v1`** (ADR via offene Frage „A
 ### 1.3 Response-Envelope (offene Frage „Envelope" → Schlankes Envelope)
 **Erfolg:**
 ```json
-{ "data": { ... }, "meta": { "page": 1, "perPage": 20, "total": 137 } }
+{ "data": { ... }, "meta": { "total": 137, "limit": 20, "offset": 0, "sort": "starts_at_asc" } }
 ```
-`meta` ist optional und nur bei Listen/Pagination gesetzt.
+`meta` ist optional und nur bei serverseitig paginierten Listen gesetzt (Flugtreffen §5.1, Admin-Listen §11b) — Shape `{ total, limit, offset, sort }`.
 
 **Fehler:**
 ```json
@@ -63,7 +63,7 @@ Moderierbare Inhalte werden soft-gelöscht (`deleted_at`, ggf. `deleted_by`) und
 | Feld | Werte |
 |---|---|
 | `users`-Rolle (Shield-Group) | `user`, `admin` |
-| `users.status` | `active`, `suspended`, `deleted` |
+| Konto-Zustand (abgeleitet aus `users.active` + `users.deleted_at`, keine eigene Spalte) | `active`, `suspended`, `deleted` |
 | `profiles.experience_level` | `beginner`, `advanced`, `expert` |
 | `meetups.experience_level` | `beginner`, `advanced`, `expert`, `all` |
 | `meetups.status` (persistiert) | `open`, `cancelled` |
@@ -135,7 +135,6 @@ Liefert/aktualisiert das CSRF-Token (für SPA-Bootstrapping). **Response 200** �
 | 3.4 | POST | `/me/avatar` | eingeloggt (self) |
 | 3.5 | DELETE | `/me/avatar` | eingeloggt (self) |
 | 3.6 | GET | `/users` | eingeloggt |
-| 3.7 | PATCH | `/admin/users/{userId}` | `admin` |
 
 ### 3.1 GET `/users/{userId}`
 Öffentliche Profilkarte/-seite eines Nutzers — **ohne Login lesbar** (ADR-012/B1). **Nie `email`**. **Reduzierte Projektion (ADR-012/C2):** Gäste erhalten `display_name`, `handle`, `avatar_url`, `bio_markdown`, `experience_level`; die Zusatzfelder (`home_region`, `glider`, `license_class`, `flight_hours`) nur bei eingeloggter Anfrage.
@@ -145,13 +144,13 @@ Liefert/aktualisiert das CSRF-Token (für SPA-Bootstrapping). **Response 200** �
 { "data": {
   "user_id": 42, "display_name": "Lena", "handle": "lena_xc",
   "avatar_path": "/media/avatars/ab12.webp",
-  "bio_html": "<p>…sanitisiertes Markdown…</p>",
+  "bio_markdown": "Fliegt seit 2019 an der Mosel …",
   "experience_level": "advanced", "license_class": "B",
   "glider": "Ozone Rush 6", "home_region": "Mosel",
   "flight_hours": 320, "created_at": "2026-01-04T10:00:00Z"
 } }
 ```
-Server rendert Bio-Markdown nicht zwingend serverseitig; bei `bio_html` gilt Tag-Allowlist-Sanitizing, alternativ Rohtext-Feld `bio_markdown` + client-seitiges `react-markdown` ohne `rehype-raw` (ADR-011). **Fehler:** `404 not_found`.
+Die Bio wird als Rohtext-Feld `bio_markdown` ausgeliefert; das Frontend rendert sie client-seitig mit `react-markdown` **ohne** `rehype-raw` (ADR-011 — kein HTML im Payload, kein serverseitiges `bio_html`). **Fehler:** `404 not_found`.
 
 ### 3.2 GET `/me/profile`
 Eigenes vollständiges, editierbares Profil. **Response 200** → `{ data: OwnProfile }` (wie PublicProfile + `email`, alle Felder roh).
@@ -189,11 +188,7 @@ Nutzersuche (für Einladungen, DM-Start, Erwähnungen). Konsolidiert `/api/users
 **Query:** `q` (LIKE über `display_name`/`handle`), `experience_level`, `limit` (≤50, Default 20), `offset`.
 **Response 200** → `{ data: PublicUserCard[], meta: { total, limit, offset } }`.
 
-### 3.7 PATCH `/admin/users/{userId}`
-Admin-Moderation: Sperren/Entsperren, Rolle ändern. **Auth: `admin`.**
-
-**Request:** `{ status?: 'active'|'suspended'|'deleted', role?: 'user'|'admin' }`
-**Response 200** → `{ data: PublicUser }`. **Fehler:** `403 forbidden`; `404 not_found`; `422 validation_error`.
+> Admin-Moderation (Profil bearbeiten, Rolle, Sperre, Soft-Delete) liegt unter `/admin/users/*` — siehe [§11b](#11b-admin-adr-019). Ein früher hier skizziertes `PATCH /admin/users/{userId}` mit `{status, role}`-Body ist durch die dortigen, getrennten Endpunkte (11b.4–11b.8) abgelöst.
 
 ---
 
@@ -842,18 +837,18 @@ Deshalb kein `409 spot_in_use`, sondern `meetups_count` im UI + Hinweis im Dialo
 
 ## 12. Uploads (Querschnitt)
 
-| # | Methode | Pfad | Auth |
-|---|---|---|---|
-| 12.1 | POST | `/uploads` | eingeloggt |
+> **Deferred — nicht implementiert.** Der einzige Upload im MVP ist der Avatar (§3.4 `POST /me/avatar`,
+> mit Normalisierung auf 512/128 px WebP). Ein generischer `POST /uploads` für Gruppen-Logo und
+> Feed-Bild war hier skizziert, hat aber keine UI bekommen (`groups.logo_path` / `feed_posts.image_path`
+> existieren im Schema und in den DTOs, bleiben ohne Upload-Fläche jedoch `null`) — der Endpunkt wurde
+> deshalb nie gebaut. Die Skizze bleibt als Ausbaupfad dokumentiert:
 
-### 12.1 POST `/uploads`
+### 12.1 POST `/uploads` *(deferred)*
 Generischer Datei-Upload (Gruppen-Logo, Feed-Bild). Validiert MIME (`image/jpeg|png|webp`) + Größe (≤5 MB), randomisiert Dateinamen, schreibt nach `public/media/...` (vom Vite-`emptyOutDir` geschützt, ADR-002), gibt Pfad zurück.
 
 **Request:** `multipart/form-data`, Feld `file`, optional `purpose` (`group_logo|feed_image`).
 **Response 201** → `{ data: { path: "/media/uploads/ab12.webp", mime_type, size_bytes } }`.
 **Fehler:** `422 validation_error`; `400 file_too_large`; `415 unsupported_media_type`.
-
-> Avatar-Upload hat einen eigenen, dedizierten Endpunkt (§3.4 `POST /me/avatar`) mit Normalisierung. **TODO (ADR-012/D3):** Webspace-Schreibrechte/Quota für `public/media/uploads/` früh auf dem echten Host testen (ADR-002); andernfalls externe URL-Referenzen.
 
 ---
 

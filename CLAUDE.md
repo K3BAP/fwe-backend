@@ -328,7 +328,7 @@ upload quota / ETag-304 on the real webspace) and D4 (admin login for grading) a
 | File | Contents |
 |---|---|
 | `TARGET_SPEC.md` | main spec overview |
-| `DECISIONS.md` | **ADR log (ADR-001…018)** — the locked architectural decisions; read this |
+| `DECISIONS.md` | **ADR log (ADR-001…019)** — the locked architectural decisions; read this |
 | `DATA_MODEL.md` | binding schema design |
 | `API.md` | endpoint catalogue |
 | `01..06-*.md` | per-area chapters (auth/profil, flugtreffen, gruppen, chat-realtime, frontend, backend-deployment) |

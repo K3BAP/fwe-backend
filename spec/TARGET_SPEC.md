@@ -1,9 +1,11 @@
 # FlightMeet – Target Specification
 
-> **Status:** ✅ **Spezifikation abgeschlossen.** Alle Kapitel geschrieben; **13 ADRs** entschieden
-> (`DECISIONS.md`), inkl. Interview-Runde 4 (ADR-012: Schema-/Produkt-Details) und Code-Qualitäts-
-> Prinzipien (ADR-013). **Keine blockierenden Fragen** mehr offen; Reste sind TODOs (Webspace-Tests D3,
-> Admin-Login D4). **Nächster Schritt: Meilenstein-Planung** für die schrittweise Implementierung.
+> **Status:** ✅ **Spezifikation abgeschlossen und umgesetzt.** Alle Kapitel geschrieben; **19 ADRs**
+> entschieden (`DECISIONS.md`), inkl. Interview-Runde 4 (ADR-012), Code-Qualitäts-Prinzipien (ADR-013),
+> Wetter-Proxy (ADR-017), KI-Briefing (ADR-018) und Admin-Dashboard (ADR-019). Die Meilensteine
+> **M0–M6 sind vollständig implementiert** ([`MILESTONES.md`](MILESTONES.md)); die App läuft auf dem
+> Uni-Webspace. Kapitel 2 („Ist-Zustand") beschreibt bewusst den Repo-Stand **zum Zeitpunkt der
+> Spezifikation** — als Ausgangspunkt der Planung, nicht den heutigen Stand.
 >
 > **Legende:** ✅ bestätigt · 🟡 vorläufig / Vorschlag · ❓OFFEN = Entscheidung des Nutzers nötig
 

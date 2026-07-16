@@ -1,5 +1,9 @@
 # FlightMeet – Meilensteinplan (Prototyp-zuerst)
 
+> **Status:** ✅ **M0–M6 abgeschlossen** (Deploy auf dem Uni-Webspace inklusive). Post-MVP kamen
+> Wetter (ADR-017), KI-Briefing (ADR-018) und das Admin-Dashboard (ADR-019) hinzu — siehe
+> `DECISIONS.md` und `CLAUDE.md` §14.
+
 Strategie: **erst die komplette UI als klickbarer Prototyp, dann domänenweise mit echter Funktionalität
 füllen** (ADR-016). Möglich, weil **Datenmodell & API-DTOs bereits feststehen** ([`DATA_MODEL.md`](DATA_MODEL.md),
 [`API.md`](API.md)) — der Prototyp nutzt **typisierte Mock-Daten, die den echten Response-Shapes
