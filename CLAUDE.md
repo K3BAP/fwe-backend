@@ -14,7 +14,8 @@ Guidance for AI agents working in this repository. Read this first, then consult
 an app-wide **Chat**, **Profile**, and in-app **Benachrichtigungen** (notifications). It's a university
 course project (module "fwe", Uni Trier) and ships to a shared university webspace.
 
-- **Active branch: `flightmeet-react`** — NOT `main`. All work happens here; the branch is **not pushed**.
+- **Active branch: `flightmeet-react`** — NOT `main`. All work happens here; it tracks `origin/flightmeet-react`
+  (push there, never to `main`).
 - The `main`/other branches contain an unrelated older sibling project (City-Rallye). Don't mix them.
 - **Build model = prototype-first (ADR-016):** a full UI was built on mock data first (M1), then each
   domain was wired to the real backend by flipping `USE_MOCKS.<domain>` (M2–M5). M6 = polish/seed/tests/
@@ -301,10 +302,18 @@ D3/D4 deploy TODOs), 013 readable code, 016 prototype-first seam, 017 weather vi
 
 ## 14. Status
 
-M1–M6 complete on `flightmeet-react` (not pushed). Backend 243 PHPUnit green, frontend 22 Vitest green.
+M1–M6 complete and pushed to `origin/flightmeet-react`. Backend 243 PHPUnit green, frontend 22 Vitest green.
 Post-MVP: weather on the meetup detail page (ADR-017) + Gemini flight briefing (ADR-018).
+
+**Live on prod** (https://team15.wi1cm.uni-trier.de/public/, last deploy 16.07.2026, incl. ADR-017/018).
+D3 verified on the real webspace: outbound HTTPS + `ext-curl` work (Open-Meteo **and** Gemini reachable),
+FileCache writable, ETag→`304` passes through Apache. Prod `.env` carries `gemini.apiKey`, so the briefing
+is live there; the previous config is backed up server-side as `/web/.env.bak-20260716-155350` (delete once
+you're satisfied — a later `mirror --delete` would drop it anyway).
+
 **Deferred / open:** real admin/moderation view (only the role badge exists); group invite-accept UI
-(backend ready); design-alignment of chat/notification/groups pages to the prototype; the actual live
-deploy + D3 webspace tests (artifacts + runbook are ready; D3 now also covers outbound HTTPS/`ext-curl`
-for the weather proxy). Low-priority: muted-text contrast bump
-(`text-base-content/55` ≈ 4:1, just under AA); dev-only `vite` advisory.
+(backend ready); design-alignment of chat/notification/groups pages to the prototype. D3 leftovers: avatar
+upload quota/no-exec on the webspace, SMTP (both untested; e-mail flows are out of MVP scope anyway).
+The prod DB seed dates from 26.06.2026 — only ~5 meetups are still in the future, so re-seed + re-import
+via phpMyAdmin before a demo if you want a fuller weather/briefing showcase. Low-priority: muted-text
+contrast bump (`text-base-content/55` ≈ 4:1, just under AA); dev-only `vite` advisory.

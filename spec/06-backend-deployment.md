@@ -409,10 +409,10 @@ composer build:frontend
 Direkt nach dem ersten Live-Deploy auf `hosting.wi1cm.uni-trier.de` prüfen:
 
 - [ ] **Upload-Schreibrechte/Quota:** Avatar hochladen → liegt in `public/media/uploads/avatars/`, wird ausgeliefert; `.htaccess`-No-Execute greift; Quota nicht sofort erschöpft.
-- [ ] **FileCache:** `writable/cache` ist beschreibbar (sonst auf `null`-Handler zurückfallen, §8).
-- [ ] **ETag/`304`:** ein gepollter GET (z. B. `/conversations`, `/notifications`) liefert beim zweiten Abruf mit `If-None-Match` ein **`304`** durch (Apache reicht den Header durch; der CI4-Helper überspringt `304` nur unter dem PHP-Dev-Server).
+- [x] **FileCache:** `writable/cache` ist beschreibbar — am 16.07.2026 verifiziert: der zweite Briefing-Abruf kam aus dem Cache (0,22 s statt 1,33 s). Kein Rückfall auf den `null`-Handler nötig.
+- [x] **ETag/`304`:** am 16.07.2026 verifiziert — `GET /meetups/6/weather` liefert einen `ETag`, der Replay mit `If-None-Match` ein **`304`** (Apache reicht den Header durch; der CI4-Helper überspringt `304` nur unter dem PHP-Dev-Server).
 - [ ] **SMTP:** ob der Webspace ausgehende Mails zulässt (für später; E-Mail-Flows sind im MVP aus, ADR-008).
-- [ ] **Ausgehendes HTTPS + `ext-curl`** (Wetter-Proxy ADR-017, KI-Briefing ADR-018): `GET /api/v1/meetups/{id}/weather` eines künftigen Treffens liefert `200` mit `available: true`; danach `GET …/briefing` (setzt `gemini.apiKey` in der Server-`.env` voraus, sonst `not_configured`). Ausgehende Hosts: `api.open-meteo.com` und `generativelanguage.googleapis.com`. Sperrt der Webspace sie (oder fehlt `ext-curl`), antworten die Endpunkte `503 weather_unavailable`/`briefing_unavailable` — die Detailseite zeigt dann nur leise Ersatzzeilen und bleibt sonst voll funktionsfähig.
+- [x] **Ausgehendes HTTPS + `ext-curl`** (Wetter-Proxy ADR-017, KI-Briefing ADR-018): am 16.07.2026 verifiziert — der Webspace hat `ext-curl` und lässt ausgehendes HTTPS zu. `GET /meetups/6/weather` liefert echte Open-Meteo-Daten (`available: true`), `GET /meetups/6/briefing` echten Gemini-Text (~1,3 s). Ausgehende Hosts: `api.open-meteo.com` und `generativelanguage.googleapis.com` — beide erreichbar. (Wäre einer gesperrt oder `ext-curl` nicht vorhanden, antworteten die Endpunkte `503 weather_unavailable`/`briefing_unavailable` und die Detailseite zeigte nur leise Ersatzzeilen.)
 
 ### 13.3 TODO D4 — Abnahme-Login (ADR-012/D4)
 
