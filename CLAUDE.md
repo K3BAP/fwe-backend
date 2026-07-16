@@ -14,9 +14,12 @@ Guidance for AI agents working in this repository. Read this first, then consult
 an app-wide **Chat**, **Profile**, and in-app **Benachrichtigungen** (notifications). It's a university
 course project (module "fwe", Uni Trier) and ships to a shared university webspace.
 
-- **Active branch: `flightmeet-react`** — NOT `main`. All work happens here; it tracks `origin/flightmeet-react`
-  (push there, never to `main`).
-- The `main`/other branches contain an unrelated older sibling project (City-Rallye). Don't mix them.
+- **Active branch: `flightmeet-react`** — all work happens here; it tracks `origin/flightmeet-react`
+  (commit and push there, not directly to `main`).
+- `main` holds only the **three CI4-appstarter origin commits** (`b74f0a4`) both projects branch off —
+  it is an ancestor of `flightmeet-react`, so a PR against it merges fast-forward.
+- The unrelated older sibling project (**City-Rallye**) lives on the **`city-rallye`** branch, not on
+  `main`. Don't mix the two.
 - **Build model = prototype-first (ADR-016):** a full UI was built on mock data first (M1), then each
   domain was wired to the real backend by flipping `USE_MOCKS.<domain>` (M2–M5). M6 = polish/seed/tests/
   deploy-prep. M1–M6 are complete.
