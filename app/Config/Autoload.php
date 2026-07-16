@@ -88,5 +88,6 @@ class Autoload extends AutoloadConfig
      *
      * @var list<string>
      */
-    public $helpers = [];
+    // Shield braucht beide global: `auth()` (Session/User) und `setting()` (codeigniter4/settings).
+    public $helpers = ['auth', 'setting'];
 }

@@ -14,8 +14,12 @@ class Security extends BaseConfig
      * Protection Method for Cross Site Request Forgery protection.
      *
      * @var string 'cookie' or 'session'
+     *
+     * FlightMeet: 'session' ist Pflicht — Shields Session-Authenticator lehnt 'cookie' ab
+     * (Same-Site-Bypass-Schutz). Das Token liegt serverseitig in der Session; die SPA holt es via
+     * `GET /api/v1/auth/csrf` und sendet es als `X-CSRF-TOKEN`-Header (Double-Submit, ADR-004).
      */
-    public string $csrfProtection = 'cookie';
+    public string $csrfProtection = 'session';
 
     /**
      * --------------------------------------------------------------------------
@@ -70,8 +74,12 @@ class Security extends BaseConfig
      * --------------------------------------------------------------------------
      *
      * Regenerate CSRF Token on every submission.
+     *
+     * FlightMeet (ADR-004): false — die SPA holt das Token einmal via `GET /api/v1/auth/csrf`
+     * und sendet es als `X-CSRF-TOKEN`-Header. Bei Regenerierung pro Request würde der gecachte
+     * Token sofort ungültig (Double-Submit bräuchte sonst nach jedem Write ein Refetch).
      */
-    public bool $regenerate = true;
+    public bool $regenerate = false;
 
     /**
      * --------------------------------------------------------------------------
@@ -82,5 +90,6 @@ class Security extends BaseConfig
      *
      * @see https://codeigniter4.github.io/userguide/libraries/security.html#redirection-on-failure
      */
-    public bool $redirect = (ENVIRONMENT === 'production');
+    // FlightMeet: nie weiterleiten — die API antwortet bei CSRF-Mismatch mit `403 csrf_invalid` (JSON-Envelope).
+    public bool $redirect = false;
 }

@@ -126,3 +126,7 @@ _modules/*
 /phpunit*.xml
 
 .deploypass
+env.prod
+
+# Deploy-Artefakte (SQL-Dump etc.) — regenerierbar, kein Quelltext
+/deploy/

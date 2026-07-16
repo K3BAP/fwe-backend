@@ -5,6 +5,7 @@ namespace Config;
 use CodeIgniter\Events\Events;
 use CodeIgniter\Exceptions\FrameworkException;
 use CodeIgniter\HotReloader\HotReloader;
+use Throwable;
 
 /*
  * --------------------------------------------------------------------
@@ -22,6 +23,24 @@ use CodeIgniter\HotReloader\HotReloader;
  * Example:
  *      Events::on('create', [$myInstance, 'myMethod']);
  */
+
+/*
+ * MySQL-Session auf UTC pinnen (ADR: appTimezone = UTC). Ohne dies stehen die Spalten-Defaults
+ * `CURRENT_TIMESTAMP` in der **lokalen** Server-Zeit (MAMP/Webspace = CEST), während der Rest der App
+ * (PHP `gmdate`, SQL `UTC_TIMESTAMP()`, Presenter `…Z`) UTC annimmt — das verschiebt angezeigte
+ * Zeitstempel und bricht das 15-min-Edit-Fenster (Chat) sowie die Notification-Sortierung. In allen
+ * Umgebungen aktiv; best-effort (eine fehlende DB darf den Request nicht abbrechen).
+ */
+Events::on('pre_system', static function (): void {
+    try {
+        $db = \Config\Database::connect();
+        if ($db->DBDriver === 'MySQLi') {
+            $db->query("SET time_zone = '+00:00'");
+        }
+    } catch (Throwable $e) {
+        log_message('error', 'Could not pin DB session timezone to UTC: ' . $e->getMessage());
+    }
+});
 
 Events::on('pre_system', static function (): void {
     if (ENVIRONMENT !== 'testing') {

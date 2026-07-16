@@ -4,7 +4,6 @@ namespace Config;
 
 use CodeIgniter\Config\Filters as BaseFilters;
 use CodeIgniter\Filters\Cors;
-use CodeIgniter\Filters\CSRF;
 use CodeIgniter\Filters\DebugToolbar;
 use CodeIgniter\Filters\ForceHTTPS;
 use CodeIgniter\Filters\Honeypot;
@@ -25,7 +24,11 @@ class Filters extends BaseFilters
      * or [filter_name => [classname1, classname2, ...]]
      */
     public array $aliases = [
-        'csrf'          => CSRF::class,
+        // FlightMeet-API-Filter (06-backend §4.2): Shield-Session-Auth, Rate-Limit, CSRF (testfreundlich).
+        'auth'          => \App\Filters\ApiAuthFilter::class,
+        'admin'         => \App\Filters\AdminFilter::class,
+        'throttle'      => \App\Filters\ThrottleFilter::class,
+        'csrf'          => \App\Filters\ApiCsrfFilter::class,
         'toolbar'       => DebugToolbar::class,
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
