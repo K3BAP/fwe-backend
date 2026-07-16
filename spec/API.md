@@ -165,7 +165,7 @@ Teilupdate des eigenen Profils. Alle Felder optional (ADR-010, alle Zusatzfelder
 | `handle` | string\|null | `^[a-z0-9_]{3,30}$`, UNIQUE |
 | `bio_markdown` | string\|null | `max(2000)`, eingeschränktes Markdown (ADR-011) |
 | `experience_level` | enum\|null | `beginner\|advanced\|expert` |
-| `license_class` | string\|null | `max(20)` |
+| `license_class` | string\|null | `max(60)` |
 | `glider` | string\|null | `max(120)` |
 | `home_region` | string\|null | `max(80)` |
 | `flight_hours` | int\|null | `>=0` |

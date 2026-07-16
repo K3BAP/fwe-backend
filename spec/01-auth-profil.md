@@ -147,7 +147,7 @@ Fehlerantwort (einheitliches Envelope):
 
 - Shield-`SessionAuthenticator->attempt()`. Erfolg ⇒ Session-Cookie wird gesetzt; `200` mit demselben `user`-Objekt wie bei Register.
 - Fehlschlag ⇒ **einheitlich** `401 invalid_credentials` (E-Mail/Passwort nicht unterscheiden → keine User-Enumeration). Deutsche Message: „E-Mail oder Passwort ist falsch."
-- Rate-Limiting: Shield-`auth_logins` + CI4-`throttler` (z.B. 5 Fehlversuche/Minute pro IP+E-Mail) ⇒ `429 too_many_attempts`.
+- Rate-Limiting: Shield-`auth_logins` + CI4-`throttler` (z.B. 5 Fehlversuche/Minute pro IP+E-Mail) ⇒ `429 rate_limited`.
 - `remember=true` ⇒ `auth_remember_tokens` (Langzeit-Cookie). Default `false`.
 
 ### 3.4 Logout — `POST /api/v1/auth/logout`
@@ -186,7 +186,7 @@ Ohne gültige Session ⇒ `401 unauthenticated` (die SPA rendert dann Landing/Lo
 
 ### 3.6 Deferred E-Mail-Flows (Schema vorbereitet, nicht aktiv)
 
-`POST /auth/password/forgot`, `POST /auth/password/reset`, `GET /auth/verify-email` sind **spezifiziert, aber im MVP deaktiviert** (ADR-002/008, keine verlässliche SMTP). Routen existieren als Stub und antworten `501 not_implemented` mit deutscher Hinweis-Message, damit der Vertrag dokumentiert ist und später nur die Implementierung + SMTP-Konfig nachgezogen werden muss. Schema (`password_resets`, `users.email_verified_at`) liegt bereit.
+`POST /auth/password/forgot`, `POST /auth/password/reset`, `GET /auth/verify-email` sind **spezifiziert, aber nicht implementiert** (ADR-002/008, keine verlässliche SMTP). Es gibt **keine** Routen dafür — auch keine 501-Stubs; Auto-Routing ist aus, unbekannte Pfade antworten `404`. Vom vorbereiteten Schema existiert `profiles.email_verified_at`; eine `password_resets`-Tabelle wurde nicht angelegt. Dieser Abschnitt dokumentiert den späteren Ausbaupfad.
 
 ---
 
@@ -203,9 +203,9 @@ Genau zwei globale Rollen über **Shield-Groups** (nicht über eine `users.role`
 - **Gruppen-/Community-Rollen** (Owner/Mitglied einer Gruppe) sind **eine separate Domäne** (`group_members.role`) und gehören **nicht** in die Plattform-Rolle.
 - Admin-Endpunkte sind durch einen zusätzlichen `group:admin`-Filter geschützt (siehe §5).
 
-Admin-Endpoint (Moderation):
+Admin-Endpunkte (Verwaltung, ADR-019 — Details in API.md §11b):
 
-`PATCH /api/v1/admin/users/{id}` — sperren/entsperren via Shield-`User::ban()/unBan()` bzw. `active`-Flag; Rolle ändern (`addGroup`/`removeGroup`). Nur `admin`. Body z.B. `{ "action": "ban", "reason": "Spam" }` → `200`. Selbst-Sperre verboten (`409 cannot_ban_self`).
+`PATCH /admin/users/{id}` (Profilfelder), `POST …/admin` (`{is_admin}` via `addGroup`/`removeGroup`), `POST …/active` (`{active}` — Sperre), `DELETE`/`POST …/restore` (Shield-Soft-Delete). Nur `admin`. Selbstschutz je Aktion: `409 admin_self_demote|admin_self_deactivate|admin_self_delete`.
 
 ---
 
@@ -235,8 +235,8 @@ Admin-Endpoint (Moderation):
 | `DELETE` | `/api/v1/me` | session + owner | Konto-Löschung (Soft-Delete/Anonymisierung, §9) |
 | `GET` | `/api/v1/users/{id}` | **öffentlich** | Öffentliches Profil (Profilkarte/Profilseite); reduziert für Gäste, Zusatzfelder nur eingeloggt; **ohne** E-Mail |
 | `GET` | `/api/v1/users` | session | Nutzer suchen/auflisten (paginiert; für Einladungen/@-Suche) |
-| `GET` | `/api/v1/users/handle/{handle}` | **öffentlich** | Profil per @-Handle (für `/u/@handle`-Routen); gleiche reduzierte Projektion wie `/users/{id}` |
-| `PATCH` | `/api/v1/admin/users/{id}` | admin | Moderation (sperren/Rolle) |
+| `GET` | `/api/v1/users/handle/{handle}` | — | **deferred** (keine Route; Handle-Suche läuft über `GET /users?q=`) |
+| `PATCH`/`POST`/`DELETE` | `/api/v1/admin/users/{id}[…]` | admin | Verwaltung: Profil/Rolle/Sperre/Soft-Delete (ADR-019, API.md §11b) |
 | `POST` | `/api/v1/conversations/direct` | session | **Direktchat find-or-create** (Querschnitt, §8) |
 
 ### 6.1 `PATCH /api/v1/me/profile`
@@ -256,15 +256,16 @@ Partielles Update. Alle Felder optional; nur gesendete werden geändert.
 }
 ```
 
-Validierung (Auszug):
+Validierung (Auszug). Regelverstöße antworten einheitlich `422 validation_error` mit einer
+`fields`-Map (Feld → deutsche Meldung); nur die Handle-Kollision ist ein eigener `409 handle_taken`:
 
-| Feld | Regel | error.code |
-|---|---|---|
-| `handle` | `^[a-z0-9_]{3,30}$`, `UNIQUE`, lowercase-normalisiert | `handle_taken` / `handle_invalid` |
-| `bio_markdown` | max. 2000 Zeichen; serverseitig **gesäubert** (§7) | `bio_too_long` |
-| `experience_level` | ∈ Enum | `enum_invalid` |
-| `flight_hours` | `0…100000`, Integer | `flight_hours_invalid` |
-| `display_name` | 2–60 Zeichen | `display_name_invalid` |
+| Feld | Regel |
+|---|---|
+| `handle` | `^[a-z0-9_]{3,30}$`, `UNIQUE`, lowercase-normalisiert (Kollision ⇒ `409 handle_taken`) |
+| `bio_markdown` | max. 2000 Zeichen; Rendering client-seitig eingeschränkt (§7) |
+| `experience_level` | ∈ Enum |
+| `flight_hours` | `>= 0`, Integer |
+| `display_name` | 2–80 Zeichen |
 
 Erfolg `200` ⇒ aktualisiertes Profil-Objekt (wie `me.profile`). TanStack Query invalidiert `['me']` und `['user', id]`.
 
@@ -374,6 +375,11 @@ Antwort `200`:
 
 ## 10. Konto-Löschung (Soft-Delete / Anonymisierung, DSGVO-light)
 
+> **Stand der Umsetzung:** `DELETE /me` (Selbst-Löschung inkl. Anonymisierung) ist **nicht
+> implementiert.** Konto-Löschung gibt es im MVP nur als **Admin-Soft-Delete** (ADR-019: reversibel,
+> ohne Anonymisierung; Inhalte und Profil bleiben). Der folgende Entwurf bleibt als Ausbaupfad
+> dokumentiert.
+
 **Entscheidung:** Soft-Delete + Anonymisierung über Shields `users.deleted_at` (vorhanden) **plus** Profil-Anonymisierung. **Kein** Hard-Delete (Kaskadenrisiko in Chats/Gruppen/Feeds).
 
 **`DELETE /api/v1/me` (eigenes Konto):**
@@ -387,7 +393,7 @@ In einer Transaktion:
 
 Antwort `204`; Session-Cookie wird gelöscht.
 
-**Admin-Sperre** (`PATCH /admin/users/{id}`, §4) ist davon getrennt: Shield-`ban()` setzt nur `active`/Status, **ohne** Anonymisierung — reversibel.
+**Admin-Sperre** (`POST /admin/users/{id}/active`, ADR-019) ist davon getrennt: sie setzt nur `active=0` (der `ApiAuthFilter` beendet die laufende Session beim nächsten Request), **ohne** Anonymisierung — reversibel.
 
 > **✅ Entschieden (ADR-012/C4):** `groups.owner_user_id` ist `ON DELETE RESTRICT`; vor einer echten Konto-Löschung erzwingt der Service einen **Owner-Transfer** (keine verwaisten Gruppen). Konto-„Löschen" ist ohnehin primär Soft-Delete.
 
@@ -401,7 +407,7 @@ Antwort `204`; Session-Cookie wird gelöscht.
 - [ ] `GET /auth/me` liefert ohne Session `401`, mit Session User+Profil inkl. `email` (nur hier).
 - [ ] Login mit falscher E-Mail **und** falschem Passwort liefert identisch `401 invalid_credentials` (keine Enumeration).
 - [ ] Schreibende Requests ohne gültiges `X-CSRF-TOKEN` ⇒ `403`; nach Token-Refresh+Retry erfolgreich.
-- [ ] `> 5` Fehllogins/min ⇒ `429 too_many_attempts`.
+- [ ] `> 5` Fehllogins/min ⇒ `429 rate_limited`.
 - [ ] Logout ist idempotent (`204` auch ohne Session) und invalidiert Remember-Token.
 
 **Autorisierung (BOLA)**
@@ -412,7 +418,7 @@ Antwort `204`; Session-Cookie wird gelöscht.
 **Profil & Bio**
 - [ ] `handle` ist `UNIQUE`, lowercase-normalisiert; Kollision ⇒ `409 handle_taken`.
 - [ ] Bio mit eingebettetem `<script>`/`<img onerror=…>`/`javascript:`-Link wird **server- und clientseitig** neutralisiert (XSS-Test grün in der Profilkarte **und** Profilseite).
-- [ ] Bio > 2000 Zeichen ⇒ `422 bio_too_long`.
+- [ ] Bio > 2000 Zeichen ⇒ `422 validation_error` (fields.bio_markdown).
 
 **Avatar**
 - [ ] Upload einer `.png`-Datei mit gefälschtem `image/jpeg`-Header wird per Content-Sniffing erkannt und korrekt verarbeitet/abgelehnt.
@@ -425,12 +431,12 @@ Antwort `204`; Session-Cookie wird gelöscht.
 - [ ] „Direktchat öffnen" ruft `POST /conversations/direct` (find-or-create) auf und navigiert zur Konversation; zweiter Aufruf liefert **dieselbe** Konversation (`dm_key`-UNIQUE).
 - [ ] Bei `is_self=true` zeigt die Karte „Profil bearbeiten" statt „Direktchat öffnen".
 
-**Konto-Löschung**
+**Konto-Löschung** *(deferred — nicht implementiert, s. §10; im MVP nur Admin-Soft-Delete, ADR-019)*
 - [ ] `DELETE /me` anonymisiert `profiles`, entfernt Login-Credential, löscht Avatar-Files, setzt `deleted_at`; danach kein Login mehr möglich.
 - [ ] Vom gelöschten Nutzer verfasste Chat-Nachrichten/Feed-Posts bleiben sichtbar als „Gelöschter Nutzer" (kein `404`, keine Broken-Refs).
 
-**Deferred (Vertrag vorhanden, inaktiv)**
-- [ ] `password/forgot|reset`, `verify-email` antworten `501 not_implemented`; Schema (`password_resets`, `email_verified_at`) existiert, blockiert aber kein anderes Feature.
+**Deferred (spezifiziert, ohne Routen — s. §3.6)**
+- [ ] `password/forgot|reset`, `verify-email`: kein Endpunkt im MVP (`404`); nur `profiles.email_verified_at` ist als Schema-Vorbereitung angelegt.
 
 ---
 
@@ -443,18 +449,18 @@ Antwort `204`; Session-Cookie wird gelöscht.
 | POST | `/api/v1/auth/login` | – | aktiv |
 | POST | `/api/v1/auth/logout` | session | aktiv |
 | GET | `/api/v1/auth/me` | session | aktiv |
-| POST | `/api/v1/auth/password/forgot` | – | **501 deferred** |
-| POST | `/api/v1/auth/password/reset` | – | **501 deferred** |
-| GET | `/api/v1/auth/verify-email` | – | **501 deferred** |
+| POST | `/api/v1/auth/password/forgot` | – | **deferred** (keine Route, §3.6) |
+| POST | `/api/v1/auth/password/reset` | – | **deferred** (keine Route, §3.6) |
+| GET | `/api/v1/auth/verify-email` | – | **deferred** (keine Route, §3.6) |
 | GET | `/api/v1/me/profile` | session | aktiv |
 | PATCH | `/api/v1/me/profile` | session+owner | aktiv |
 | POST | `/api/v1/me/avatar` | session+owner | aktiv |
 | DELETE | `/api/v1/me/avatar` | session+owner | aktiv |
-| DELETE | `/api/v1/me` | session+owner | aktiv |
-| GET | `/api/v1/users/{id}` | session | aktiv |
-| GET | `/api/v1/users/handle/{handle}` | session | aktiv |
+| DELETE | `/api/v1/me` | session+owner | **deferred** (§10; nur Admin-Soft-Delete, ADR-019) |
+| GET | `/api/v1/users/{id}` | **öffentlich** (reduziert) | aktiv |
+| GET | `/api/v1/users/handle/{handle}` | session | **deferred** (keine Route; Suche via `GET /users?q=`) |
 | GET | `/api/v1/users` | session | aktiv |
 | POST | `/api/v1/conversations/direct` | session | aktiv (Querschnitt Chat) |
-| PATCH | `/api/v1/admin/users/{id}` | admin | aktiv |
+| PATCH/POST/DELETE | `/api/v1/admin/users/{id}[…]` | admin | aktiv (ADR-019, API.md §11b) |
 
 **Einheitliches Response-Envelope:** Erfolg `{ "data": … , "meta"?: … }`; Fehler `{ "error": { "code": "<english_snake_case>", "message": "<deutsch>" } }`. `error.code` ist die maschinenlesbare, stabile Kennung; `error.message` der deutsche Anzeigetext.
