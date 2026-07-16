@@ -167,12 +167,17 @@ export function MeetupForm({
         ) : (
           <span />
         )}
+        {/* Die `key`s trennen „Weiter" und den Submit bewusst in zwei DOM-Knoten. Ohne sie recycelt
+            React denselben <button> und dreht nur `type` von "button" auf "submit" um — und zwar noch
+            während der Klick läuft: Der Browser wertet die Default-Aktion erst nach den Microtasks
+            aus, sieht dort schon "submit" und schickt das Formular ab. Genau daran war Schritt 3 nie
+            erreichbar — „Weiter" auf Schritt 2 legte das Treffen sofort an. */}
         {step < STEPS.length - 1 ? (
-          <Button type="button" onClick={next}>
+          <Button key="next" type="button" onClick={next}>
             Weiter
           </Button>
         ) : (
-          <Button type="submit" disabled={submitting}>
+          <Button key="submit" type="submit" disabled={submitting}>
             {submitting ? (initial ? 'Speichern…' : 'Wird erstellt…') : initial ? 'Speichern' : 'Treffen erstellen'}
           </Button>
         )}

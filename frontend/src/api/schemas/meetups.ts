@@ -39,7 +39,10 @@ export const meetupListSchema = z.array(meetupListItemSchema)
 
 /** Detail-Projektion: Listenfelder + Beschreibung, Teilnehmer und nutzerbezogene Flags. */
 export const meetupDetailSchema = meetupListItemSchema.extend({
-  spot_id: z.number(),
+  /** `null`, wenn der Startplatz gelöscht wurde: `meetups.spot_id` ist `ON DELETE SET NULL`, Name und
+   *  Koordinaten bleiben als Snapshot auf der Zeile stehen. Nicht-nullable hieße, dass genau diese
+   *  Treffen am Zod-Parse scheitern und als „nicht gefunden" enden. */
+  spot_id: z.number().nullable(),
   creator_user_id: z.number(),
   /** Konversations-ID des Treffen-Chats (ADR-005). In M3 `null` — der Chat folgt in M5. */
   conversation_id: z.number().nullable(),

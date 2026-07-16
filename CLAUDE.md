@@ -291,6 +291,18 @@ upload quota / ETag-304 on the real webspace) and D4 (admin login for grading) a
 
 ## 12. Gotchas / durable lessons
 
+- **Never flip a `<button>`'s `type` between renders.** A conditional `type="button"` (Weiter) vs
+  `type="submit"` (Absenden) in the *same* JSX slot makes React recycle one DOM node and only swap the
+  attribute — mid-click. The browser evaluates a click's default action **after** the microtask queue
+  drains, by which time React has already written `type="submit"`, so the form submits. That is why the
+  meetup wizard's step-2 "Weiter" silently created the meetup and step 3 ("Details") was unreachable for
+  *every* user: `max_participants`/`description` could not be set at all. Fix = distinct `key`s on the two
+  buttons (forces two DOM nodes; see `MeetupForm.tsx`). jsdom does **not** reproduce this — a Vitest click
+  test would pass while the app is broken, so verify this class of bug in a real browser.
+- **`meetups.spot_id` is nullable in practice** (`ON DELETE SET NULL`), while `spot_name`/`region`/`lat`/
+  `lng` stay as a snapshot on the row. The Zod side must say `.nullable()`, or every meetup at a deleted
+  spot fails `parse()` and the detail page renders "Treffen nicht gefunden" **though the API answered 200**.
+  Deleting a spot in `/admin/spots` is exactly the path that produces this (ADR-019).
 - **Timezone:** `Config/Events.php` pins the MySQL session to `+00:00` on `pre_system` (all envs). Without
   it, `CURRENT_TIMESTAMP` defaults store local time while the app assumes UTC → broke the 15-min edit
   window, displayed +2h, mis-sorted notifications. Keep the pin.
