@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useCreateSpot, useUpdateSpot } from '@/api/admin'
 import { ApiError } from '@/api/http'
@@ -6,6 +6,7 @@ import { adminSpotInputSchema, type AdminSpot, type AdminSpotInput } from '@/api
 import type { AdminSpotPayload } from '@/api/schemas'
 import { Button, Modal, SelectField, TextField, TextareaField } from '@/components/ui'
 import { toast } from '@/stores/toastStore'
+import { SpotLocationPicker } from './SpotLocationPicker'
 import { SPOT_TYPE_LABEL } from './spotLabels'
 
 /**
@@ -22,6 +23,8 @@ export function SpotFormModal({ spot, onClose }: { spot: AdminSpot | null; onClo
     register,
     handleSubmit,
     setError,
+    setValue,
+    control,
     formState: { errors },
   } = useForm<AdminSpotInput>({
     resolver: zodResolver(adminSpotInputSchema),
@@ -36,6 +39,13 @@ export function SpotFormModal({ spot, onClose }: { spot: AdminSpot | null; onClo
       description: spot?.description ?? '',
     },
   })
+
+  // Die Karte ist die Eingabe, die beiden Felder bleiben die Wahrheit im Formular: leer = noch kein
+  // Punkt gesetzt. `toFixed(6)` spiegelt genau DECIMAL(9,6) — sonst zeigte die Anzeige mehr
+  // Nachkommastellen an, als die Spalte behält.
+  const lat = useWatch({ control, name: 'lat' })
+  const lng = useWatch({ control, name: 'lng' })
+  const position = lat !== '' && lng !== '' ? { lat: Number(lat), lng: Number(lng) } : null
 
   /** Formular (Strings) → Wire-Payload (Zahlen). Die Bereichsprüfung hat Zod schon erledigt. */
   function toPayload(values: AdminSpotInput): AdminSpotPayload {
@@ -64,7 +74,8 @@ export function SpotFormModal({ spot, onClose }: { spot: AdminSpot | null; onClo
       open
       onClose={onClose}
       title={isNew ? 'Startplatz anlegen' : 'Startplatz bearbeiten'}
-      className="max-w-lg"
+      // Mit der Karte wird der Dialog zu hoch für kleine Fenster — das Panel darf deshalb scrollen.
+      className="max-h-[88vh] max-w-2xl overflow-y-auto"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -82,10 +93,14 @@ export function SpotFormModal({ spot, onClose }: { spot: AdminSpot | null; onClo
           <TextField label="Region" error={errors.region?.message} {...register('region')} />
           <TextField label="Land" error={errors.country?.message} {...register('country')} />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TextField label="Breitengrad" inputMode="decimal" placeholder="47.7042" error={errors.lat?.message} {...register('lat')} />
-          <TextField label="Längengrad" inputMode="decimal" placeholder="11.7583" error={errors.lng?.message} {...register('lng')} />
-        </div>
+        <SpotLocationPicker
+          position={position}
+          error={errors.lat?.message ?? errors.lng?.message}
+          onPick={({ lat: pickedLat, lng: pickedLng }) => {
+            setValue('lat', pickedLat.toFixed(6), { shouldValidate: true })
+            setValue('lng', pickedLng.toFixed(6), { shouldValidate: true })
+          }}
+        />
         <SelectField label="Typ" error={errors.type?.message} {...register('type')}>
           {Object.entries(SPOT_TYPE_LABEL).map(([value, label]) => (
             <option key={value} value={value}>

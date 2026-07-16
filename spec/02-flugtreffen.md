@@ -89,6 +89,13 @@ Seed: ~20–30 echte Gleitschirm-Startplätze (Assistent liefert Seed-Liste sepa
 
 > **✅ Entschieden (ADR-012/A4):** Nur **Admin/Seed** pflegen die `spots`-Liste; `GET /api/v1/spots` ist read-only für normale Nutzer, **kein** `POST /spots` im MVP. Map-Picker für freie Spots = Phase 2.
 
+> **Abgrenzung (ADR-019):** Der Startplatz-Dialog im Admin-Bereich setzt `lat`/`lng` inzwischen über eine
+> Leaflet-Karte statt über zwei Zahlenfelder. Das ist **nicht** der oben aufgeschobene „Map-Picker für
+> freie Spots" — der meint, dass *normale Nutzer* nicht gelistete Orte wählen dürfen, und bleibt Phase 2.
+> Hier geht es nur um die Eingabeart für die **kuratierte** Liste, die A4 ohnehin „Admin/Seed" zuweist.
+> Weiterhin **kein Geocoding**: eine Ortssuche wäre ein dritter externer Dienst (bisher nur Open-Meteo
+> und Gemini, ADR-017/018) und damit eine eigene Entscheidung.
+
 ---
 
 ## 3. `experience_level`-Enum

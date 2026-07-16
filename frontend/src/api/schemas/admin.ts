@@ -106,7 +106,11 @@ export const adminSpotSchema = z.object({
 })
 export type AdminSpot = z.infer<typeof adminSpotSchema>
 
-/** Prüft ein Koordinaten-Eingabefeld: nicht leer, eine Zahl, im gültigen Bereich. */
+/**
+ * Prüft eine Koordinate: nicht leer, eine Zahl, im gültigen Bereich. Gesetzt wird sie im UI über die
+ * Karte (`SpotLocationPicker`), nicht getippt — die Meldung spricht deshalb vom Setzen, und der
+ * Bereich ist nur noch ein Netz gegen Werte, die gar nicht erst entstehen sollten.
+ */
 function coordinate(max: number, message: string) {
   return z.string().refine((value) => {
     const parsed = Number(value)
@@ -123,8 +127,8 @@ export const adminSpotInputSchema = z.object({
   name: z.string().min(2, 'Mindestens 2 Zeichen.').max(150, 'Höchstens 150 Zeichen.'),
   region: z.string().min(1, 'Bitte eine Region angeben.').max(80, 'Höchstens 80 Zeichen.'),
   country: z.string().length(2, 'Bitte den 2-stelligen Ländercode angeben (z. B. DE).'),
-  lat: coordinate(90, 'Bitte einen Breitengrad zwischen -90 und 90 angeben.'),
-  lng: coordinate(180, 'Bitte einen Längengrad zwischen -180 und 180 angeben.'),
+  lat: coordinate(90, 'Bitte den Startplatz auf der Karte setzen.'),
+  lng: coordinate(180, 'Bitte den Startplatz auf der Karte setzen.'),
   type: adminSpotTypeSchema,
   description: z.string().max(2000, 'Höchstens 2000 Zeichen.'),
 })
