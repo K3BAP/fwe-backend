@@ -61,15 +61,33 @@ export function TopBar() {
               </NavLink>
             )
           })}
-        </nav>
-        <div className="ml-auto flex items-center gap-1.5">
+          {/* Bewusst nicht in NAV (layout/nav.ts): das Array speist auch die mobile BottomNav, die auf
+              4 Einträge ausgelegt ist. Mobil führt das Admin-Badge rechts in den Bereich. */}
           {user?.isAdmin && (
-            <span
-              className="inline-flex items-center rounded-full bg-secondary/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-secondary"
-              title="Plattform-Administrator"
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                cn(
+                  'inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm transition-colors duration-200',
+                  isActive ? 'bg-sky-50 font-semibold text-sky-700' : 'text-base-content/60 hover:bg-base-200',
+                )
+              }
             >
               Admin
-            </span>
+            </NavLink>
+          )}
+        </nav>
+        <div className="ml-auto flex items-center gap-1.5">
+          {/* Auf Mobil der **einzige** Weg in den Admin-Bereich: die Nav-Zeile oben ist `hidden md:flex`
+              und die BottomNav bleibt bei 4 Einträgen. Also nicht unter `md` ausblenden. */}
+          {user?.isAdmin && (
+            <Link
+              to="/admin"
+              className="inline-flex items-center rounded-full bg-secondary/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-secondary transition-colors hover:bg-secondary/25"
+              title="Administration öffnen"
+            >
+              Admin
+            </Link>
           )}
           <button type="button" className="btn btn-circle btn-ghost btn-sm" aria-label="Suchen">
             <SearchIcon size={18} />

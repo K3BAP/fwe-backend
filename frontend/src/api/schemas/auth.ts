@@ -45,7 +45,7 @@ export type PublicUser = z.infer<typeof publicUserSchema>
 export const authSessionSchema = z.object({
   user: publicUserSchema,
   profile: ownProfileSchema,
-  is_admin: z.boolean().default(false), // Plattform-Admin (Shield-Gruppe), nur Anzeige
+  is_admin: z.boolean().default(false), // Plattform-Admin (Shield-Gruppe): steuert Badge + /admin-Guard; durchgesetzt serverseitig (admin-Filter, ADR-019)
   unread: z.object({ messages: z.number(), notifications: z.number() }).optional(),
 })
 export type AuthSession = z.infer<typeof authSessionSchema>

@@ -26,6 +26,22 @@ export const qk = {
     unread: ['chat', 'unread'] as const,
   },
   profiles: (userId: number) => ['profiles', userId] as const,
+  /**
+   * Admin-Bereich (ADR-019). Der gemeinsame `all`-Präfix ist Absicht: ein
+   * `invalidateQueries({ queryKey: qk.admin.all })` frischt das ganze Dashboard inkl. Kennzahlen auf.
+   */
+  admin: {
+    all: ['admin'] as const,
+    stats: ['admin', 'stats'] as const,
+    users: {
+      all: ['admin', 'users'] as const,
+      list: (filters?: Record<string, unknown>) => ['admin', 'users', 'list', filters ?? {}] as const,
+      detail: (id: number) => ['admin', 'users', 'detail', id] as const,
+    },
+    meetups: (filters?: Record<string, unknown>) => ['admin', 'meetups', filters ?? {}] as const,
+    groups: (filters?: Record<string, unknown>) => ['admin', 'groups', filters ?? {}] as const,
+    spots: (filters?: Record<string, unknown>) => ['admin', 'spots', filters ?? {}] as const,
+  },
   notifications: {
     list: ['notifications'] as const,
     unread: ['notifications', 'unread'] as const,

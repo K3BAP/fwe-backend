@@ -1,5 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
-import { RequireAuth, RequireGuest } from '@/components/auth/guards'
+import { RequireAdmin, RequireAuth, RequireGuest } from '@/components/auth/guards'
 import { AppShell } from '@/components/layout/AppShell'
 import { GuestLayout } from '@/components/layout/GuestLayout'
 import { Chat } from './Chat'
@@ -11,7 +11,18 @@ import { GruppeEinstellungen } from './GruppeEinstellungen'
 import { GruppeErstellen } from './GruppeErstellen'
 import { Gruppen } from './Gruppen'
 import { Landing } from './Landing'
-import { FlugtreffenLazy, Lazy, MeetupDetailLazy, StyleguideLazy } from './lazy'
+import {
+  AdminBenutzerLazy,
+  AdminFlugtreffenLazy,
+  AdminGruppenLazy,
+  AdminLayoutLazy,
+  AdminOverviewLazy,
+  AdminSpotsLazy,
+  FlugtreffenLazy,
+  Lazy,
+  MeetupDetailLazy,
+  StyleguideLazy,
+} from './lazy'
 import { Login } from './Login'
 import { MeetupBearbeiten } from './MeetupBearbeiten'
 import { MeetupErstellen } from './MeetupErstellen'
@@ -61,6 +72,24 @@ export const router = createBrowserRouter(
             { path: 'profil/:id', element: <Profil /> },
             { path: 'einstellungen', element: <Einstellungen /> },
             { path: 'styleguide', element: <Lazy><StyleguideLazy /></Lazy> },
+            // Admin-Bereich (ADR-019). Der Guard ist reine UX — durchgesetzt wird der Zugriff
+            // serverseitig vom `admin`-Filter.
+            {
+              path: 'admin',
+              element: <RequireAdmin />,
+              children: [
+                {
+                  element: <Lazy><AdminLayoutLazy /></Lazy>,
+                  children: [
+                    { index: true, element: <Lazy><AdminOverviewLazy /></Lazy> },
+                    { path: 'benutzer', element: <Lazy><AdminBenutzerLazy /></Lazy> },
+                    { path: 'flugtreffen', element: <Lazy><AdminFlugtreffenLazy /></Lazy> },
+                    { path: 'gruppen', element: <Lazy><AdminGruppenLazy /></Lazy> },
+                    { path: 'spots', element: <Lazy><AdminSpotsLazy /></Lazy> },
+                  ],
+                },
+              ],
+            },
             { path: '*', element: <Placeholder title="Seite nicht gefunden (404)" /> },
           ],
         },
