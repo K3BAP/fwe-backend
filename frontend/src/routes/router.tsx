@@ -25,7 +25,7 @@ import {
 } from './lazy'
 import { Login } from './Login'
 import { MeetupErstellen } from './MeetupErstellen'
-import { Placeholder } from './Placeholder'
+import { NotFound } from './NotFound'
 import { Profil } from './Profil'
 import { ProfilBearbeiten } from './ProfilBearbeiten'
 import { Register } from './Register'
@@ -88,7 +88,7 @@ export const router = createBrowserRouter(
                 },
               ],
             },
-            { path: '*', element: <Placeholder title="Seite nicht gefunden (404)" /> },
+            { path: '*', element: <NotFound /> },
           ],
         },
       ],
