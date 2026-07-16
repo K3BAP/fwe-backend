@@ -2,6 +2,15 @@
 
 Diese Datei definiert den **verbindlichen Plan für Demo-/Seed-Daten** (CI4-Faker-Seeder), mit denen FlightMeet bei der Abnahme „voll" und glaubwürdig wirkt. Sie baut **direkt** auf [`DATA_MODEL.md`](DATA_MODEL.md) (Tabellen-/Feldnamen sind dort verbindlich) und [`DECISIONS.md`](DECISIONS.md) auf.
 
+> ⚠️ **Umsetzungsstand (M6):** Der ausgelieferte Seeder (`app/Database/Seeds/DatabaseSeeder.php`) ist
+> **hand-kuratiert und deterministisch — ohne Faker**: feste deutsche Texte lesen sich in der Demo
+> glaubwürdiger als generierte, und der SQL-Dump bleibt stabil (ADR-002). Mengen gegenüber dem Plan
+> moderat verkleinert: **1 Admin + 15 Piloten** (statt 30), **18 Treffen** (statt 25 — alle vier
+> abgeleiteten Status abgedeckt), ~22 Benachrichtigungen (statt ~50); 30 Spots und 8 Gruppen wie
+> geplant. `home_spot_id` existiert nicht (s. DATA_MODEL §3.1), eine Warteliste gibt es nicht
+> (ADR-015). Die Pilot-Array-Indizes **0/1/2 = Lena/Markus/Sophie** werden von Gruppen-/Treffen-
+> Mitgliedschaften referenziert — stabil halten, neue Nutzer hinten anhängen (CLAUDE.md §10).
+
 **Grundsätze (aus den ADRs abgeleitet):**
 - **Deterministisch & reproduzierbar:** Faker mit **festem Seed** (`$faker->seed(15)` — passend zu `db_team15`), damit Demo-Daten zwischen Läufen identisch sind und der lokale SQL-Dump (ADR-002) stabil bleibt.
 - **Deutsch sichtbar, Englisch technisch:** Faker-Locale `de_DE`; alle nutzersichtbaren Texte (Bios, Treffen-Titel, Nachrichten, Feed-Posts) deutsch; alle Enum-Keys/Status englisch (Konvention).
