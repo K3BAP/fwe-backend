@@ -97,4 +97,14 @@ abstract class BaseApiController extends Controller
     {
         return (int) auth()->id();
     }
+
+    /**
+     * Plattform-Admin (Shield-Group `admin`, ADR-012/D4): Override für BOLA/Sichtbarkeit und Quelle
+     * für `can_edit`/`can_manage` in den Presentern. Für Gäste `false` — die Lese-Routen liegen
+     * außerhalb des `auth`-Filters.
+     */
+    protected function isAdmin(): bool
+    {
+        return auth()->loggedIn() && auth()->user()->inGroup('admin');
+    }
 }

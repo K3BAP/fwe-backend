@@ -606,12 +606,6 @@ final class GroupController extends BaseApiController
         return auth()->loggedIn() ? (int) auth()->id() : 0;
     }
 
-    /** Shield-Group `admin` (Site-Admin-Override für BOLA/Sichtbarkeit). */
-    protected function isAdmin(): bool
-    {
-        return auth()->loggedIn() && auth()->user()->inGroup('admin');
-    }
-
     private function groupNotFound(): ResponseInterface
     {
         return $this->respondError('group_not_found', 'Gruppe nicht gefunden.', 404);

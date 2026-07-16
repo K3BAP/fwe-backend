@@ -208,12 +208,6 @@ final class MeetupController extends BaseApiController
         return $this->respondData($detail, $status);
     }
 
-    /** Shield-Group `admin` (für `can_edit`/BOLA-Override). Für Gäste `false`. */
-    protected function isAdmin(): bool
-    {
-        return auth()->loggedIn() && auth()->user()->inGroup('admin');
-    }
-
     /**
      * Deutsche Validierungsmeldungen (spiegelt das Zod-Schema, §9.2).
      *
