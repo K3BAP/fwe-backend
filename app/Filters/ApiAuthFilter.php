@@ -21,6 +21,19 @@ class ApiAuthFilter implements FilterInterface
                 ->setStatusCode(401)
                 ->setJSON(['error' => ['code' => 'unauthenticated', 'message' => 'Bitte melde dich an.']]);
         }
+
+        // Gesperrte Konten (Admin-Deaktivierung, ADR-019) verlieren die *laufende* Session sofort.
+        // Nötig, weil `active` sonst nirgends pro Request geprüft wird: Shields eigene Filter nutzen wir
+        // nicht, und `AuthService::login()` sieht das Flag nur beim Anmelden — ohne diese Prüfung liefe
+        // eine bereits offene Sitzung nach der Sperre unbegrenzt weiter. (Soft-Delete braucht das nicht:
+        // dort findet Shields Provider den User nicht mehr und verwirft die Session selbst.)
+        if (! auth()->user()->active) {
+            auth()->logout();
+
+            return service('response')
+                ->setStatusCode(403)
+                ->setJSON(['error' => ['code' => 'account_suspended', 'message' => 'Dieses Konto ist gesperrt.']]);
+        }
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)

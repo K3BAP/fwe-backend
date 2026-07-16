@@ -26,6 +26,7 @@ class Filters extends BaseFilters
     public array $aliases = [
         // FlightMeet-API-Filter (06-backend §4.2): Shield-Session-Auth, Rate-Limit, CSRF (testfreundlich).
         'auth'          => \App\Filters\ApiAuthFilter::class,
+        'admin'         => \App\Filters\AdminFilter::class,
         'throttle'      => \App\Filters\ThrottleFilter::class,
         'csrf'          => \App\Filters\ApiCsrfFilter::class,
         'toolbar'       => DebugToolbar::class,
