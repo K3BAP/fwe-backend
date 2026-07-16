@@ -222,7 +222,7 @@ and the UI shows a quiet fallback — everything else works.
 ```bash
 composer test                        # PHPUnit — 325 backend tests (MySQL test DB db_team15_test)
                                      # (composer's 300-s process timeout can trip → run `vendor/bin/phpunit` directly)
-cd frontend && npm run test          # Vitest — 42 smoke tests (schemas, lib/format, Badge/Table render)
+cd frontend && npm run test          # Vitest — 52 smoke tests (schemas, lib/format, Badge/Table render)
 cd frontend && npm run typecheck     # tsc -b
 cd frontend && npm run lint          # eslint
 ```
@@ -346,7 +346,7 @@ Open-Meteo proxy, 018 Gemini flight briefing (key in `.env`, describe-never-clea
 
 ## 14. Status
 
-M1–M6 complete and pushed to `origin/flightmeet-react`. Backend 325 PHPUnit green, frontend 42 Vitest green.
+M1–M6 complete and pushed to `origin/flightmeet-react`. Backend 325 PHPUnit green, frontend 52 Vitest green.
 Post-MVP: weather on the meetup detail page (ADR-017), Gemini flight briefing (ADR-018), **admin dashboard
 (ADR-019)**.
 

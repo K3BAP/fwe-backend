@@ -10,6 +10,7 @@ import {
   useRemoveParticipant,
 } from '@/api/meetups'
 import type { MeetupDetail as MeetupDetailDto, PublicUserCard } from '@/api/schemas'
+import { MeetupEditModal } from '@/components/meetups/MeetupEditModal'
 import { ParticipantList } from '@/components/meetups/ParticipantList'
 import { WeatherPanel } from '@/components/meetups/WeatherPanel'
 import { MapShell } from '@/components/map/MapShell'
@@ -24,15 +25,14 @@ function OrganizerActions({ m }: { m: MeetupDetailDto }) {
   const cancel = useCancelMeetup()
   const del = useDeleteMeetup()
   const navigate = useNavigate()
+  const [editOpen, setEditOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const active = m.derived_status !== 'cancelled' && m.derived_status !== 'finished'
 
   return (
     <div className="flex flex-col gap-2">
-      <Link to={`/flugtreffen/${m.id}/bearbeiten`} className="btn btn-primary rounded-full">
-        Bearbeiten
-      </Link>
+      <Button onClick={() => setEditOpen(true)}>Bearbeiten</Button>
       {active && (
         <Button variant="outline" onClick={() => setCancelOpen(true)}>
           Treffen absagen
@@ -41,6 +41,8 @@ function OrganizerActions({ m }: { m: MeetupDetailDto }) {
       <Button variant="ghost" className="text-error" onClick={() => setDeleteOpen(true)}>
         Löschen
       </Button>
+
+      {editOpen && <MeetupEditModal meetupId={m.id} onClose={() => setEditOpen(false)} />}
 
       <Modal
         open={cancelOpen}

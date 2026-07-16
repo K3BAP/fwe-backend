@@ -99,7 +99,6 @@ Layout-Routes (`<Outlet/>`): `RootLayout` (Shell mit Top-Navbar/Bottom-Nav, Toas
 | `/flugtreffen` | `MeetupListPage` | geschützt | Protected | `['flugtreffen', filter]` + Kartenübersicht |
 | `/flugtreffen/neu` | `MeetupCreatePage` | geschützt | Protected | RHF+Zod, Spot-Autocomplete (ADR-007) |
 | `/flugtreffen/:id` | `MeetupDetailPage` | geschützt | Protected | `['flugtreffen', id]` + Teilnahme-Toggle + Treffen-Chat |
-| `/flugtreffen/:id/bearbeiten` | `MeetupEditPage` | geschützt (BOLA: nur Ersteller) | Protected | Edit |
 | `/gruppen` | `GroupListPage` | geschützt | Protected | `['gruppen', filter]` (visibility-gefiltert serverseitig) |
 | `/gruppen/neu` | `GroupCreatePage` | geschützt | Protected | visibility/join_policy (ADR-006) |
 | `/gruppen/:id` | `GroupDetailPage` | geschützt | Protected | `['gruppen', id]`, Feed + Channels + Beitritt |
@@ -111,6 +110,11 @@ Layout-Routes (`<Outlet/>`): `RootLayout` (Shell mit Top-Navbar/Bottom-Nav, Toas
 | `/benachrichtigungen` | `NotificationCenterPage` | geschützt | Protected | `['notifications']` (ADR-008) |
 | `/einstellungen` | `SettingsPage` | geschützt | Protected | Theme, Account |
 | `*` | `NotFoundPage` | — | Root | 404 |
+
+**Treffen bearbeiten hat bewusst keine eigene Route:** `MeetupEditModal` zeigt alle Felder flach auf
+einen Blick und öffnet über der Detailseite bzw. direkt in der Admin-Tabelle (ADR-019). Der
+mehrstufige Wizard bleibt dem **Erstellen** vorbehalten — beim Bearbeiten steht bereits alles fest,
+Schritte würden nur verstecken, was man ändern will.
 
 **ProtectedRoute-Mechanik:** `ProtectedLayout` liest den Bootstrap-Status aus dem `AuthStore` (gespeist aus `useQuery(['me'])`, siehe §3). Solange `['me']` `pending` ist → Full-Page-Skeleton (kein Flash). Bei `401`/null-User → `<Navigate to="/login" replace state={{ from: location }} />`; nach Login Rücksprung auf `state.from`. **Wichtig (BOLA, _crosscutting #4):** Diese Gates sind **nur UX** — die echte Autorisierung pro Objekt (Mitglied/Owner/Teilnehmer) erfolgt serverseitig; das Frontend reagiert lediglich auf `403`/`404`.
 

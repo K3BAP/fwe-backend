@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAdminInvalidate, useAdminMeetups } from '@/api/admin'
 import { useCancelMeetup, useDeleteMeetup } from '@/api/meetups'
 import type { AdminMeetupRow } from '@/api/schemas'
 import { AdminMeetupTable } from '@/components/admin/AdminMeetupTable'
 import { AdminSearchField } from '@/components/admin/AdminSearchField'
+import { MeetupEditModal } from '@/components/meetups/MeetupEditModal'
 import { useAdminListState } from '@/components/admin/useAdminListState'
 import { Button, EmptyState, FilterPill, Modal, Pager, Skeleton, type MenuItemDef } from '@/components/ui'
 
@@ -21,7 +21,7 @@ type Confirm = { kind: 'cancel' | 'delete'; meetup: AdminMeetupRow } | null
  */
 export function AdminFlugtreffen() {
   const { page, sort, get, patch, goToPage, offset, limit } = useAdminListState(DEFAULT_SORT)
-  const navigate = useNavigate()
+  const [editing, setEditing] = useState<AdminMeetupRow | null>(null)
   const [confirm, setConfirm] = useState<Confirm>(null)
 
   const { data, isLoading, isError } = useAdminMeetups({
@@ -40,9 +40,7 @@ export function AdminFlugtreffen() {
   const pending = cancel.isPending || remove.isPending
 
   function actionsFor(meetup: AdminMeetupRow): MenuItemDef[] {
-    const items: MenuItemDef[] = [
-      { label: 'Bearbeiten', onSelect: () => navigate(`/flugtreffen/${meetup.id}/bearbeiten`) },
-    ]
+    const items: MenuItemDef[] = [{ label: 'Bearbeiten', onSelect: () => setEditing(meetup) }]
     if (meetup.status !== 'cancelled') {
       items.push({ label: 'Absagen', onSelect: () => setConfirm({ kind: 'cancel', meetup }) })
     }
@@ -94,6 +92,9 @@ export function AdminFlugtreffen() {
           <Pager page={page} pageSize={limit} total={total} onPage={goToPage} />
         </>
       )}
+
+      {/* Bearbeitet wird in der Liste, ohne sie zu verlassen — wie bei den Startplätzen. */}
+      {editing && <MeetupEditModal meetupId={editing.id} onClose={() => setEditing(null)} onSaved={invalidateAdmin} />}
 
       <Modal
         open={confirm !== null}
