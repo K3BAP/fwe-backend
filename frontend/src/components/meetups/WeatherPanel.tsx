@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { useMeetupWeather } from '@/api/weather'
+import { useMeetupBriefing } from '@/api/briefings'
 import type { WeatherHour } from '@/api/schemas'
 import { Card, Skeleton } from '@/components/ui'
-import { ArrowUpIcon, CloudIcon, CloudRainIcon, GustIcon, ThermometerIcon, WindIcon } from '@/components/layout/icons'
+import { ArrowUpIcon, CloudIcon, CloudRainIcon, GustIcon, SparkleIcon, ThermometerIcon, WindIcon } from '@/components/layout/icons'
 import { compassPoint, formatClock, formatTemperature, formatWindSpeed } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { fadeUp, useMotionConfig } from '@/lib/motion'
@@ -88,6 +89,8 @@ export function WeatherPanel({ meetupId, startsAt }: { meetupId: number; startsA
 
         {data.trend.length > 1 && <Trend hours={data.trend} activeAt={snapshot.at} />}
 
+        <Briefing meetupId={meetupId} startsAt={startsAt} />
+
         <p className="text-xs text-base-content/45">Quelle: Open-Meteo</p>
       </Card>
     </motion.div>
@@ -171,6 +174,47 @@ function Trend({ hours, activeAt }: { hours: WeatherHour[]; activeAt: string }) 
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+/**
+ * KI-Flug-Briefing (ADR-018): fasst die angezeigten Wetterdaten auf Klick in 2–3 deutschen
+ * Sätzen zusammen. Läuft bewusst erst auf Anforderung (`enabled`), weil jeder Erstabruf
+ * Gemini-Frei-Kontingent kosten kann. Alle Ausfälle enden in einer leisen Zeile — das
+ * Briefing ist Beiwerk zum Wetter, nie ein Blocker.
+ */
+function Briefing({ meetupId, startsAt }: { meetupId: number; startsAt: string }) {
+  const [requested, setRequested] = useState(false)
+  const { data, isPending, isError } = useMeetupBriefing(meetupId, startsAt, requested)
+
+  return (
+    <div className="border-t border-base-300 pt-4">
+      {!requested ? (
+        <button type="button" className="btn btn-ghost btn-sm gap-2 rounded-full text-primary" onClick={() => setRequested(true)}>
+          <SparkleIcon size={16} />
+          Flug-Briefing erstellen
+        </button>
+      ) : isPending ? (
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-4/5" />
+        </div>
+      ) : isError ? (
+        <p className="text-sm text-base-content/55">Das KI-Briefing ist derzeit nicht verfügbar.</p>
+      ) : data.reason === 'not_configured' ? (
+        <p className="text-sm text-base-content/55">Das KI-Briefing ist auf diesem Server nicht eingerichtet.</p>
+      ) : !data.available || data.text === null ? (
+        <p className="text-sm text-base-content/55">Für dieses Treffen gibt es kein Briefing.</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm leading-relaxed text-base-content/80">{data.text}</p>
+          <p className="flex items-center gap-1.5 text-xs text-base-content/45">
+            <SparkleIcon size={12} />
+            KI-generiert (Gemini) — beschreibt nur die Wetterdaten, keine Flugfreigabe.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

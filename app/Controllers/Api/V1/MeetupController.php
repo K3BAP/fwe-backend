@@ -4,6 +4,7 @@ namespace App\Controllers\Api\V1;
 
 use App\Controllers\Api\BaseApiController;
 use App\Exceptions\ApiException;
+use App\Services\BriefingService;
 use App\Services\MeetupPresenter;
 use App\Services\MeetupService;
 use App\Services\WeatherService;
@@ -74,6 +75,27 @@ final class MeetupController extends BaseApiController
         }
 
         return $this->respondMaybeCached($weather);
+    }
+
+    /**
+     * GET /meetups/{id}/briefing — KI-Flug-Briefing zu den Wetterdaten (Gemini-Proxy, ADR-018).
+     * Öffentlich wie das Wetter selbst; ohne konfigurierten Key oder ohne Wetter kommt ein
+     * `200 { available: false, reason }` — nur ein echter Gemini-Ausfall ist ein Fehler.
+     */
+    public function briefing($id): ResponseInterface
+    {
+        $row = (new MeetupService())->findRow((int) $id);
+        if ($row === null) {
+            return $this->respondError('not_found', 'Flugtreffen nicht gefunden.', 404);
+        }
+
+        try {
+            $briefing = (new BriefingService())->forMeetup($row);
+        } catch (ApiException $e) {
+            return $this->fromException($e);
+        }
+
+        return $this->respondMaybeCached($briefing);
     }
 
     /** POST /meetups — Erstellen (Wizard, §9). Auth-pflichtig; Creator wird Ersteller + Teilnehmer. */

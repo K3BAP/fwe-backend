@@ -7,6 +7,7 @@ use CodeIgniter\Shield\Test\AuthenticationTesting;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
+use Config\Services;
 
 /**
  * Feature-Tests der Auth-Domäne (M2 Slice 2, API.md §2): register/login/logout/me inkl. Fehlerpfade
@@ -193,7 +194,10 @@ final class AuthTest extends CIUnitTestCase
 
     public function testLoginIsRateLimited(): void
     {
-        cache()->clean(); // Throttle-Buckets zurücksetzen
+        // Der Throttler-Singleton hält den MockCache seiner ersten Erzeugung fest — nur ein
+        // Reset (nicht `cache()->clean()`, das trifft den falschen Cache) startet den Bucket
+        // dieses Tests garantiert bei voller Kapazität (siehe MeetupBriefingTest::setUp).
+        Services::resetSingle('throttler');
         $this->createPilot('lena@flightmeet.test', 'passwort123');
 
         for ($i = 0; $i < 5; $i++) {

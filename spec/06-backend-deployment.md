@@ -412,7 +412,7 @@ Direkt nach dem ersten Live-Deploy auf `hosting.wi1cm.uni-trier.de` prüfen:
 - [ ] **FileCache:** `writable/cache` ist beschreibbar (sonst auf `null`-Handler zurückfallen, §8).
 - [ ] **ETag/`304`:** ein gepollter GET (z. B. `/conversations`, `/notifications`) liefert beim zweiten Abruf mit `If-None-Match` ein **`304`** durch (Apache reicht den Header durch; der CI4-Helper überspringt `304` nur unter dem PHP-Dev-Server).
 - [ ] **SMTP:** ob der Webspace ausgehende Mails zulässt (für später; E-Mail-Flows sind im MVP aus, ADR-008).
-- [ ] **Ausgehendes HTTPS + `ext-curl`** (Wetter-Proxy, ADR-017): `GET /api/v1/meetups/{id}/weather` eines künftigen Treffens liefert `200` mit `available: true`. Der Wetter-Proxy ist der **einzige** ausgehende HTTP-Call der Anwendung; sperrt der Webspace ihn (oder fehlt `ext-curl`), antwortet der Endpunkt `503 weather_unavailable` — die Detailseite zeigt dann nur eine leise Ersatzzeile und bleibt sonst voll funktionsfähig. Kein Fallback nötig, aber das Verhalten für die Abnahme kennen.
+- [ ] **Ausgehendes HTTPS + `ext-curl`** (Wetter-Proxy ADR-017, KI-Briefing ADR-018): `GET /api/v1/meetups/{id}/weather` eines künftigen Treffens liefert `200` mit `available: true`; danach `GET …/briefing` (setzt `gemini.apiKey` in der Server-`.env` voraus, sonst `not_configured`). Ausgehende Hosts: `api.open-meteo.com` und `generativelanguage.googleapis.com`. Sperrt der Webspace sie (oder fehlt `ext-curl`), antworten die Endpunkte `503 weather_unavailable`/`briefing_unavailable` — die Detailseite zeigt dann nur leise Ersatzzeilen und bleibt sonst voll funktionsfähig.
 
 ### 13.3 TODO D4 — Abnahme-Login (ADR-012/D4)
 

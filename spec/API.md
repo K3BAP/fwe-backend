@@ -45,7 +45,7 @@ Alle Endpunkte liegen unter dem Präfix **`/api/v1`** (ADR via offene Frage „A
 | 409 | `conflict` (z.B. doppelter Beitritt, Treffen voll) |
 | 422 | `validation_error` (Body-Validierung; `error.fields` gefüllt) |
 | 429 | `rate_limited` (Throttle, v.a. Login) |
-| 503 | `weather_unavailable` (externer Dienst nicht erreichbar; nur Wetter-Proxy, ADR-017) |
+| 503 | `weather_unavailable` / `briefing_unavailable` (externer Dienst nicht erreichbar; Wetter-/KI-Proxy, ADR-017/018) |
 
 ### 1.5 Validierung (doppelt: Zod + CI4)
 Jedes Request-Schema wird **client-seitig mit Zod** (React Hook Form) **und** identisch **server-seitig mit CI4-Validation** geprüft (Defense in Depth). Unten ist je Feld die maßgebliche Regel angegeben; sie gilt für beide Seiten.
@@ -234,6 +234,7 @@ Einzelner Spot inkl. `description`. **Response 200** → `{ data: Spot }`. **Feh
 | 5.7 | DELETE | `/meetups/{id}/participants/me` | Teilnehmer (self) |
 | 5.8 | DELETE | `/meetups/{id}/participants/{userId}` | Creator oder `admin` |
 | 5.9 | GET | `/meetups/{id}/weather` | öffentlich (throttled) |
+| 5.10 | GET | `/meetups/{id}/briefing` | öffentlich (throttled) |
 
 > **Status-Konsolidierung:** persistiert nur `open|cancelled`; `full` (= `participant_count >= max_participants`) und `finished` (= `starts_at < NOW()`) werden im Read berechnet (ADR-002). „Teilnehmen/Absagen" ist ein eigener Sub-Resource (`participants`), **nicht** `/join` — vereinheitlicht gegen das Beitrittsmuster der Gruppen.
 
@@ -335,6 +336,23 @@ Wetter am Startplatz zur Startzeit (**Open-Meteo-Proxy**, ADR-017). **Öffentlic
 
 **„Kein Wetter" ist kein Fehler:** vergangenes Treffen (`past`, 2 h Kulanz für laufende), jenseits des 16-Tage-Horizonts (`out_of_range`) oder ohne Koordinaten (`no_location`) ⇒ `200 { available: false, reason }` **ohne** Upstream-Call.
 **Fehler:** `404 not_found`; `429 rate_limited`; `503 weather_unavailable` (Open-Meteo nicht erreichbar/fehlerhaft).
+
+### 5.10 GET `/meetups/{id}/briefing`
+KI-Flug-Briefing zu den Wetterdaten (**Gemini-Proxy**, ADR-018). **Öffentlich**, gedrosselt mit `throttle:briefing,10` (10/min/IP — LLM-Frei-Kontingent), Antwort mit `ETag`/`304`. Der Gemini-Key liegt nur serverseitig (`gemini.apiKey` in `.env`); in den Prompt fließen ausschließlich kuratierte Daten (kein Titel/keine Beschreibung → keine Prompt-Injection-Fläche). Ergebnis 30 min gecacht, Schlüssel an die Wetter-Zielstunde gekoppelt.
+
+**Response 200** → `{ data: MeetupBriefing }`
+
+```jsonc
+{
+  "available": true,               // false ⇒ text/generated_at: null
+  "reason": null,                  // "past" | "out_of_range" | "no_location" | "not_configured" | null
+  "text": "Am Startplatz weht …",  // 2–3 deutsche Sätze; beschreibt NUR die Daten, nie eine Flugfreigabe
+  "generated_at": "2026-07-12T08:04:11Z"
+}
+```
+
+**„Kein Briefing" ist kein Fehler:** Wetter-Gründe werden durchgereicht; fehlender API-Key ⇒ `not_configured` — jeweils `200` **ohne** Upstream-Call.
+**Fehler:** `404 not_found`; `429 rate_limited`; `503 briefing_unavailable` (Gemini nicht erreichbar/Kontingent erschöpft/leere Antwort).
 
 ---
 

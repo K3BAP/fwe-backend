@@ -80,3 +80,7 @@ export const ThermometerIcon = (p: IconProps) => (
 )
 /** Pfeil nach oben — für die Windrichtung um `wind_direction_deg` gedreht. */
 export const ArrowUpIcon = (p: IconProps) => <Base {...p}><path d="M12 20V4M6 10l6-6 6 6" /></Base>
+/** Vierzackiger Funken — Kennzeichnung KI-generierter Inhalte (ADR-018). */
+export const SparkleIcon = (p: IconProps) => (
+  <Base {...p}><path d="M12 3c.9 4.6 3.4 7.1 8 8-4.6.9-7.1 3.4-8 8-.9-4.6-3.4-7.1-8-8 4.6-.9 7.1-3.4 8-8z" /><path d="M19 15.5c.35 1.8 1.2 2.65 3 3-1.8.35-2.65 1.2-3 3-.35-1.8-1.2-2.65-3-3 1.8-.35 2.65-1.2 3-3z" /></Base>
+)

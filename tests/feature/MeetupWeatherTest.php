@@ -32,9 +32,12 @@ final class MeetupWeatherTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        // Der Proxy cacht Upstream-Antworten (und der Throttle-Filter zählt im selben Cache) —
-        // ohne Leeren würden Tests einander beeinflussen.
+        // Der Proxy cacht Upstream-Antworten — ohne Leeren würden Tests einander beeinflussen.
         cache()->clean();
+        // Der Throttler-Singleton hält den MockCache seiner ersten Erzeugung fest und zählt dort
+        // prozessweit weiter (siehe MeetupBriefingTest) — neu binden, damit jeder Test mit
+        // vollem Bucket startet.
+        Services::resetSingle('throttler');
     }
 
     protected function tearDown(): void

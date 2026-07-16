@@ -67,3 +67,14 @@
 #--------------------------------------------------------------------
 
 # logger.threshold = 4
+
+#--------------------------------------------------------------------
+# GEMINI (KI-Flug-Briefing, ADR-018)
+#--------------------------------------------------------------------
+# Kostenloser API-Key: https://aistudio.google.com/apikey — den echten Key
+# NUR in die lokale `.env` bzw. `env.prod` eintragen (beide gitignored),
+# NIE committen. Ohne Key antwortet das Briefing mit `not_configured`,
+# die App funktioniert unverändert weiter.
+
+# gemini.apiKey = ''
+# gemini.model = 'gemini-flash-lite-latest'

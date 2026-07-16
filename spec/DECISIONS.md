@@ -343,3 +343,42 @@ Für Gleitschirmflieger entscheidet vor allem der **Bodenwind (10 m) samt Böen*
 [`06-backend-deployment.md`](06-backend-deployment.md) §13). Fällt das aus, degradiert die Seite sauber:
 das Panel zeigt eine leise Ersatzzeile, alles andere funktioniert. Abgesagte, aber künftige Treffen zeigen
 weiterhin Wetter (die Absage kommuniziert die Detailseite selbst) — die Regel bleibt rein zeitbasiert.
+
+---
+
+## ADR-018 – KI-Flug-Briefing: Gemini hinter dem Backend-Proxy ✅
+**Datum:** 2026-07-10 · **Quelle:** Nutzer (Demo-Feature mit kostenlosem Gemini-Key)
+
+**Kontext:** Das Wetter-Panel (ADR-017) zeigt Rohwerte. Als Demonstration einer KI-Integration soll
+ein Klick daraus eine 2–3-sätzige deutsche Zusammenfassung erzeugen. Constraints wie gehabt:
+Shared Webspace, kein Budget (kostenloser API-Key), Haftungsvorsicht bei einem Risikosport.
+
+**Entscheidung:**
+1. **Gemini API** (`generateContent`, Standard-Modell `gemini-flash-lite-latest` — Googles Evergreen-Lite-Alias:
+   ältere Modell-IDs sind für neue Keys gesperrt, und Nicht-Lite-Flash „denkt" selbst bei Mini-Prompts 12–15 s; per `Config\Gemini` bzw. `gemini.model` in
+   `.env` austauschbar). Kostenloser Key über https://aistudio.google.com/apikey.
+2. **Backend-Proxy, Key nur serverseitig:** `GET /api/v1/meetups/{id}/briefing` (öffentlich wie das
+   Wetter, `throttle:briefing,10`). Der Key steht ausschließlich in `.env`/`env.prod` (gitignored)
+   und erreicht nie den Browser — exakt das von Googles eigener Doku empfohlene Muster.
+3. **Nur kuratierte Daten im Prompt** (Spot, Region, Level, Messwerte, Windverlauf) — bewusst kein
+   Treffen-Titel und keine Beschreibung, damit Nutzertext keine Instruktionen einschleusen kann.
+4. **Beschreiben, nie freigeben:** die System-Instruktion verbietet Flugempfehlungen/Freigaben/
+   Warnungen; die UI kennzeichnet den Text als „KI-generiert … keine Flugfreigabe". Verlängert die
+   ADR-017-Haltung (Farbbetonung ≠ Empfehlung) auf generierten Text.
+5. **Nicht-Verfügbarkeit ist Datum:** Wetter-Gründe (`past`/`out_of_range`/`no_location`) werden
+   durchgereicht, fehlender Key = `not_configured` — alles `200 {available:false, reason}` ohne
+   Upstream-Call. Nur ein echter Gemini-Ausfall (Timeout/429/5xx/leere Antwort) → `503
+   briefing_unavailable`; bei 429 mit „ausgelastet"-Meldung. Fehlschläge werden nie gecacht.
+6. **On-Demand + Cache:** Erzeugung nur auf Button-Klick (Frei-Kontingent!), Ergebnis 30 min im
+   FileCache, Schlüssel an die Wetter-Zielstunde gekoppelt — Briefing und angezeigte Werte bleiben
+   konsistent, ein laufendes Treffen wandert stündlich mit. `maxOutputTokens` großzügig (1024):
+   Flash-Modelle „denken" intern mit und zählen diese Tokens aufs Budget an — ein knappes Limit
+   schneidet den Text ab. **Kein** `thinkingConfig`: dessen Parameter sind je Modellgeneration
+   inkompatibel (2.5 nimmt `thinkingBudget`, 3.x lehnt es mit 404 ab), das Modell ist aber frei
+   konfigurierbar.
+
+**Konsequenzen:** Zweiter ausgehender HTTP-Call der Anwendung (nach Open-Meteo) → D3-Check um
+`generativelanguage.googleapis.com` + Server-Key erweitert. Ohne Key läuft die App unverändert
+(leise „nicht eingerichtet"-Zeile) — das Feature ist strikt Beiwerk. Der geteilte
+`curlrequest`-Service verlangt beim Gemini-Call absolute URL + Optionen pro Request (der
+WeatherService erzeugt die Instanz ggf. zuerst, mit Open-Meteo-BaseURI und 4-s-Timeout).
